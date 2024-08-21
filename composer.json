@@ -18,10 +18,13 @@
         }
     ],
     "require": {
-        "doctrine/dbal": "^4.1",
+        "php": "^8.2",
+        "doctrine/dbal": "^3.0|^4.0",
         "illuminate/cache": "*",
+        "illuminate/contracts": "*",
         "illuminate/database": "*",
-        "saloonphp/laravel-http-sender": "^3.0",
+        "illuminate/http": "*",
+        "saloonphp/laravel-http-sender": "^2.0|^3.0",
         "saloonphp/laravel-plugin": "^3.5",
         "saloonphp/saloon": "^3.10"
     },
