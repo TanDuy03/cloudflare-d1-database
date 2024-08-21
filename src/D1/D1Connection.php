@@ -22,7 +22,7 @@ class D1Connection extends SQLiteConnection
 
     protected function getDefaultSchemaGrammar()
     {
-        ($grammar = new D1SchemaGrammar)->setConnection($this);
+        ($grammar = new D1SchemaGrammar())->setConnection($this);
 
         return $this->withTablePrefix($grammar);
     }

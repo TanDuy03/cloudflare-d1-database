@@ -12,7 +12,7 @@ abstract class CloudflareConnector extends Connector
         public ?string $accountId = null,
         public string $apiUrl = 'https://api.cloudflare.com/client/v4',
     ) {
-        // 
+        //
     }
 
     protected function defaultAuth(): TokenAuthenticator
@@ -29,7 +29,7 @@ abstract class CloudflareConnector extends Connector
     {
         return [
             'Content-Type' => 'application/json',
-            'Accept' => 'application/json',
+            'Accept'       => 'application/json',
         ];
     }
 }
