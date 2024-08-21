@@ -2,9 +2,9 @@
 
 namespace Ntanduy\CFD1\D1\Pdo;
 
+use Ntanduy\CFD1\CloudflareD1Connector;
 use PDO;
 use PDOStatement;
-use Ntanduy\CFD1\CloudflareD1Connector;
 
 class D1Pdo extends PDO
 {
@@ -58,7 +58,7 @@ class D1Pdo extends PDO
 
     public function commit(): bool
     {
-        return ! ($this->inTransaction = false);
+        return !($this->inTransaction = false);
     }
 
     public function inTransaction(): bool
