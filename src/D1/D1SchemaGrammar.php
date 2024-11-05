@@ -7,9 +7,9 @@ use Illuminate\Support\Str;
 
 class D1SchemaGrammar extends SQLiteGrammar
 {
-    public function compileTableExists()
+    public function compileTableExists($table)
     {
-        return Str::of(parent::compileTableExists())
+        return Str::of(parent::compileTableExists($table))
             ->replace('sqlite_master', 'sqlite_schema')
             ->__toString();
     }
