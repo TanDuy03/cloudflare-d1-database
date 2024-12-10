@@ -43,7 +43,7 @@
     },
     "minimum-stability": "stable",
     "require-dev": {
-        "pestphp/pest": "^2.35",
+        "pestphp/pest": "^3.7",
         "orchestra/testbench": "^9.3",
         "mockery/mockery": "^1.6",
         "laravel/legacy-factories": "^1.4"
