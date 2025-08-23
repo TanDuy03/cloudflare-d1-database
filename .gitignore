@@ -3,4 +3,16 @@ composer.phar
 composer.lock
 .DS_Store
 .phpunit.result.cache
+.phpunit.cache
 test.md
+*.log
+.env
+.env.*
+!.env.example
+build/
+coverage/
+docs/_build/
+.vscode/
+.idea/
+*.tmp
+*.temp

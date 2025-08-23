@@ -1,6 +1,7 @@
 # D1 - Cloudflare bindings for Laravel
 
 [![StyleCI](https://github.styleci.io/repos/845491307/shield?branch=main)](https://github.styleci.io/repos/845491307)
+[![Tests](https://github.com/TanDuy03/cloudflare-d1-database/actions/workflows/tests.yml/badge.svg)](https://github.com/TanDuy03/cloudflare-d1-database/actions/workflows/tests.yml)
 ![Packagist Dependency Version](https://img.shields.io/packagist/dependency-v/ntanduy/cloudflare-d1-database/php)
 [![Latest Stable Version](https://poser.pugx.org/ntanduy/cloudflare-d1-database/v/stable)](https://packagist.org/packages/ntanduy/cloudflare-d1-database)
 [![Total Downloads](https://poser.pugx.org/ntanduy/cloudflare-d1-database/downloads)](https://packagist.org/packages/ntanduy/cloudflare-d1-database)
@@ -8,6 +9,13 @@
 [![License](https://poser.pugx.org/ntanduy/cloudflare-d1-database/license)](https://packagist.org/packages/ntanduy/cloudflare-d1-database)
 
 Integrate Cloudflare bindings into your PHP/Laravel application.
+
+## 🎯 Requirements
+
+- **PHP**: ^8.2
+- **Laravel**: ^10.0|^11.0|^12.0
+
+## ✨ Features
 
 This package offers support for:
 
@@ -62,7 +70,7 @@ npm run start
 
 In a separate terminal, run the tests:
 
-``` bash
+```bash
 vendor/bin/phpunit
 ```
 
@@ -70,7 +78,7 @@ vendor/bin/phpunit
 
 Please see [CONTRIBUTING](CONTRIBUTING.md) for details.
 
-## 🔒  Security
+## 🔒 Security
 
 If you discover any security related issues, please email <ng.tanduy261203@gmail.com> instead of using the issue tracker.
 
