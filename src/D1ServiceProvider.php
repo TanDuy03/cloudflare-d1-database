@@ -4,6 +4,7 @@ namespace Ntanduy\CFD1;
 
 use Illuminate\Support\ServiceProvider;
 use Ntanduy\CFD1\D1\D1Connection;
+use Ntanduy\CFD1\CloudflareD1Connector;
 
 class D1ServiceProvider extends ServiceProvider
 {

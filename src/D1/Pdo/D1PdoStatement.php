@@ -28,22 +28,22 @@ class D1PdoStatement extends PDOStatement
         return true;
     }
 
-    public function bindValue($param, $value, $type = PDO::PARAM_STR): bool
+    public function bindValue(string|int $param, mixed $value, int $type = PDO::PARAM_STR): bool
     {
         $this->bindings[$param] = match ($type) {
-            PDO::PARAM_STR  => (string) $value,
+            PDO::PARAM_STR => (string) $value,
             PDO::PARAM_BOOL => (bool) $value,
-            PDO::PARAM_INT  => (int) $value,
+            PDO::PARAM_INT => (int) $value,
             PDO::PARAM_NULL => null,
-            default         => $value,
+            default => $value,
         };
 
         return true;
     }
 
-    public function execute($params = []): bool
+    public function execute(?array $params = null): bool
     {
-        $this->bindings = array_values($this->bindings ?: $params);
+        $this->bindings = array_values($this->bindings ?: $params ?? []);
 
         $response = $this->pdo->d1()->databaseQuery(
             $this->query,
@@ -68,13 +68,13 @@ class D1PdoStatement extends PDOStatement
         return true;
     }
 
-    public function fetchAll(int $mode = PDO::FETCH_DEFAULT, ...$args): array
+    public function fetchAll(int $mode = PDO::FETCH_DEFAULT, mixed ...$args): array
     {
         $response = match ($this->fetchMode) {
             PDO::FETCH_ASSOC => $this->rowsFromResponses(),
-            PDO::FETCH_OBJ   => collect($this->rowsFromResponses())->map(function ($row) {
-                return (object) $row;
-            })->toArray(),
+            PDO::FETCH_OBJ => collect($this->rowsFromResponses())->map(function ($row) {
+                    return (object) $row;
+                })->toArray(),
             default => throw new PDOException('Unsupported fetch mode.'),
         };
 
@@ -89,7 +89,7 @@ class D1PdoStatement extends PDOStatement
     protected function rowsFromResponses(): array
     {
         return collect($this->responses)
-            ->map(fn ($response) => $response['results'])
+            ->map(fn($response) => $response['results'])
             ->collapse()
             ->toArray();
     }
