@@ -1,6 +1,5 @@
 # D1 - Cloudflare bindings for Laravel
 
-[![StyleCI](https://github.styleci.io/repos/845491307/shield?branch=main)](https://github.styleci.io/repos/845491307)
 [![Tests](https://github.com/TanDuy03/cloudflare-d1-database/actions/workflows/tests.yml/badge.svg)](https://github.com/TanDuy03/cloudflare-d1-database/actions/workflows/tests.yml)
 ![Packagist Dependency Version](https://img.shields.io/packagist/dependency-v/ntanduy/cloudflare-d1-database/php)
 [![Latest Stable Version](https://poser.pugx.org/ntanduy/cloudflare-d1-database/v/stable)](https://packagist.org/packages/ntanduy/cloudflare-d1-database)
