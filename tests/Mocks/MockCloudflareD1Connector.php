@@ -25,19 +25,18 @@ class MockCloudflareD1Connector extends CloudflareD1Connector
             // Store user data if it's a user insert
             if (str_contains($query, 'users')) {
                 self::$users[self::$idCounter] = [
-                    'id' => self::$idCounter,
-                    'name' => $params[0] ?? 'Test User',
-                    'email' => $params[1] ?? 'test' . self::$idCounter . '@example.com',
+                    'id'                => self::$idCounter,
+                    'name'              => $params[0] ?? 'Test User',
+                    'email'             => $params[1] ?? 'test'.self::$idCounter.'@example.com',
                     'email_verified_at' => null,
-                    'password' => $params[2] ?? '$2y$10$TKh8H1.PfQx37YgCzwiKb.KjNyWgaHb9cbcoQgdIVFlYg7B77UdFm',
-                    'remember_token' => $params[3] ?? null,
-                    'created_at' => date('Y-m-d H:i:s'),
-                    'updated_at' => date('Y-m-d H:i:s')
+                    'password'          => $params[2] ?? '$2y$10$TKh8H1.PfQx37YgCzwiKb.KjNyWgaHb9cbcoQgdIVFlYg7B77UdFm',
+                    'remember_token'    => $params[3] ?? null,
+                    'created_at'        => date('Y-m-d H:i:s'),
+                    'updated_at'        => date('Y-m-d H:i:s'),
                 ];
             }
 
             self::$idCounter++;
-
         } elseif (str_contains($query, 'SELECT') || str_contains($query, 'select')) {
             // For SELECT queries, return mock data if needed
             if (str_contains($query, 'exists')) {
@@ -67,19 +66,19 @@ class MockCloudflareD1Connector extends CloudflareD1Connector
         // Create response body
         $responseBody = json_encode([
             'success' => true,
-            'result' => [
+            'result'  => [
                 [
                     'results' => $results,
-                    'meta' => [
-                        'served_by' => 'v1.2.3',
-                        'duration' => 0.1,
-                        'changes' => $changes,
-                        'last_row_id' => $lastRowId,
-                        'rows_read' => count($results),
-                        'rows_written' => $changes
-                    ]
-                ]
-            ]
+                    'meta'    => [
+                        'served_by'    => 'v1.2.3',
+                        'duration'     => 0.1,
+                        'changes'      => $changes,
+                        'last_row_id'  => $lastRowId,
+                        'rows_read'    => count($results),
+                        'rows_written' => $changes,
+                    ],
+                ],
+            ],
         ]);
 
         // Create PSR-7 response
