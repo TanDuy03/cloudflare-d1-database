@@ -12,8 +12,8 @@ Integrate Cloudflare bindings into your PHP/Laravel application.
 
 ## 🎯 Requirements
 
-- **PHP**: ^8.2
-- **Laravel**: ^10.0|^11.0|^12.0
+- **PHP**: >= 8.2
+- **Laravel**: 10.x, 11.x, or 12.x
 
 ## ✨ Features
 
@@ -80,7 +80,7 @@ Please see [CONTRIBUTING](CONTRIBUTING.md) for details.
 
 ## 🔒 Security
 
-If you discover any security related issues, please email <ng.tanduy261203@gmail.com> instead of using the issue tracker.
+If you discover any security related issues, please email <contact@ntanduy.com> instead of using the issue tracker.
 
 ## 🎉 Credits
 
