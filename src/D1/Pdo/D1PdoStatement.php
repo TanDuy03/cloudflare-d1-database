@@ -31,11 +31,11 @@ class D1PdoStatement extends PDOStatement
     public function bindValue(string|int $param, mixed $value, int $type = PDO::PARAM_STR): bool
     {
         $this->bindings[$param] = match ($type) {
-            PDO::PARAM_STR => (string) $value,
+            PDO::PARAM_STR  => (string) $value,
             PDO::PARAM_BOOL => (bool) $value,
-            PDO::PARAM_INT => (int) $value,
+            PDO::PARAM_INT  => (int) $value,
             PDO::PARAM_NULL => null,
-            default => $value,
+            default         => $value,
         };
 
         return true;
@@ -72,9 +72,9 @@ class D1PdoStatement extends PDOStatement
     {
         $response = match ($this->fetchMode) {
             PDO::FETCH_ASSOC => $this->rowsFromResponses(),
-            PDO::FETCH_OBJ => collect($this->rowsFromResponses())->map(function ($row) {
-                    return (object) $row;
-                })->toArray(),
+            PDO::FETCH_OBJ   => collect($this->rowsFromResponses())->map(function ($row) {
+                return (object) $row;
+            })->toArray(),
             default => throw new PDOException('Unsupported fetch mode.'),
         };
 
@@ -89,7 +89,7 @@ class D1PdoStatement extends PDOStatement
     protected function rowsFromResponses(): array
     {
         return collect($this->responses)
-            ->map(fn($response) => $response['results'])
+            ->map(fn ($response) => $response['results'])
             ->collapse()
             ->toArray();
     }

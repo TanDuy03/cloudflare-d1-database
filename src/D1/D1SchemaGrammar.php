@@ -3,7 +3,6 @@
 namespace Ntanduy\CFD1\D1;
 
 use Illuminate\Database\Schema\Grammars\SQLiteGrammar;
-use Illuminate\Support\Str;
 
 class D1SchemaGrammar extends SQLiteGrammar
 {
@@ -13,7 +12,8 @@ class D1SchemaGrammar extends SQLiteGrammar
     /**
      * Compile the SQL needed to drop all tables.
      *
-     * @param  string|null  $schema
+     * @param string|null $schema
+     *
      * @return string
      */
     public function compileDropAllTables($schema = null)
@@ -27,7 +27,8 @@ class D1SchemaGrammar extends SQLiteGrammar
     /**
      * Compile the SQL needed to drop all views.
      *
-     * @param  string|null  $schema
+     * @param string|null $schema
+     *
      * @return string
      */
     public function compileDropAllViews($schema = null)
