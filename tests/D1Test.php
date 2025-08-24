@@ -9,25 +9,32 @@ class D1Test extends TestCase
 {
     public function test_d1_database_select()
     {
-        /** @var User $user */
-        $user = factory(User::class)->create();
+        // Use Laravel's factory helper function
+        $user = User::factory()->create();
 
-        $this->assertDatabaseHas('users', [
-            'id' => $user->id,
-        ]);
+        // Test that user was created successfully
+        expect($user)->not->toBeNull();
+        expect($user->id)->not->toBeNull();
+        expect($user->name)->not->toBeEmpty();
+        expect($user->email)->not->toBeEmpty();
+
+        // Test database retrieval
+        $foundUser = User::find($user->id);
+        expect($foundUser)->not->toBeNull();
+        expect($foundUser->id)->toBe($user->id);
+        expect($foundUser->email)->toBe($user->email);
     }
 
     public function test_d1_database_transaction()
     {
-        /** @var User $user */
-        $user = factory(User::class)->create();
+        $user = User::factory()->create();
 
-        DB::transaction(function () {
-            /** @var User $user */
-            $user = factory(User::class)->create();
-            $dbUser = User::whereEmail($user->email)->first();
+        DB::transaction(function () use ($user) {
+            $newUser = User::factory()->create();
+            $dbUser = User::where('email', $user->email)->first();
 
-            $this->assertEquals($user->id, $dbUser->id);
+            expect($dbUser)->not->toBeNull();
+            expect($dbUser->id)->toBe($user->id);
 
             return $dbUser;
         });

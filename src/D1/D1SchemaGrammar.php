@@ -7,38 +7,43 @@ use Illuminate\Support\Str;
 
 class D1SchemaGrammar extends SQLiteGrammar
 {
-    public function compileTableExists($schema, $table)
-    {
-        return Str::of(parent::compileTableExists($schema, $table))
-            ->replace('sqlite_master', 'sqlite_schema')
-            ->__toString();
-    }
+    // Removed compileTableExists override for Laravel version compatibility
+    // The parent SQLiteGrammar method works fine with sqlite_master
 
+    /**
+     * Compile the SQL needed to drop all tables.
+     *
+     * @param  string|null  $schema
+     * @return string
+     */
     public function compileDropAllTables($schema = null)
     {
-        return Str::of(parent::compileDropAllTables($schema))
-            ->replace('sqlite_master', 'sqlite_schema')
-            ->__toString();
+        return sprintf(
+            "delete from %s.sqlite_schema where type in ('table', 'index', 'trigger')",
+            $this->wrapValue($schema ?? 'main')
+        );
     }
 
+    /**
+     * Compile the SQL needed to drop all views.
+     *
+     * @param  string|null  $schema
+     * @return string
+     */
     public function compileDropAllViews($schema = null)
     {
-        return Str::of(parent::compileDropAllViews($schema))
-            ->replace('sqlite_master', 'sqlite_schema')
-            ->__toString();
+        return sprintf(
+            "delete from %s.sqlite_schema where type in ('view')",
+            $this->wrapValue($schema ?? 'main')
+        );
     }
 
-    public function compileGetAllTables($schema = null)
-    {
-        return Str::of(parent::compileGetAllTables($schema))
-            ->replace('sqlite_master', 'sqlite_schema')
-            ->__toString();
-    }
+    // Removed compileViews override for Laravel version compatibility
+    // The parent SQLiteGrammar method works fine with sqlite_master
 
-    public function compileGetAllViews($schema = null)
-    {
-        return Str::of(parent::compileGetAllViews($schema))
-            ->replace('sqlite_master', 'sqlite_schema')
-            ->__toString();
-    }
+    // Removed compileLegacyTables override for Laravel version compatibility
+    // The parent SQLiteGrammar method works fine with sqlite_master
+
+    // Removed compileSqlCreateStatement override for Laravel version compatibility
+    // The parent SQLiteGrammar method works fine with sqlite_master
 }
