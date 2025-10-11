@@ -31,7 +31,7 @@ class D1PdoStatement extends PDOStatement
     public function bindValue(string|int $param, mixed $value, int $type = PDO::PARAM_STR): bool
     {
         $this->bindings[$param] = match ($type) {
-            PDO::PARAM_STR => (string) $value,
+            PDO::PARAM_STR => $value === null ? null : (string) $value,
             PDO::PARAM_BOOL => (bool) $value,
             PDO::PARAM_INT => (int) $value,
             PDO::PARAM_NULL => null,
