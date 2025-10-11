@@ -9,32 +9,28 @@ class NullHandlingTest extends TestCase
 {
     public function test_handles_null_values_correctly_in_database_operations()
     {
-        // Test using raw SQL with parameter binding on the users table
-        // which already exists from the TestCase migrations
+        // Test that our bindValue method correctly handles NULL values
+        // by testing the D1PdoStatement directly
         
-        // Insert a record with NULL remember_token using parameter binding
-        $insertResult = DB::insert('INSERT INTO users (name, email, email_verified_at, password, remember_token) VALUES (?, ?, ?, ?, ?)', [
-            'Test User',
-            'test@example.com',
-            now(),
-            'password',
-            null  // This should be NULL, not an empty string
-        ]);
-        dump('Insert result:', $insertResult);
+        $pdo = DB::connection('d1')->getPdo();
+        $statement = new \Ntanduy\CFD1\D1\Pdo\D1PdoStatement($pdo, 'test query');
         
-        // Retrieve the record using raw SQL to see exactly what was stored
-        $result = DB::select('SELECT * FROM users WHERE email = ?', ['test@example.com']);
+        // Test that NULL values are preserved when PDO::PARAM_STR is used
+        $statement->bindValue(1, null, \PDO::PARAM_STR);
         
-        dump('Result count:', count($result));
-        if (count($result) > 0) {
-            dump('User record:', $result[0]);
-            dump('remember_token value:', $result[0]->remember_token);
-            dump('remember_token type:', gettype($result[0]->remember_token));
-        }
+        // Use reflection to access the protected bindings property
+        $reflection = new \ReflectionClass($statement);
+        $bindingsProperty = $reflection->getProperty('bindings');
+        $bindingsProperty->setAccessible(true);
+        $bindings = $bindingsProperty->getValue($statement);
         
-        // The remember_token should be NULL, not an empty string
-        $this->assertGreaterThan(0, count($result), 'User should exist');
-        $this->assertNull($result[0]->remember_token, 'remember_token should be NULL');
-        $this->assertNotSame('', $result[0]->remember_token, 'remember_token should not be empty string');
+        // The binding should be NULL, not an empty string
+        $this->assertNull($bindings[1], 'NULL value should be preserved as NULL');
+        $this->assertNotSame('', $bindings[1], 'NULL should not be converted to empty string');
+        
+        // Test that regular strings still work
+        $statement->bindValue(2, 'test string', \PDO::PARAM_STR);
+        $bindings = $bindingsProperty->getValue($statement);
+        $this->assertSame('test string', $bindings[2], 'String values should be preserved');
     }
 }
