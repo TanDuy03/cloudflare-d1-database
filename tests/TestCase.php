@@ -8,6 +8,7 @@ use Ntanduy\CFD1\Test\Mocks\MockCloudflareD1Connector;
 
 abstract class TestCase extends Orchestra
 {
+    protected static $latestResponse = null;
 
     /**
      * {@inheritdoc}
