@@ -101,7 +101,14 @@ class D1SchemaGrammar extends SQLiteGrammar
             return "select * from sqlite_schema where type = 'table' and name = ?";
         }
 
-        // Laravel 11+ support
+        // Laravel 11 support (1 argument passed: $table)
+        // In Laravel 11, the signature is compileTableExists($table)
+        if (func_num_args() === 1) {
+            $table = $schema; // The first argument is actually the table
+            $schema = null;   // Schema is default
+        }
+
+        // Laravel 12+ support (2 arguments passed: $schema, $table)
         // We implement this directly to avoid deprecation warnings in some Laravel versions
         // when passing null schema, and to ensure sqlite_schema is used.
         return sprintf(
