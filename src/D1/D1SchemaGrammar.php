@@ -85,4 +85,29 @@ class D1SchemaGrammar extends SQLiteGrammar
             ->replace('sqlite_master', 'sqlite_schema')
             ->__toString();
     }
+
+    /**
+     * Compile the query to determine if a table exists.
+     * Compatible with Laravel 10, 11, 12
+     *
+     * @param string|null $schema
+     * @param string|null $table
+     * @return string
+     */
+    public function compileTableExists($schema = null, $table = null)
+    {
+        // Laravel 10 support (no arguments passed)
+        if (func_num_args() === 0) {
+            return "select * from sqlite_schema where type = 'table' and name = ?";
+        }
+
+        // Laravel 11+ support
+        // We implement this directly to avoid deprecation warnings in some Laravel versions
+        // when passing null schema, and to ensure sqlite_schema is used.
+        return sprintf(
+            'select exists (select 1 from %s.sqlite_schema where name = %s and type = \'table\') as "exists"',
+            $this->wrapValue($schema ?? 'main'),
+            $this->quoteString($table)
+        );
+    }
 }

@@ -70,7 +70,7 @@ npm run start
 In a separate terminal, run the tests:
 
 ```bash
-vendor/bin/phpunit
+vendor/bin/pest
 ```
 
 ## 🤝 Contributing
