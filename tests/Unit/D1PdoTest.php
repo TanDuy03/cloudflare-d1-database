@@ -42,11 +42,6 @@ test('getAttribute returns correct client version', function () {
 test('transaction methods manage state', function () {
     $connector = Mockery::mock(CloudflareD1Connector::class);
 
-    // Allow transaction commands
-    $connector->shouldReceive('databaseQuery')->with('BEGIN TRANSACTION', [])->andReturn(Mockery::mock(Saloon\Http\Response::class));
-    $connector->shouldReceive('databaseQuery')->with('COMMIT', [])->andReturn(Mockery::mock(Saloon\Http\Response::class));
-    $connector->shouldReceive('databaseQuery')->with('ROLLBACK', [])->andReturn(Mockery::mock(Saloon\Http\Response::class));
-
     $pdo = new D1Pdo('dsn', $connector);
 
     expect($pdo->inTransaction())->toBeFalse();
@@ -70,10 +65,6 @@ test('transaction methods manage state', function () {
 
 test('commit resets transaction state even if no queries were executed', function () {
     $connector = Mockery::mock(CloudflareD1Connector::class);
-
-    // Allow transaction commands
-    $connector->shouldReceive('databaseQuery')->with('BEGIN TRANSACTION', [])->andReturn(Mockery::mock(Saloon\Http\Response::class));
-    $connector->shouldReceive('databaseQuery')->with('COMMIT', [])->andReturn(Mockery::mock(Saloon\Http\Response::class));
 
     $pdo = new D1Pdo('dsn', $connector);
 
