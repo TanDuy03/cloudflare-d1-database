@@ -163,6 +163,14 @@ class D1Pdo extends PDO
             return 'D1';
         }
 
+        if ($attribute === PDO::ATTR_EMULATE_PREPARES) {
+            return $this->attributes[$attribute] ?? true;
+        }
+
+        if ($attribute === PDO::ATTR_ERRMODE) {
+            return $this->attributes[$attribute] ?? PDO::ERRMODE_EXCEPTION;
+        }
+
         return $this->attributes[$attribute] ?? null;
     }
 
