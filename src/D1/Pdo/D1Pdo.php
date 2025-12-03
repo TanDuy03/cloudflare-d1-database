@@ -96,10 +96,23 @@ class D1Pdo extends PDO
         $response = $this->connector->databaseQuery($statement, []);
 
         if ($response->failed() || !$response->json('success')) {
+            $errorCode = $response->json('errors.0.code');
+            $errorMessage = $response->json('errors.0.message', 'Unknown error');
+
+            // Map D1 error codes to SQLSTATE codes
+            $sqlState = match (true) {
+                str_contains($errorMessage, 'UNIQUE constraint') => '23000',
+                str_contains($errorMessage, 'NOT NULL constraint') => '23000',
+                str_contains($errorMessage, 'syntax error') => '42000',
+                str_contains($errorMessage, 'no such table') => '42S02',
+                str_contains($errorMessage, 'no such column') => '42S22',
+                default => 'HY000'
+            };
+
             $this->errorInfo = [
-                'HY000',
-                $response->json('errors.0.code'),
-                $response->json('errors.0.message')
+                $sqlState,
+                $errorCode,
+                $errorMessage
             ];
 
             return false;
@@ -126,11 +139,11 @@ class D1Pdo extends PDO
     }
 
     #[\ReturnTypeWillChange]
-    public function query($query, ?int $fetchMode = PDO::FETCH_CLASS, mixed ...$fetchModeArgs): PDOStatement|false
+    public function query($query, ?int $fetchMode = null, mixed ...$fetchModeArgs): PDOStatement|false
     {
         $statement = $this->prepare($query);
 
-        if ($fetchMode !== PDO::FETCH_CLASS || !empty($fetchModeArgs)) {
+        if ($fetchMode !== null) {
             $statement->setFetchMode($fetchMode, ...$fetchModeArgs);
         }
 
