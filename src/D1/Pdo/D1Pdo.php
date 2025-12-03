@@ -61,6 +61,8 @@ class D1Pdo extends PDO
             return false;
         }
 
+        $this->connector->databaseQuery('BEGIN TRANSACTION', []);
+
         return $this->inTransaction = true;
     }
 
@@ -69,6 +71,8 @@ class D1Pdo extends PDO
         if (!$this->inTransaction) {
             return false;
         }
+
+        $this->connector->databaseQuery('COMMIT', []);
 
         $this->inTransaction = false;
 
@@ -80,6 +84,8 @@ class D1Pdo extends PDO
         if (!$this->inTransaction) {
             return false;
         }
+
+        $this->connector->databaseQuery('ROLLBACK', []);
 
         $this->inTransaction = false;
 

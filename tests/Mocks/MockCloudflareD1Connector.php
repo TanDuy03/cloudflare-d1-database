@@ -4,75 +4,98 @@ namespace Ntanduy\CFD1\Test\Mocks;
 
 use Ntanduy\CFD1\CloudflareD1Connector;
 use Saloon\Http\Response;
+use PDO;
+use PDOException;
 
 class MockCloudflareD1Connector extends CloudflareD1Connector
 {
-    private static $idCounter = 1;
-    private static $users = []; // Store created users
+    // Use static to persist DB state across connection re-resolves within a test
+    private static ?PDO $sqlite = null;
+
+    public function __construct(...$args)
+    {
+        parent::__construct(...$args);
+        $this->ensureDatabaseExists();
+    }
+
+    public static function reset(): void
+    {
+        self::$sqlite = null;
+    }
+
+    private function ensureDatabaseExists(): void
+    {
+        if (self::$sqlite === null) {
+            self::$sqlite = new PDO('sqlite::memory:');
+            self::$sqlite->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+            self::$sqlite->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
+        }
+    }
 
     public function databaseQuery(string $query, array $params): Response
     {
+        $this->ensureDatabaseExists();
+
         $results = [];
-        $lastRowId = 0;
         $changes = 0;
+        $lastRowId = null;
+        $success = true;
+        $errors = [];
 
-        // Handle different query types
-        if (str_contains($query, 'INSERT') || str_contains($query, 'insert')) {
-            // For INSERT queries, return a row ID
-            $lastRowId = self::$idCounter;
-            $changes = 1;
+        try {
+            // Handle Transaction commands explicitly
+            if (preg_match('/^\s*BEGIN/i', $query)) {
+                self::$sqlite->beginTransaction();
+                $changes = 0;
+            } elseif (preg_match('/^\s*COMMIT/i', $query)) {
+                self::$sqlite->commit();
+                $changes = 0;
+            } elseif (preg_match('/^\s*ROLLBACK/i', $query)) {
+                self::$sqlite->rollBack();
+                $changes = 0;
+            } else {
+                // Prepare and execute the query against the real in-memory SQLite
+                $stmt = self::$sqlite->prepare($query);
+                $stmt->execute($params);
 
-            // Store user data if it's a user insert
-            if (str_contains($query, 'users')) {
-                self::$users[self::$idCounter] = [
-                    'id' => self::$idCounter,
-                    'name' => $params[0] ?? 'Test User',
-                    'email' => $params[1] ?? 'test' . self::$idCounter . '@example.com',
-                    'email_verified_at' => null,
-                    'password' => $params[2] ?? '$2y$10$TKh8H1.PfQx37YgCzwiKb.KjNyWgaHb9cbcoQgdIVFlYg7B77UdFm',
-                    'remember_token' => $params[3] ?? null,
-                    'created_at' => date('Y-m-d H:i:s'),
-                    'updated_at' => date('Y-m-d H:i:s')
-                ];
-            }
+                // Determine query type for response formatting
+                $isSelect = preg_match('/^\s*(SELECT|WITH|PRAGMA|EXPLAIN)\b/i', $query);
 
-            self::$idCounter++;
-
-        } elseif (str_contains($query, 'SELECT') || str_contains($query, 'select')) {
-            // For SELECT queries, return mock data if needed
-            if (str_contains($query, 'exists')) {
-                // For migration existence checks
-                $results = [['exists' => 1]];
-            } elseif (str_contains($query, 'migrations')) {
-                // For migration queries, return empty migrations
-                $results = [];
-            } elseif (str_contains($query, 'users')) {
-                // For user queries, return stored users or specific user
-                if (!empty($params)) {
-                    // If there are params, look for specific user
-                    foreach (self::$users as $user) {
-                        // Check if param matches ID or email
-                        if (in_array($user['id'], $params) || in_array($user['email'], $params)) {
-                            $results = [$user];
-                            break;
-                        }
-                    }
+                if ($isSelect) {
+                    $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                    $changes = 0; // D1 returns 0 changes for SELECT
                 } else {
-                    // Return all users
-                    $results = array_values(self::$users);
+                    $changes = $stmt->rowCount();
+                    // Only get lastInsertId for INSERTs to mimic D1 behavior closely
+                    if (preg_match('/^\s*INSERT\b/i', $query)) {
+                        $lastRowId = self::$sqlite->lastInsertId();
+                        // D1 returns the ID as integer usually, but PDO might return string
+                        $lastRowId = $lastRowId ? (int) $lastRowId : null;
+                    }
                 }
             }
+
+        } catch (PDOException $e) {
+            $success = false;
+            $errors = [
+                [
+                    'code' => $e->getCode() !== '00000' ? $e->getCode() : 7500,
+                    'message' => $e->getMessage(),
+                ]
+            ];
         }
 
-        // Create response body
+        // Construct D1-compatible JSON response
         $responseBody = json_encode([
-            'success' => true,
+            'success' => $success,
+            'errors' => $errors,
+            'messages' => [],
             'result' => [
                 [
                     'results' => $results,
                     'meta' => [
-                        'served_by' => 'v1.2.3',
-                        'duration' => 0.1,
+                        'served_by' => 'mock-sqlite-memory',
+                        'duration' => 0.001,
                         'changes' => $changes,
                         'last_row_id' => $lastRowId,
                         'rows_read' => count($results),
@@ -82,18 +105,16 @@ class MockCloudflareD1Connector extends CloudflareD1Connector
             ]
         ]);
 
-        // Create PSR-7 response
+        // Create PSR-7 objects for Saloon Response
         $psrResponse = new \GuzzleHttp\Psr7\Response(
             200,
             ['Content-Type' => 'application/json'],
             $responseBody
         );
 
-        // Create PSR-7 request
-        $psrRequest = new \GuzzleHttp\Psr7\Request('POST', '/test');
+        $psrRequest = new \GuzzleHttp\Psr7\Request('POST', '/mock-query');
 
-        // Create Saloon request and pending request
-        $request = new \Ntanduy\CFD1\D1\Requests\D1QueryRequest($this, 'test', $query, $params);
+        $request = new \Ntanduy\CFD1\D1\Requests\D1QueryRequest($this, 'mock-db', $query, $params);
         $pendingRequest = new \Saloon\Http\PendingRequest($this, $request);
 
         return new Response($psrResponse, $pendingRequest, $psrRequest);
