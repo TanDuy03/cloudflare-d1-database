@@ -114,17 +114,14 @@ class D1Pdo extends PDO
 
     public function quote($value, $type = PDO::PARAM_STR): string|false
     {
-        // NULL → SQL NULL
         if ($value === null) {
             return 'NULL';
         }
 
-        // Boolean → 1/0
         if (is_bool($value)) {
             return $value ? '1' : '0';
         }
 
-        // Chuỗi chuẩn SQLite escaping
         return "'" . str_replace("'", "''", (string) $value) . "'";
     }
 
