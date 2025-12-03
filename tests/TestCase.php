@@ -17,7 +17,7 @@ abstract class TestCase extends Orchestra
     {
         parent::setUp();
 
-        \Ntanduy\CFD1\Test\Mocks\MockCloudflareD1Connector::reset();
+        MockCloudflareD1Connector::reset();
 
         $this->loadLaravelMigrations(['--database' => 'd1']);
 
