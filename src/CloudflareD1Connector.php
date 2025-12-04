@@ -11,8 +11,9 @@ class CloudflareD1Connector extends CloudflareConnector
         #[\SensitiveParameter] protected ?string $token = null,
         #[\SensitiveParameter] public ?string $accountId = null,
         public string $apiUrl = 'https://api.cloudflare.com/client/v4',
+        array $options = [],
     ) {
-        parent::__construct($token, $accountId, $apiUrl);
+        parent::__construct($token, $accountId, $apiUrl, $options);
     }
 
     public function databaseQuery(string $query, array $params, bool $retry = true): Response

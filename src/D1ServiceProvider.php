@@ -48,12 +48,21 @@ class D1ServiceProvider extends ServiceProvider
                 $accountId = $config['auth']['account_id'] ?? $config['account_id'] ?? '';
                 $api = $config['api'] ?? 'https://api.cloudflare.com/client/v4';
 
+                // Performance options with sensible defaults
+                $options = [
+                    'timeout' => $config['timeout'] ?? 10,
+                    'connect_timeout' => $config['connect_timeout'] ?? 5,
+                    'retries' => $config['retries'] ?? 2,
+                    'retry_delay' => $config['retry_delay'] ?? 100,
+                ];
+
                 $connection = new D1Connection(
                     new CloudflareD1Connector(
                         $config['database'],
                         $token,
                         $accountId,
                         $api,
+                        $options,
                     ),
                     $config,
                 );

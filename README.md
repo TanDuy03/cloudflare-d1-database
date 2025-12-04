@@ -43,6 +43,10 @@ Add a new connection in your `config/database.php` file:
             'token' => env('CLOUDFLARE_TOKEN', ''),
             'account_id' => env('CLOUDFLARE_ACCOUNT_ID', ''),
         ],
+        'timeout' => env('D1_TIMEOUT', 10),
+        'connect_timeout' => env('D1_CONNECT_TIMEOUT', 5),
+        'retries' => env('D1_RETRIES', 2),
+        'retry_delay' => env('D1_RETRY_DELAY', 100),
     ],
 ]
 ```
@@ -50,12 +54,35 @@ Add a new connection in your `config/database.php` file:
 Next, configure your Cloudflare credentials in the `.env` file:
 
 ```
-CLOUDFLARE_TOKEN=
-CLOUDFLARE_ACCOUNT_ID=
+CLOUDFLARE_TOKEN=your_api_token
+CLOUDFLARE_ACCOUNT_ID=your_account_id
 CLOUDFLARE_D1_DATABASE_ID=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
 ```
 
+### Configuration Options
+
+| Option            | Default | Description                          |
+| ----------------- | ------- | ------------------------------------ |
+| `timeout`         | 10      | Request timeout in seconds           |
+| `connect_timeout` | 5       | Connection timeout in seconds        |
+| `retries`         | 2       | Max retry attempts on 5xx/429 errors |
+| `retry_delay`     | 100     | Base delay between retries (ms)      |
+
+For production, you can tune these via `.env`:
+
+```
+D1_TIMEOUT=10
+D1_CONNECT_TIMEOUT=5
+D1_RETRIES=2
+D1_RETRY_DELAY=100
+```
+
 The `d1` driver will forward PDO queries to the Cloudflare D1 API to execute them.
+
+## ⚠️ Limitations
+
+- **No real transactions**: D1 doesn't support `BEGIN`/`COMMIT`/`ROLLBACK`. The driver simulates transaction state for Laravel compatibility, but queries are executed immediately.
+- **REST API latency**: Each query is an HTTP request (~100-500ms). For low-latency needs, consider using Cloudflare Workers with native D1 bindings.
 
 ## 🌱 Testing
 
