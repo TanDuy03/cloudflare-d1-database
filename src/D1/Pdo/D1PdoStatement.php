@@ -38,10 +38,23 @@ class D1PdoStatement extends PDOStatement
             PDO::PARAM_BOOL => (bool) $value,
             PDO::PARAM_INT => (int) $value,
             PDO::PARAM_NULL => null,
+            PDO::PARAM_LOB => $this->convertLOBToString($value),
             default => $value,
         };
 
         return true;
+    }
+
+    protected function convertLOBToString($value): string
+    {
+        if (is_resource($value)) {
+            $content = stream_get_contents($value);
+            if ($content === false) {
+                throw new PDOException('Failed to read LOB stream');
+            }
+            return $content;
+        }
+        return (string) $value;
     }
 
     public function execute(?array $params = null): bool
