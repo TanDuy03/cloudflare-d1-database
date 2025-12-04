@@ -87,7 +87,7 @@ test('execute does not reorder bindings', function () {
 
     $connector->shouldReceive('databaseQuery')
         ->once()
-        ->with('INSERT INTO table (col1, col2) VALUES (?, ?)', ['value1', 'value2'])
+        ->with('INSERT INTO table (col1, col2) VALUES (?, ?)', ['value1', 'value2'], true)
         ->andReturn($response);
 
     $stmt = new D1PdoStatement($pdo, 'INSERT INTO table (col1, col2) VALUES (?, ?)');

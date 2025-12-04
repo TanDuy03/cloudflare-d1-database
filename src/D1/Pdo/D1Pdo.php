@@ -16,6 +16,8 @@ class D1Pdo extends PDO
 
     protected array $attributes = [];
 
+    protected bool $useRetry = true;
+
     public function __construct(
         protected string $dsn,
         protected CloudflareD1Connector $connector,
@@ -93,7 +95,7 @@ class D1Pdo extends PDO
 
     public function exec($statement): int|false
     {
-        $response = $this->connector->databaseQuery($statement, []);
+        $response = $this->connector->databaseQuery($statement, [], $this->useRetry);
 
         if ($response->failed() || !$response->json('success')) {
             $errorCode = $response->json('errors.0.code');
@@ -192,5 +194,21 @@ class D1Pdo extends PDO
         $this->attributes[$attribute] = $value;
 
         return true;
+    }
+
+    /**
+     * Enable or disable retry for queries.
+     * Disable for DDL/migration for faster execution.
+     */
+    public function setRetry(bool $retry): self
+    {
+        $this->useRetry = $retry;
+
+        return $this;
+    }
+
+    public function shouldRetry(): bool
+    {
+        return $this->useRetry;
     }
 }

@@ -69,6 +69,7 @@ class D1PdoStatement extends PDOStatement
         $response = $this->pdo->d1()->databaseQuery(
             $this->query,
             $bindings,
+            $this->pdo->shouldRetry(),
         );
 
         if ($response->failed() || !$response->json('success')) {
