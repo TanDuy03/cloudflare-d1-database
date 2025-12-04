@@ -32,7 +32,7 @@ class MockCloudflareD1Connector extends CloudflareD1Connector
         }
     }
 
-    public function databaseQuery(string $query, array $params): Response
+    public function databaseQuery(string $query, array $params, bool $retry = true): Response
     {
         $this->ensureDatabaseExists();
 

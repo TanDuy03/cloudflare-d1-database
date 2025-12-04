@@ -8,17 +8,19 @@ class CloudflareD1Connector extends CloudflareConnector
 {
     public function __construct(
         public ?string $database = null,
-        protected ?string $token = null,
-        public ?string $accountId = null,
+        #[\SensitiveParameter] protected ?string $token = null,
+        #[\SensitiveParameter] public ?string $accountId = null,
         public string $apiUrl = 'https://api.cloudflare.com/client/v4',
     ) {
         parent::__construct($token, $accountId, $apiUrl);
     }
 
-    public function databaseQuery(string $query, array $params): Response
+    public function databaseQuery(string $query, array $params, bool $retry = true): Response
     {
-        return $this->send(
-            new D1\Requests\D1QueryRequest($this, $this->database, $query, $params),
-        );
+        $request = new D1\Requests\D1QueryRequest($this, $this->database, $query, $params);
+
+        return $retry
+            ? $this->sendWithRetry($request)
+            : $this->send($request);
     }
 }
