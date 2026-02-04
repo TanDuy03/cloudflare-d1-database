@@ -2,7 +2,6 @@
 
 namespace Ntanduy\CFD1\D1\Pdo;
 
-use Illuminate\Support\Arr;
 use PDO;
 use PDOException;
 use PDOStatement;
@@ -82,12 +81,17 @@ class D1PdoStatement extends PDOStatement
         $this->responses = $response->json('result');
         $this->results = $this->rowsFromResponses();
         $this->currentResultIndex = 0;
-        $this->affectedRows = collect($this->responses)->sum('meta.changes');
+        $this->affectedRows = array_reduce(
+            $this->responses,
+            fn($sum, $response) => $sum + ($response['meta']['changes'] ?? 0),
+            0
+        );
 
-        $lastId = Arr::get(Arr::last($this->responses), 'meta.last_row_id', null);
-
-        if (!in_array($lastId, [0, null])) {
-            $this->pdo->setLastInsertId(value: $lastId);
+        if (!empty($this->responses)) {
+            $lastId = end($this->responses)['meta']['last_row_id'] ?? null;
+            if ($lastId) {
+                $this->pdo->setLastInsertId(null, $lastId);
+            }
         }
 
         return true;
@@ -150,10 +154,11 @@ class D1PdoStatement extends PDOStatement
 
     protected function rowsFromResponses(): array
     {
-        return collect($this->responses)
-            ->map(fn($response) => $response['results'] ?? [])
-            ->collapse()
-            ->toArray();
+        $rows = [];
+        foreach ($this->responses as $response) {
+            array_push($rows, ...($response['results'] ?? []));
+        }
+        return $rows;
     }
 
     protected function formatRow($row, $mode)
