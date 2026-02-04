@@ -3,7 +3,6 @@
 namespace Ntanduy\CFD1\D1;
 
 use Illuminate\Database\Schema\Grammars\SQLiteGrammar;
-use Illuminate\Support\Str;
 
 class D1SchemaGrammar extends SQLiteGrammar
 {
@@ -13,11 +12,40 @@ class D1SchemaGrammar extends SQLiteGrammar
     protected $connection;
 
     /**
+     * Cache for method signature detection
+     */
+    protected static ?bool $supportsSchemaParameter = null;
+
+    /**
      * Create a new database schema grammar instance.
      */
     public function __construct($connection = null)
     {
         $this->connection = $connection;
+
+        // Detect method signature once
+        if (self::$supportsSchemaParameter === null) {
+            self::$supportsSchemaParameter = $this->detectSchemaParameterSupport();
+        }
+    }
+
+    /**
+     * Detect if parent methods support schema parameter (Laravel 12+)
+     * Uses reflection to check method signature once
+     */
+    protected function detectSchemaParameterSupport(): bool
+    {
+        try {
+            $reflection = new \ReflectionMethod(get_parent_class($this), 'compileDropAllTables');
+            return $reflection->getNumberOfParameters() > 0;
+        } catch (\ReflectionException $e) {
+            return false;
+        }
+    }
+
+    protected function replaceSystemTable(string $sql): string
+    {
+        return str_replace('sqlite_master', 'sqlite_schema', $sql);
     }
 
     /**
@@ -26,17 +54,12 @@ class D1SchemaGrammar extends SQLiteGrammar
      */
     public function compileDropAllTables($schema = null)
     {
-        try {
-            // Try Laravel 12 signature first
-            $result = parent::compileDropAllTables($schema);
-        } catch (\ArgumentCountError $e) {
-            // Fallback to Laravel 10-11 signature
-            $result = parent::compileDropAllTables();
-        }
+        $result = self::$supportsSchemaParameter
+            ? parent::compileDropAllTables($schema)
+            : parent::compileDropAllTables();
 
-        return Str::of($result)
-            ->replace('sqlite_master', 'sqlite_schema')
-            ->__toString();
+
+        return $this->replaceSystemTable($result);
     }
 
     /**
@@ -45,17 +68,11 @@ class D1SchemaGrammar extends SQLiteGrammar
      */
     public function compileDropAllViews($schema = null)
     {
-        try {
-            // Try Laravel 12 signature first
-            $result = parent::compileDropAllViews($schema);
-        } catch (\ArgumentCountError $e) {
-            // Fallback to Laravel 10-11 signature
-            $result = parent::compileDropAllViews();
-        }
+        $result = self::$supportsSchemaParameter
+            ? parent::compileDropAllViews($schema)
+            : parent::compileDropAllViews();
 
-        return Str::of($result)
-            ->replace('sqlite_master', 'sqlite_schema')
-            ->__toString();
+        return $this->replaceSystemTable($result);
     }
 
     /**
@@ -64,12 +81,7 @@ class D1SchemaGrammar extends SQLiteGrammar
      */
     public function compileGetAllTables()
     {
-        // Get the parent's query and replace sqlite_master with sqlite_schema for D1
-        $result = parent::compileGetAllTables();
-
-        return Str::of($result)
-            ->replace('sqlite_master', 'sqlite_schema')
-            ->__toString();
+        return $this->replaceSystemTable(parent::compileGetAllTables());
     }
 
     /**
@@ -78,12 +90,7 @@ class D1SchemaGrammar extends SQLiteGrammar
      */
     public function compileGetAllViews()
     {
-        // Get the parent's query and replace sqlite_master with sqlite_schema for D1
-        $result = parent::compileGetAllViews();
-
-        return Str::of($result)
-            ->replace('sqlite_master', 'sqlite_schema')
-            ->__toString();
+        return $this->replaceSystemTable(parent::compileGetAllViews());
     }
 
     /**
