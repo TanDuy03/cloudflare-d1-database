@@ -101,6 +101,23 @@ class D1ServiceProvider extends ServiceProvider
         ];
     }
 
+    /**
+     * Get performance and retry configuration options
+     * 
+     * Returns configuration for HTTP client behavior:
+     * - timeout: Maximum time to wait for response (seconds)
+     * - connect_timeout: Maximum time to establish connection (seconds)
+     * - retries: Number of retry attempts for failed requests
+     * - retry_delay: Base delay for exponential backoff (milliseconds)
+     * 
+     * Retry strategy uses exponential backoff with jitter to handle:
+     * - Server errors (5xx)
+     * - Rate limiting (429)
+     * - Network failures
+     * 
+     * @param array $config Database connection configuration
+     * @return array Performance options with sensible defaults
+     */
     protected function getPerformanceOptions(array $config): array
     {
         return [
