@@ -50,8 +50,8 @@ class D1ServiceProvider extends ServiceProvider
                 $this->validateConfig($config);
 
                 // Support both nested and flat config structure
-                $token = $this->getConfigValue($config,'token');
-                $accountId = $this->getConfigValue($config,'account_id');
+                $token = $this->getConfigValue($config, 'token');
+                $accountId = $this->getConfigValue($config, 'account_id');
                 $api = $config['api'] ?? 'https://api.cloudflare.com/client/v4';
 
                 // Performance options with sensible defaults
@@ -94,14 +94,14 @@ class D1ServiceProvider extends ServiceProvider
             );
         }
 
-        $token = $this->getConfigValue($config,'token');
+        $token = $this->getConfigValue($config, 'token');
         if (empty($token)) {
             throw new InvalidArgumentException(
                 'D1 database configuration requires a "token" (Cloudflare API Token) option.'
             );
         }
 
-        $accountId = $this->getConfigValue($config,'account_id');
+        $accountId = $this->getConfigValue($config, 'account_id');
         if (empty($accountId)) {
             throw new InvalidArgumentException(
                 'D1 database configuration requires an "account_id" (Cloudflare Account ID) option.'
