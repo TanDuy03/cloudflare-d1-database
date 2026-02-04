@@ -54,6 +54,32 @@ abstract class CloudflareConnector extends Connector
     }
 
     /**
+     * Sleep with exponential backoff and jitter
+     * 
+     * Implements exponential backoff strategy: delay * 2^(attempt-1)
+     * Adds random jitter (0-100ms) to prevent thundering herd problem
+     * when multiple clients retry simultaneously
+     * 
+     * @param int $attempt Current retry attempt number (1-based)
+     * @return void
+     */
+    protected function sleepWithBackoff(int $attempt): void
+    {
+        // Calculate exponential delay: baseDelay * 2^(attempt-1)
+        // Example with 100ms base: 100ms, 200ms, 400ms, 800ms...
+        $exponentialDelay = $this->retryDelay * pow(2, $attempt - 1);
+
+        // Add random jitter to avoid synchronized retries across clients
+        $jitter = mt_rand(0, 100);
+
+        // Total delay in milliseconds
+        $delay = $exponentialDelay + $jitter;
+
+        // Convert to microseconds for usleep
+        usleep((int) ($delay * 1000));
+    }
+
+    /**
      * Send request with automatic retry on failure
      */
     public function sendWithRetry(mixed $request, int $retries = null): Response
@@ -68,7 +94,7 @@ abstract class CloudflareConnector extends Connector
                 // Retry on 5xx server errors or rate limiting (429)
                 if (($response->status() >= 500 || $response->status() === 429) && $attempt < $retries) {
                     $attempt++;
-                    usleep($this->retryDelay * 1000 * $attempt); // Exponential backoff
+                    $this->sleepWithBackoff($attempt);
                     continue;
                 }
 
@@ -78,7 +104,7 @@ abstract class CloudflareConnector extends Connector
                     throw $e;
                 }
                 $attempt++;
-                usleep($this->retryDelay * 1000 * $attempt);
+                $this->sleepWithBackoff($attempt);
             }
         }
     }
