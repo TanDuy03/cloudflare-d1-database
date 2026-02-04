@@ -62,7 +62,7 @@ class D1ServiceProvider extends ServiceProvider
         });
     }
 
-    protected function getConfigValue(array $config, string $key, string $default = ''): string
+    private function getConfigValue(array $config, string $key, string $default = ''): string
     {
         return $config['auth'][$key] ?? $config[$key] ?? $default;
 
@@ -76,7 +76,7 @@ class D1ServiceProvider extends ServiceProvider
      *
      * @throws \InvalidArgumentException
      */
-    protected function getValidatedCredentials(array $config): array
+    private function getValidatedCredentials(array $config): array
     {
         $database = $config['database'] ?? null;
 
@@ -118,13 +118,13 @@ class D1ServiceProvider extends ServiceProvider
      * @param array $config Database connection configuration
      * @return array Performance options with sensible defaults
      */
-    protected function getPerformanceOptions(array $config): array
+    private function getPerformanceOptions(array $config): array
     {
         return [
-            'timeout' => $config['timeout'] ?? 10,
-            'connect_timeout' => $config['connect_timeout'] ?? 5,
-            'retries' => $config['retries'] ?? 2,
-            'retry_delay' => $config['retry_delay'] ?? 100,
+            'timeout' => (int) ($config['timeout'] ?? 10),
+            'connect_timeout' => (int) ($config['connect_timeout'] ?? 5),
+            'retries' => (int) ($config['retries'] ?? 2),
+            'retry_delay' => (int) ($config['retry_delay'] ?? 100),
         ];
     }
 }
