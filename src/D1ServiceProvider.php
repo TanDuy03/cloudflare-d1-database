@@ -29,6 +29,12 @@ class D1ServiceProvider extends ServiceProvider
         $this->registerD1();
     }
 
+    protected function getConfigValue(array $config, string $key, string $default = ''): string
+    {
+        return $config['auth'][$key] ?? $config[$key] ?? $default;
+
+    }
+
     /**
      * Register the D1 service.
      *
@@ -44,8 +50,8 @@ class D1ServiceProvider extends ServiceProvider
                 $this->validateConfig($config);
 
                 // Support both nested and flat config structure
-                $token = $config['auth']['token'] ?? $config['token'] ?? '';
-                $accountId = $config['auth']['account_id'] ?? $config['account_id'] ?? '';
+                $token = $this->getConfigValue($config,'token');
+                $accountId = $this->getConfigValue($config,'account_id');
                 $api = $config['api'] ?? 'https://api.cloudflare.com/client/v4';
 
                 // Performance options with sensible defaults
@@ -88,14 +94,14 @@ class D1ServiceProvider extends ServiceProvider
             );
         }
 
-        $token = $config['auth']['token'] ?? $config['token'] ?? null;
+        $token = $this->getConfigValue($config,'token');
         if (empty($token)) {
             throw new InvalidArgumentException(
                 'D1 database configuration requires a "token" (Cloudflare API Token) option.'
             );
         }
 
-        $accountId = $config['auth']['account_id'] ?? $config['account_id'] ?? null;
+        $accountId = $this->getConfigValue($config,'account_id');
         if (empty($accountId)) {
             throw new InvalidArgumentException(
                 'D1 database configuration requires an "account_id" (Cloudflare Account ID) option.'
