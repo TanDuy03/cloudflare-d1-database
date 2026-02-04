@@ -29,12 +29,6 @@ class D1ServiceProvider extends ServiceProvider
         $this->registerD1();
     }
 
-    protected function getConfigValue(array $config, string $key, string $default = ''): string
-    {
-        return $config['auth'][$key] ?? $config[$key] ?? $default;
-
-    }
-
     /**
      * Register the D1 service.
      *
@@ -47,35 +41,31 @@ class D1ServiceProvider extends ServiceProvider
                 $config['name'] = $name;
 
                 // Validate required configuration
-                $this->validateConfig($config);
+                $credentials = $this->getValidatedCredentials($config);
 
                 // Support both nested and flat config structure
-                $token = $this->getConfigValue($config, 'token');
-                $accountId = $this->getConfigValue($config, 'account_id');
                 $api = $config['api'] ?? 'https://api.cloudflare.com/client/v4';
 
                 // Performance options with sensible defaults
-                $options = [
-                    'timeout' => $config['timeout'] ?? 10,
-                    'connect_timeout' => $config['connect_timeout'] ?? 5,
-                    'retries' => $config['retries'] ?? 2,
-                    'retry_delay' => $config['retry_delay'] ?? 100,
-                ];
+                $options = $this->getPerformanceOptions($config);
 
-                $connection = new D1Connection(
-                    new CloudflareD1Connector(
-                        $config['database'],
-                        $token,
-                        $accountId,
-                        $api,
-                        $options,
-                    ),
-                    $config,
+                $connector = new CloudflareD1Connector(
+                    $credentials['database'],
+                    $credentials['token'],
+                    $credentials['account_id'],
+                    $api,
+                    $options,
                 );
 
-                return $connection;
+                return new D1Connection($connector, $config);
             });
         });
+    }
+
+    protected function getConfigValue(array $config, string $key, string $default = ''): string
+    {
+        return $config['auth'][$key] ?? $config[$key] ?? $default;
+
     }
 
     /**
@@ -86,26 +76,38 @@ class D1ServiceProvider extends ServiceProvider
      *
      * @throws \InvalidArgumentException
      */
-    protected function validateConfig(array $config): void
+    protected function getValidatedCredentials(array $config): array
     {
-        if (empty($config['database'])) {
-            throw new InvalidArgumentException(
-                'D1 database configuration requires a "database" (Database ID) option.'
-            );
+        $database = $config['database'] ?? null;
+
+        if (empty($database)) {
+            throw new InvalidArgumentException('D1 database configuration requires a "database" (Database ID) option.');
         }
 
         $token = $this->getConfigValue($config, 'token');
         if (empty($token)) {
-            throw new InvalidArgumentException(
-                'D1 database configuration requires a "token" (Cloudflare API Token) option.'
-            );
+            throw new InvalidArgumentException('D1 database configuration requires a "token" (Cloudflare API Token) option.');
         }
 
         $accountId = $this->getConfigValue($config, 'account_id');
         if (empty($accountId)) {
-            throw new InvalidArgumentException(
-                'D1 database configuration requires an "account_id" (Cloudflare Account ID) option.'
-            );
+            throw new InvalidArgumentException('D1 database configuration requires an "account_id" (Cloudflare Account ID) option.');
         }
+
+        return [
+            'database' => $database,
+            'token' => $token,
+            'account_id' => $accountId,
+        ];
+    }
+
+    protected function getPerformanceOptions(array $config): array
+    {
+        return [
+            'timeout' => $config['timeout'] ?? 10,
+            'connect_timeout' => $config['connect_timeout'] ?? 5,
+            'retries' => $config['retries'] ?? 2,
+            'retry_delay' => $config['retry_delay'] ?? 100,
+        ];
     }
 }
