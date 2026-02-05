@@ -67,9 +67,8 @@ test('transaction methods manage state', function () {
     expect($pdo->rollBack())->toBeTrue();
     expect($pdo->inTransaction())->toBeFalse();
 
-    // Should throw exception when trying to rollback without active transaction
-    expect(fn() => $pdo->rollBack())
-        ->toThrow(PDOException::class, 'There is no active transaction');
+    // rollBack returns false when trying to rollback without active transaction (Laravel compat)
+    expect($pdo->rollBack())->toBeFalse();
 });
 
 test('commit resets transaction state even if no queries were executed', function () {

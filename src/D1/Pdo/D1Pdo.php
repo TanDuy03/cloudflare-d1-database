@@ -72,7 +72,9 @@ class D1Pdo extends PDO
     public function rollBack(): bool
     {
         if ($this->transactionDepth <= 0) {
-            throw new \PDOException('There is no active transaction');
+            // Laravel may call rollBack multiple times in some scenarios
+            // Silently ignore if no transaction is active
+            return false;
         }
 
         $this->transactionDepth--;
