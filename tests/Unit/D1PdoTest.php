@@ -49,9 +49,12 @@ test('transaction methods manage state', function () {
     expect($pdo->beginTransaction())->toBeTrue();
     expect($pdo->inTransaction())->toBeTrue();
 
-    // Should throw exception when trying to begin a transaction that's already active
-    expect(fn() => $pdo->beginTransaction())
-        ->toThrow(PDOException::class, 'There is already an active transaction');
+    // Supports nested transactions (for Laravel compatibility)
+    expect($pdo->beginTransaction())->toBeTrue();
+    expect($pdo->inTransaction())->toBeTrue();
+
+    expect($pdo->commit())->toBeTrue();
+    expect($pdo->inTransaction())->toBeTrue(); // Still in outer transaction
 
     expect($pdo->commit())->toBeTrue();
     expect($pdo->inTransaction())->toBeFalse();
