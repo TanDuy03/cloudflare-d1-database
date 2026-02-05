@@ -14,7 +14,7 @@ class D1Connection extends SQLiteConnection
         protected $config = [],
     ) {
         parent::__construct(
-            new D1Pdo('sqlite::memory:', $this->connector),
+            fn() => $this->createD1Pdo(),
             $config['database'] ?? '',
             $config['prefix'] ?? '',
             $config,
@@ -23,13 +23,7 @@ class D1Connection extends SQLiteConnection
 
     protected function getDefaultSchemaGrammar()
     {
-        $grammar = new D1SchemaGrammar($this);
-
-        if ($this->getTablePrefix()) {
-            $grammar->setTablePrefix($this->getTablePrefix());
-        }
-
-        return $grammar;
+        return new D1SchemaGrammar($this);
     }
 
     /**
@@ -49,10 +43,42 @@ class D1Connection extends SQLiteConnection
     }
 
     /**
+     * Get the D1 PDO instance for reads.
+     */
+    public function getReadPdo(): D1Pdo
+    {
+        if ($this->readPdo instanceof \Closure) {
+            $this->readPdo = ($this->readPdo)();
+        }
+
+        if ($this->readPdo === null) {
+            return $this->getPdo();
+        }
+
+        return $this->readPdo;
+    }
+
+    /**
      * Get the D1 PDO instance.
      */
     public function getPdo(): D1Pdo
     {
+        if ($this->pdo instanceof \Closure) {
+            $this->pdo = ($this->pdo)();
+        }
+
+        if ($this->pdo === null) {
+            $this->pdo = $this->createD1Pdo();
+        }
+
         return $this->pdo;
+    }
+
+    /**
+     * Helper method to create a new D1 PDO instance.
+     */
+    protected function createD1Pdo(): D1Pdo
+    {
+        return new D1Pdo('sqlite::memory:', $this->connector);
     }
 }
