@@ -11,7 +11,7 @@ class D1Connection extends SQLiteConnection
 {
     public function __construct(
         protected CloudflareD1Connector $connector,
-        protected array $config = [],
+        array $config = [],
     ) {
         parent::__construct(
             fn() => $this->createD1Pdo(),
