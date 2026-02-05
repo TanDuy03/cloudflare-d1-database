@@ -26,6 +26,21 @@ class D1Connection extends SQLiteConnection
         return new D1SchemaGrammar($this);
     }
 
+    /**
+     * Start a new database transaction.
+     * D1 supports nested transactions through transaction depth tracking.
+     */
+    public function beginTransaction(): void
+    {
+        ++$this->transactions;
+
+        if ($this->transactions === 1) {
+            $this->getPdo()->beginTransaction();
+        }
+
+        $this->fireConnectionEvent('beganTransaction');
+    }
+
     public function d1(): CloudflareD1Connector
     {
         return $this->connector;
