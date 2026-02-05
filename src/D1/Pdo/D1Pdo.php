@@ -54,7 +54,7 @@ class D1Pdo extends PDO
     public function beginTransaction(): bool
     {
         if ($this->inTransaction) {
-            return false;
+            throw new \PDOException('There is already an active transaction');
         }
 
         return $this->inTransaction = true;
@@ -63,7 +63,7 @@ class D1Pdo extends PDO
     public function commit(): bool
     {
         if (!$this->inTransaction) {
-            return false;
+            throw new \PDOException('There is no active transaction');
         }
 
         $this->inTransaction = false;
@@ -74,7 +74,7 @@ class D1Pdo extends PDO
     public function rollBack(): bool
     {
         if (!$this->inTransaction) {
-            return false;
+            throw new \PDOException('There is no active transaction');
         }
 
         $this->inTransaction = false;
