@@ -59,9 +59,8 @@ test('transaction methods manage state', function () {
     expect($pdo->commit())->toBeTrue();
     expect($pdo->inTransaction())->toBeFalse();
 
-    // Should throw exception when trying to commit without active transaction
-    expect(fn() => $pdo->commit())
-        ->toThrow(PDOException::class, 'There is no active transaction');
+    // commit returns false when trying to commit without active transaction (Laravel compat)
+    expect($pdo->commit())->toBeFalse();
 
     $pdo->beginTransaction();
     expect($pdo->rollBack())->toBeTrue();
