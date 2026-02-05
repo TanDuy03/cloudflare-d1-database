@@ -49,18 +49,24 @@ test('transaction methods manage state', function () {
     expect($pdo->beginTransaction())->toBeTrue();
     expect($pdo->inTransaction())->toBeTrue();
 
-    expect($pdo->beginTransaction())->toBeFalse();
+    // Should throw exception when trying to begin a transaction that's already active
+    expect(fn() => $pdo->beginTransaction())
+        ->toThrow(PDOException::class, 'There is already an active transaction');
 
     expect($pdo->commit())->toBeTrue();
     expect($pdo->inTransaction())->toBeFalse();
 
-    expect($pdo->commit())->toBeFalse();
+    // Should throw exception when trying to commit without active transaction
+    expect(fn() => $pdo->commit())
+        ->toThrow(PDOException::class, 'There is no active transaction');
 
     $pdo->beginTransaction();
     expect($pdo->rollBack())->toBeTrue();
     expect($pdo->inTransaction())->toBeFalse();
 
-    expect($pdo->rollBack())->toBeFalse();
+    // Should throw exception when trying to rollback without active transaction
+    expect(fn() => $pdo->rollBack())
+        ->toThrow(PDOException::class, 'There is no active transaction');
 });
 
 test('commit resets transaction state even if no queries were executed', function () {
