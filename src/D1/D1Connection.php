@@ -81,4 +81,15 @@ class D1Connection extends SQLiteConnection
     {
         return new D1Pdo('sqlite::memory:', $this->connector);
     }
+
+    /**
+     * Start a new database transaction.
+     * D1 supports nested transactions via transaction depth tracking.
+     */
+    public function beginTransaction(): void
+    {
+        $this->getPdo()->beginTransaction();
+        $this->transactions++;
+        $this->fireConnectionEvent('beganTransaction');
+    }
 }
