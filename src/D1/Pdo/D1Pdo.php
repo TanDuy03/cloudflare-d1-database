@@ -59,9 +59,6 @@ class D1Pdo extends PDO
 
         $this->inTransaction = true;
 
-        // D1 supports SQLite transaction syntax
-        $this->exec('BEGIN TRANSACTION');
-
         return true;
     }
 
@@ -70,8 +67,6 @@ class D1Pdo extends PDO
         if (!$this->inTransaction) {
             throw new \PDOException('There is no active transaction');
         }
-
-        $this->exec('COMMIT');
 
         $this->inTransaction = false;
 
@@ -83,8 +78,6 @@ class D1Pdo extends PDO
         if (!$this->inTransaction) {
             throw new \PDOException('There is no active transaction');
         }
-
-        $this->exec('ROLLBACK');
 
         $this->inTransaction = false;
 
