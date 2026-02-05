@@ -10,7 +10,7 @@ class D1Pdo extends PDO
 {
     protected array $lastInsertIds = [];
 
-    protected bool $inTransaction = false;
+    protected int $transactionDepth = 0;
 
     protected array $errorInfo = ['00000', null, null];
 
@@ -53,40 +53,36 @@ class D1Pdo extends PDO
 
     public function beginTransaction(): bool
     {
-        if ($this->inTransaction) {
-            throw new \PDOException('There is already an active transaction');
-        }
-
-        $this->inTransaction = true;
+        $this->transactionDepth++;
 
         return true;
     }
 
     public function commit(): bool
     {
-        if (!$this->inTransaction) {
+        if ($this->transactionDepth <= 0) {
             throw new \PDOException('There is no active transaction');
         }
 
-        $this->inTransaction = false;
+        $this->transactionDepth--;
 
         return true;
     }
 
     public function rollBack(): bool
     {
-        if (!$this->inTransaction) {
+        if ($this->transactionDepth <= 0) {
             throw new \PDOException('There is no active transaction');
         }
 
-        $this->inTransaction = false;
+        $this->transactionDepth--;
 
         return true;
     }
 
     public function inTransaction(): bool
     {
-        return $this->inTransaction;
+        return $this->transactionDepth > 0;
     }
 
     public function exec($statement): int|false
