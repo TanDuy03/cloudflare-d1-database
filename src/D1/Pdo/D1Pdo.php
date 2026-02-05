@@ -41,19 +41,13 @@ class D1Pdo extends PDO
 
     public function setLastInsertId($name = null, $value = null): void
     {
-        if ($name === null) {
-            $name = 'id';
-        }
-
+        $name = $name ?? 'id';
         $this->lastInsertIds[$name] = $value;
     }
 
     public function lastInsertId($name = null): bool|string
     {
-        if ($name === null) {
-            $name = 'id';
-        }
-
+        $name = $name ?? 'id';
         return $this->lastInsertIds[$name] ?? false;
     }
 
@@ -117,14 +111,25 @@ class D1Pdo extends PDO
                 $errorMessage
             ];
 
+            // Throw exception if error mode is set to EXCEPTION
+            if ($this->getAttribute(PDO::ATTR_ERRMODE) === PDO::ERRMODE_EXCEPTION) {
+                $exception = new \PDOException($errorMessage, (int) $errorCode);
+                $exception->errorInfo = $this->errorInfo;
+                throw $exception;
+            }
+
             return false;
         }
 
         $this->errorInfo = ['00000', null, null];
 
-        $result = $response->json('result.0') ?? [];
+        $resultData = $response->json('result.0') ?? [];
 
-        return $result['meta']['changes'] ?? 0;
+        if (isset($resultData['meta']['last_row_id'])) {
+            $this->setLastInsertId(null, $resultData['meta']['last_row_id']);
+        }
+
+        return $resultData['meta']['changes'] ?? 0;
     }
 
     public function quote($value, $type = PDO::PARAM_STR): string|false
@@ -166,27 +171,14 @@ class D1Pdo extends PDO
 
     public function getAttribute($attribute): mixed
     {
-        if ($attribute === PDO::ATTR_DRIVER_NAME) {
-            return 'sqlite';
-        }
-
-        if ($attribute === PDO::ATTR_SERVER_VERSION) {
-            return 'D1';
-        }
-
-        if ($attribute === PDO::ATTR_CLIENT_VERSION) {
-            return 'D1';
-        }
-
-        if ($attribute === PDO::ATTR_EMULATE_PREPARES) {
-            return $this->attributes[$attribute] ?? true;
-        }
-
-        if ($attribute === PDO::ATTR_ERRMODE) {
-            return $this->attributes[$attribute] ?? PDO::ERRMODE_EXCEPTION;
-        }
-
-        return $this->attributes[$attribute] ?? null;
+        return match ($attribute) {
+            PDO::ATTR_DRIVER_NAME => 'sqlite',
+            PDO::ATTR_SERVER_VERSION => 'D1',
+            PDO::ATTR_CLIENT_VERSION => 'D1',
+            PDO::ATTR_EMULATE_PREPARES => $this->attributes[$attribute] ?? true,
+            PDO::ATTR_ERRMODE => $this->attributes[$attribute] ?? PDO::ERRMODE_EXCEPTION,
+            default => $this->attributes[$attribute] ?? null,
+        };
     }
 
     public function setAttribute($attribute, $value): bool
