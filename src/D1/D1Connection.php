@@ -11,7 +11,7 @@ class D1Connection extends SQLiteConnection
 {
     public function __construct(
         protected CloudflareD1Connector $connector,
-        protected $config = [],
+        protected array $config = [],
     ) {
         parent::__construct(
             fn() => $this->createD1Pdo(),
@@ -24,17 +24,6 @@ class D1Connection extends SQLiteConnection
     protected function getDefaultSchemaGrammar()
     {
         return new D1SchemaGrammar($this);
-    }
-
-    /**
-     * Get the schema builder for the connection.
-     * Disables retry for DDL operations to speed up migrations.
-     */
-    public function getSchemaBuilder(): Builder
-    {
-        $this->getPdo()->setRetry(false);
-
-        return parent::getSchemaBuilder();
     }
 
     public function d1(): CloudflareD1Connector
@@ -80,16 +69,5 @@ class D1Connection extends SQLiteConnection
     protected function createD1Pdo(): D1Pdo
     {
         return new D1Pdo('sqlite::memory:', $this->connector);
-    }
-
-    /**
-     * Start a new database transaction.
-     * D1 supports nested transactions via transaction depth tracking.
-     */
-    public function beginTransaction(): void
-    {
-        $this->getPdo()->beginTransaction();
-        $this->transactions++;
-        $this->fireConnectionEvent('beganTransaction');
     }
 }

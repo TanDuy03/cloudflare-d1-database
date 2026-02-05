@@ -91,7 +91,8 @@ class D1Pdo extends PDO
 
     public function exec($statement): int|false
     {
-        $response = $this->connector->databaseQuery($statement, [], $this->useRetry);
+        $shouldRetry = $this->shouldRetryFor($statement);
+        $response = $this->connector->databaseQuery($statement, [], $shouldRetry);
 
         if ($response->failed() || !$response->json('success')) {
             $errorCode = $response->json('errors.0.code');
@@ -204,5 +205,26 @@ class D1Pdo extends PDO
     public function shouldRetry(): bool
     {
         return $this->useRetry;
+    }
+
+    /**
+     * Determine if retry should be used for a specific statement.
+     * DDL statements (CREATE, DROP, ALTER, etc.) automatically disable retry.
+     */
+    protected function shouldRetryFor(string $statement): bool
+    {
+        // If retry is globally disabled, respect that
+        if (!$this->useRetry) {
+            return false;
+        }
+
+        // Disable retry for DDL statements (schema changes)
+        // Regex matches: CREATE, DROP, ALTER, TRUNCATE, PRAGMA
+        if (preg_match('/^\s*(CREATE|DROP|ALTER|TRUNCATE|PRAGMA)\b/i', $statement)) {
+            return false;
+        }
+
+        // Enable retry for DML statements (SELECT, INSERT, UPDATE, DELETE)
+        return true;
     }
 }

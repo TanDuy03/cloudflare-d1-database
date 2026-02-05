@@ -65,17 +65,39 @@ class D1PdoStatement extends PDOStatement
         // NEVER reorder — keep PDO behavior
         $bindings = array_values($this->bindings);
 
+        // Use reflection to access protected shouldRetryFor method
+        $reflectionMethod = new \ReflectionMethod($this->pdo, 'shouldRetryFor');
+        $reflectionMethod->setAccessible(true);
+        $shouldRetry = $reflectionMethod->invoke($this->pdo, $this->query);
+
         $response = $this->pdo->d1()->databaseQuery(
             $this->query,
             $bindings,
-            $this->pdo->shouldRetry(),
+            $shouldRetry,
         );
 
         if ($response->failed() || !$response->json('success')) {
-            throw new PDOException(
-                (string) $response->json('errors.0.message'),
-                (int) $response->json('errors.0.code'),
-            );
+            $errorCode = $response->json('errors.0.code');
+            $errorMessage = $response->json('errors.0.message', 'Unknown error');
+
+            // Map D1 error codes to SQLSTATE codes
+            $sqlState = match (true) {
+                str_contains($errorMessage, 'UNIQUE constraint') => '23000',
+                str_contains($errorMessage, 'NOT NULL constraint') => '23000',
+                str_contains($errorMessage, 'syntax error') => '42000',
+                str_contains($errorMessage, 'no such table') => '42S02',
+                str_contains($errorMessage, 'no such column') => '42S22',
+                default => 'HY000'
+            };
+
+            // Throw exception if error mode is set to EXCEPTION
+            if ($this->pdo->getAttribute(PDO::ATTR_ERRMODE) === PDO::ERRMODE_EXCEPTION) {
+                $exception = new PDOException($errorMessage, (int) $errorCode);
+                $exception->errorInfo = [$sqlState, $errorCode, $errorMessage];
+                throw $exception;
+            }
+
+            return false;
         }
 
         $this->responses = $response->json('result');

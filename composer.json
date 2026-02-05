@@ -54,7 +54,7 @@
         "sort-packages": true
     },
     "suggest": {
-        "ext-pdo": "Extending the PDO driver for Cloudflare D1 is requireds."
+        "ext-pdo": "Extending the PDO driver for Cloudflare D1 is required."
     },
     "extra": {
         "laravel": {
