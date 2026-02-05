@@ -53,6 +53,12 @@ class D1Pdo extends PDO
 
     public function beginTransaction(): bool
     {
+        // PDO doesn't support nested transactions by default
+        // But we track depth for Laravel's transaction nesting
+        if ($this->transactionDepth > 0) {
+            throw new \PDOException('There is already an active transaction');
+        }
+
         $this->transactionDepth++;
 
         return true;
