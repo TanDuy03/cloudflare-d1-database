@@ -11,12 +11,12 @@ class CloudflareD1Connector extends CloudflareConnector
     protected ?\Closure $queryLogger = null;
 
     public function __construct(
-        public ?string $database = null,
+        public readonly ?string $database = null,
         #[\SensitiveParameter]
-        protected ?string $token = null,
+        ?string $token = null,
         #[\SensitiveParameter]
-        public ?string $accountId = null,
-        public string $apiUrl = 'https://api.cloudflare.com/client/v4',
+        ?string $accountId = null,
+        string $apiUrl = 'https://api.cloudflare.com/client/v4',
         array $options = [],
     ) {
         parent::__construct($token, $accountId, $apiUrl, $options);

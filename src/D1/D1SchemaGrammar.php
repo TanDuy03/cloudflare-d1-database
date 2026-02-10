@@ -4,12 +4,15 @@ declare(strict_types=1);
 
 namespace Ntanduy\CFD1\D1;
 
+use Illuminate\Database\Connection;
 use Illuminate\Database\Schema\Grammars\SQLiteGrammar;
 
 class D1SchemaGrammar extends SQLiteGrammar
 {
     /**
      * The connection instance.
+     *
+     * @var Connection
      */
     protected $connection;
 

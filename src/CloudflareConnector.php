@@ -11,27 +11,27 @@ use Throwable;
 
 abstract class CloudflareConnector extends Connector
 {
-    protected int $retries = 2;
-
-    protected int $retryDelay = 100; // milliseconds
-
-    protected int $timeout = 10;
-
-    protected int $connectTimeout = 5;
-
     public function __construct(
         #[\SensitiveParameter]
-        protected ?string $token = null,
+        protected readonly ?string $token = null,
         #[\SensitiveParameter]
-        public ?string $accountId = null,
-        public string $apiUrl = 'https://api.cloudflare.com/client/v4',
+        public readonly ?string $accountId = null,
+        public readonly string $apiUrl = 'https://api.cloudflare.com/client/v4',
         array $options = [],
     ) {
-        $this->timeout = $options['timeout'] ?? 10;
-        $this->connectTimeout = $options['connect_timeout'] ?? 5;
-        $this->retries = $options['retries'] ?? 2;
-        $this->retryDelay = $options['retry_delay'] ?? 100;
+        $this->retries = (int) ($options['retries'] ?? 2);
+        $this->retryDelay = (int) ($options['retry_delay'] ?? 100);
+        $this->timeout = (int) ($options['timeout'] ?? 10);
+        $this->connectTimeout = (int) ($options['connect_timeout'] ?? 5);
     }
+
+    protected readonly int $retries;
+
+    protected readonly int $retryDelay;
+
+    protected readonly int $timeout;
+
+    protected readonly int $connectTimeout;
 
     protected function defaultAuth(): TokenAuthenticator
     {
