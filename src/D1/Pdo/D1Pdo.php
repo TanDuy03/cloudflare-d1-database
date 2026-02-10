@@ -191,8 +191,10 @@ class D1Pdo extends PDO
     /**
      * Determine if retry should be used for a specific statement.
      * DDL statements (CREATE, DROP, ALTER, etc.) automatically disable retry.
+     *
+     * @internal Used by D1PdoStatement. Not intended for end-user consumption.
      */
-    protected function shouldRetryFor(string $statement): bool
+    public function shouldRetryFor(string $statement): bool
     {
         // If retry is globally disabled, respect that
         if (!$this->useRetry) {

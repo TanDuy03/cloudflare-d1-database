@@ -73,10 +73,7 @@ class D1PdoStatement extends PDOStatement
         // NEVER reorder — keep PDO behavior
         $bindings = array_values($this->bindings);
 
-        // Use reflection to access protected shouldRetryFor method
-        $reflectionMethod = new \ReflectionMethod($this->pdo, 'shouldRetryFor');
-        $reflectionMethod->setAccessible(true);
-        $shouldRetry = $reflectionMethod->invoke($this->pdo, $this->query);
+        $shouldRetry = $this->pdo->shouldRetryFor($this->query);
 
         $response = $this->pdo->d1()->databaseQuery(
             $this->query,
