@@ -79,20 +79,20 @@ class D1SchemaGrammar extends SQLiteGrammar
 
     /**
      * Compile the SQL needed to retrieve all tables.
-     * Compatible with Laravel 10
+     * Hardcoded to avoid reliance on parent methods removed in Laravel 11/12.
      */
-    public function compileGetAllTables()
+    public function compileGetAllTables(): string
     {
-        return $this->replaceSystemTable(parent::compileGetAllTables());
+        return "select name, type from sqlite_schema where type = 'table' and name not like 'sqlite_%'";
     }
 
     /**
      * Compile the SQL needed to retrieve all views.
-     * Compatible with Laravel 10
+     * Hardcoded to avoid reliance on parent methods removed in Laravel 11/12.
      */
-    public function compileGetAllViews()
+    public function compileGetAllViews(): string
     {
-        return $this->replaceSystemTable(parent::compileGetAllViews());
+        return "select name, type from sqlite_schema where type = 'view'";
     }
 
     /**

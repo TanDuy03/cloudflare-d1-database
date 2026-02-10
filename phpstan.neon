@@ -21,8 +21,6 @@ parameters:
         - '#Call to an undefined static method .*User::(find|create|where|all)#'
         - '#Access to an undefined property .*::\$(id|name|email|created_at|updated_at)#'
         
-        # SQLite Grammar - parent class methods called statically
-        - '#Call to an undefined static method Illuminate\\Database\\Schema\\Grammars\\SQLiteGrammar::compile#'
         
         # PHPDoc vs native type mismatches
         - '#Strict comparison using === between string and null will always evaluate to false#'

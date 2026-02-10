@@ -25,6 +25,10 @@ class D1Pdo extends PDO
         protected string $dsn,
         protected CloudflareD1Connector $connector,
     ) {
+        // Trade-off: extending PDO requires calling parent::__construct(), which
+        // opens an unused SQLite in-memory connection (~1MB overhead). This is
+        // currently unavoidable without switching to a composition pattern
+        // (wrapping PDO instead of extending it), deferred to a future major version.
         parent::__construct('sqlite::memory:');
     }
 
@@ -196,7 +200,8 @@ class D1Pdo extends PDO
 
     /**
      * Determine if retry should be used for a specific statement.
-     * DDL statements (CREATE, DROP, ALTER, etc.) automatically disable retry.
+     * Only idempotent read queries (SELECT/WITH) are safe to retry.
+     * Retrying mutations (INSERT, UPDATE, DELETE) risks duplicate data.
      *
      * @internal Used by D1PdoStatement. Not intended for end-user consumption.
      */
@@ -207,13 +212,7 @@ class D1Pdo extends PDO
             return false;
         }
 
-        // Disable retry for DDL statements (schema changes)
-        // Regex matches: CREATE, DROP, ALTER, TRUNCATE, PRAGMA
-        if (preg_match('/^\s*(CREATE|DROP|ALTER|TRUNCATE|PRAGMA)\b/i', $statement)) {
-            return false;
-        }
-
-        // Enable retry for DML statements (SELECT, INSERT, UPDATE, DELETE)
-        return true;
+        // Whitelist: only retry idempotent read queries
+        return (bool) preg_match('/^\s*(SELECT|WITH)\b/i', $statement);
     }
 }

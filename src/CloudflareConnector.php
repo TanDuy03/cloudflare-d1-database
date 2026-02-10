@@ -75,12 +75,13 @@ abstract class CloudflareConnector extends Connector
         $exponentialDelay = $this->retryDelay * pow(2, $attempt - 1);
 
         // Add random jitter to avoid synchronized retries across clients
-        $jitter = mt_rand(0, 100);
+        $jitter = \random_int(0, 100);
 
         // Total delay in milliseconds
         $delay = $exponentialDelay + $jitter;
 
-        // Convert to microseconds for usleep
+        // Blocking synchronous sleep — acceptable for this driver version
+        // but prevents async/non-blocking usage. Convert ms to µs for usleep.
         usleep((int) ($delay * 1000));
     }
 
