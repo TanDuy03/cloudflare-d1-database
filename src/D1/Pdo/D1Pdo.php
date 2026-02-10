@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Ntanduy\CFD1\D1\Pdo;
 
 use Ntanduy\CFD1\CloudflareD1Connector;
@@ -43,7 +45,7 @@ class D1Pdo extends PDO
     public function setLastInsertId($name = null, $value = null): void
     {
         $name = $name ?? 'id';
-        $this->lastInsertIds[$name] = $value;
+        $this->lastInsertIds[$name] = $value !== null ? (string) $value : null;
     }
 
     public function lastInsertId($name = null): bool|string

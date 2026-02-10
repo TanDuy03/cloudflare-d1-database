@@ -1,10 +1,11 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Ntanduy\CFD1;
 
 use Saloon\Http\Auth\TokenAuthenticator;
 use Saloon\Http\Connector;
-use Saloon\Http\PendingRequest;
 use Saloon\Http\Response;
 use Throwable;
 

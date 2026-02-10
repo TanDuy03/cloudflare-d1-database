@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Ntanduy\CFD1;
 
 use Saloon\Http\Connector;

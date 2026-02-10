@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Ntanduy\CFD1\D1;
 
 use Illuminate\Database\Schema\Grammars\SQLiteGrammar;
