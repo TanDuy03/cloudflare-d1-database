@@ -15,7 +15,7 @@ class D1Connection extends SQLiteConnection
         array $config = [],
     ) {
         parent::__construct(
-            fn() => $this->createD1Pdo(),
+            fn () => $this->createD1Pdo(),
             $config['database'] ?? '',
             $config['prefix'] ?? '',
             $config,
@@ -33,7 +33,7 @@ class D1Connection extends SQLiteConnection
      */
     public function beginTransaction(): void
     {
-        ++$this->transactions;
+        $this->transactions++;
 
         if ($this->transactions === 1) {
             $this->getPdo()->beginTransaction();

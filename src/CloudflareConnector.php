@@ -12,13 +12,18 @@ use Throwable;
 abstract class CloudflareConnector extends Connector
 {
     protected int $retries = 2;
+
     protected int $retryDelay = 100; // milliseconds
+
     protected int $timeout = 10;
+
     protected int $connectTimeout = 5;
 
     public function __construct(
-        #[\SensitiveParameter] protected ?string $token = null,
-        #[\SensitiveParameter] public ?string $accountId = null,
+        #[\SensitiveParameter]
+        protected ?string $token = null,
+        #[\SensitiveParameter]
+        public ?string $accountId = null,
         public string $apiUrl = 'https://api.cloudflare.com/client/v4',
         array $options = [],
     ) {
@@ -56,13 +61,12 @@ abstract class CloudflareConnector extends Connector
 
     /**
      * Sleep with exponential backoff and jitter
-     * 
+     *
      * Implements exponential backoff strategy: delay * 2^(attempt-1)
      * Adds random jitter (0-100ms) to prevent thundering herd problem
      * when multiple clients retry simultaneously
-     * 
-     * @param int $attempt Current retry attempt number (1-based)
-     * @return void
+     *
+     * @param  int  $attempt  Current retry attempt number (1-based)
      */
     protected function sleepWithBackoff(int $attempt): void
     {
@@ -83,7 +87,7 @@ abstract class CloudflareConnector extends Connector
     /**
      * Send request with automatic retry on failure
      */
-    public function sendWithRetry(mixed $request, int $retries = null): Response
+    public function sendWithRetry(mixed $request, ?int $retries = null): Response
     {
         $retries = $retries ?? $this->retries;
         $attempt = 0;
@@ -96,6 +100,7 @@ abstract class CloudflareConnector extends Connector
                 if (($response->status() >= 500 || $response->status() === 429) && $attempt < $retries) {
                     $attempt++;
                     $this->sleepWithBackoff($attempt);
+
                     continue;
                 }
 

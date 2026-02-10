@@ -34,17 +34,17 @@ trait MapsSqlState
             str_contains($errorMessage, 'datatype mismatch') => '22000',
             str_contains($errorMessage, 'division by zero') => '22012',
             str_contains($errorMessage, 'string or blob too big') => '22001',
-            
+
             // --- SYSTEM ERRORS (53xxx/25xxx) ---
             str_contains($errorMessage, 'disk I/O error') => '53100',
             str_contains($errorMessage, 'database or disk is full') => '53100',
             str_contains($errorMessage, 'attempt to write a readonly database') => '25006',
-            
+
             // --- D1/CLOUDFLARE SPECIFIC ---
             str_contains($errorMessage, 'upstream service timeout') => '08006',  // Connection failure
             str_contains($errorMessage, 'service unavailable') => '08006',
             str_contains($errorMessage, '502 Bad Gateway') => '08006',
-            
+
             // Default
             default => 'HY000',
         };

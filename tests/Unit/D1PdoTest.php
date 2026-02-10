@@ -1,7 +1,9 @@
 <?php
 
-use Ntanduy\CFD1\D1\Pdo\D1Pdo;
+declare(strict_types=1);
+
 use Ntanduy\CFD1\CloudflareD1Connector;
+use Ntanduy\CFD1\D1\Pdo\D1Pdo;
 
 test('quote handles null', function () {
     $pdo = new D1Pdo('dsn', Mockery::mock(CloudflareD1Connector::class));
@@ -16,7 +18,7 @@ test('quote handles boolean', function () {
 
 test('quote handles string', function () {
     $pdo = new D1Pdo('dsn', Mockery::mock(CloudflareD1Connector::class));
-    expect($pdo->quote("test"))->toBe("'test'");
+    expect($pdo->quote('test'))->toBe("'test'");
     expect($pdo->quote("it's"))->toBe("'it''s'");
 });
 

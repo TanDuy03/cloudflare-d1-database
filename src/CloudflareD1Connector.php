@@ -12,8 +12,10 @@ class CloudflareD1Connector extends CloudflareConnector
 
     public function __construct(
         public ?string $database = null,
-        #[\SensitiveParameter] protected ?string $token = null,
-        #[\SensitiveParameter] public ?string $accountId = null,
+        #[\SensitiveParameter]
+        protected ?string $token = null,
+        #[\SensitiveParameter]
+        public ?string $accountId = null,
         public string $apiUrl = 'https://api.cloudflare.com/client/v4',
         array $options = [],
     ) {
@@ -24,7 +26,7 @@ class CloudflareD1Connector extends CloudflareConnector
      * Set a query logger callback for this connector instance.
      * Useful for debugging and monitoring D1 queries.
      *
-     * @param \Closure|null $callback function(string $query, array $params, float $time, bool $success, ?array $error): void
+     * @param  \Closure|null  $callback  function(string $query, array $params, float $time, bool $success, ?array $error): void
      * @return $this
      */
     public function setQueryLogger(?\Closure $callback): static

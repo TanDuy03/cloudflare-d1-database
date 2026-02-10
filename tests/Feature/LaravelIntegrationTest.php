@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Ntanduy\CFD1\Test\Feature;
 
 use Illuminate\Support\Facades\DB;
@@ -82,10 +84,10 @@ class LaravelIntegrationTest extends TestCase
         });
 
         expect(Schema::hasTable('test_table'))->toBeTrue();
-        // Note: Schema::hasTable checks information_schema or sqlite_master. 
+        // Note: Schema::hasTable checks information_schema or sqlite_master.
         // Our Mock might need to handle that SELECT to return true.
         // Let's check if Mock handles 'select * from sqlite_master' or similar.
-        // If not, this expectation might fail. 
+        // If not, this expectation might fail.
         // For now, let's just assert the create command didn't throw exception.
     }
 

@@ -1,11 +1,13 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Ntanduy\CFD1\Test\Mocks;
 
 use Ntanduy\CFD1\CloudflareD1Connector;
-use Saloon\Http\Response;
 use PDO;
 use PDOException;
+use Saloon\Http\Response;
 
 class MockCloudflareD1Connector extends CloudflareD1Connector
 {
@@ -81,7 +83,7 @@ class MockCloudflareD1Connector extends CloudflareD1Connector
                 [
                     'code' => $e->getCode() !== '00000' ? $e->getCode() : 7500,
                     'message' => $e->getMessage(),
-                ]
+                ],
             ];
         }
 
@@ -99,10 +101,10 @@ class MockCloudflareD1Connector extends CloudflareD1Connector
                         'changes' => $changes,
                         'last_row_id' => $lastRowId,
                         'rows_read' => count($results),
-                        'rows_written' => $changes
-                    ]
-                ]
-            ]
+                        'rows_written' => $changes,
+                    ],
+                ],
+            ],
         ]);
 
         // Create PSR-7 objects for Saloon Response

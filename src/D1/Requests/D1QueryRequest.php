@@ -36,7 +36,7 @@ class D1QueryRequest extends CloudflareRequest implements HasBody
     protected function defaultBody(): array
     {
         return [
-            'sql'    => $this->sql,
+            'sql' => $this->sql,
             'params' => $this->sqlParams,
         ];
     }

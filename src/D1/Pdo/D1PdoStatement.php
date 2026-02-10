@@ -22,7 +22,7 @@ class D1PdoStatement extends PDOStatement
     protected array $results = [];
 
     protected int $currentResultIndex = 0;
-    
+
     protected int $affectedRows = 0;
 
     public function __construct(
@@ -61,8 +61,10 @@ class D1PdoStatement extends PDOStatement
             if ($content === false) {
                 throw new PDOException('Failed to read LOB stream');
             }
+
             return $content;
         }
+
         return (string) $value;
     }
 
@@ -93,6 +95,7 @@ class D1PdoStatement extends PDOStatement
             if ($this->pdo->getAttribute(PDO::ATTR_ERRMODE) === PDO::ERRMODE_EXCEPTION) {
                 $exception = new PDOException($errorMessage, (int) $errorCode);
                 $exception->errorInfo = [$sqlState, $errorCode, $errorMessage];
+
                 throw $exception;
             }
 
@@ -104,7 +107,7 @@ class D1PdoStatement extends PDOStatement
         $this->currentResultIndex = 0;
         $this->affectedRows = array_reduce(
             $this->responses,
-            fn($sum, $response) => $sum + ($response['meta']['changes'] ?? 0),
+            fn ($sum, $response) => $sum + ($response['meta']['changes'] ?? 0),
             0
         );
 
@@ -145,7 +148,7 @@ class D1PdoStatement extends PDOStatement
         $rows = array_slice($this->results, $this->currentResultIndex);
         $this->currentResultIndex = count($this->results);
 
-        return array_map(fn($row) => $this->formatRow($row, $fetchMode), $rows);
+        return array_map(fn ($row) => $this->formatRow($row, $fetchMode), $rows);
     }
 
     public function fetchColumn(int $column = 0): mixed
@@ -179,6 +182,7 @@ class D1PdoStatement extends PDOStatement
         foreach ($this->responses as $response) {
             array_push($rows, ...($response['results'] ?? []));
         }
+
         return $rows;
     }
 

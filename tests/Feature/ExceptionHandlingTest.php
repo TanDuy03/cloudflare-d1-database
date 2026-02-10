@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Ntanduy\CFD1\Test\Feature;
 
 use Illuminate\Database\QueryException;
@@ -21,7 +23,7 @@ class ExceptionHandlingTest extends TestCase
         User::create([
             'name' => 'User 1',
             'email' => 'duplicate@example.com',
-            'password' => 'secret'
+            'password' => 'secret',
         ]);
 
         $this->expectException(QueryException::class);
@@ -30,7 +32,7 @@ class ExceptionHandlingTest extends TestCase
         User::create([
             'name' => 'User 2',
             'email' => 'duplicate@example.com',
-            'password' => 'secret'
+            'password' => 'secret',
         ]);
     }
 

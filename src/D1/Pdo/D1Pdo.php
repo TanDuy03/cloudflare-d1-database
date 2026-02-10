@@ -28,6 +28,7 @@ class D1Pdo extends PDO
         parent::__construct('sqlite::memory:');
     }
 
+    #[\ReturnTypeWillChange]
     public function prepare($query, $options = []): PDOStatement|bool
     {
         return new D1PdoStatement(
@@ -48,9 +49,11 @@ class D1Pdo extends PDO
         $this->lastInsertIds[$name] = $value !== null ? (string) $value : null;
     }
 
+    #[\ReturnTypeWillChange]
     public function lastInsertId($name = null): bool|string
     {
         $name = $name ?? 'id';
+
         return $this->lastInsertIds[$name] ?? false;
     }
 
@@ -94,13 +97,14 @@ class D1Pdo extends PDO
             $this->errorInfo = [
                 $sqlState,
                 $errorCode,
-                $errorMessage
+                $errorMessage,
             ];
 
             // Throw exception if error mode is set to EXCEPTION
             if ($this->getAttribute(PDO::ATTR_ERRMODE) === PDO::ERRMODE_EXCEPTION) {
                 $exception = new \PDOException($errorMessage, (int) $errorCode);
                 $exception->errorInfo = $this->errorInfo;
+
                 throw $exception;
             }
 
@@ -128,7 +132,7 @@ class D1Pdo extends PDO
             return $value ? '1' : '0';
         }
 
-        return "'" . str_replace("'", "''", (string) $value) . "'";
+        return "'".str_replace("'", "''", (string) $value)."'";
     }
 
     #[\ReturnTypeWillChange]

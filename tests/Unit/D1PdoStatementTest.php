@@ -1,8 +1,10 @@
 <?php
 
+declare(strict_types=1);
+
+use Ntanduy\CFD1\CloudflareD1Connector;
 use Ntanduy\CFD1\D1\Pdo\D1Pdo;
 use Ntanduy\CFD1\D1\Pdo\D1PdoStatement;
-use Ntanduy\CFD1\CloudflareD1Connector;
 use Saloon\Http\Response;
 
 test('rowCount returns 0 for SELECT queries', function () {
@@ -15,8 +17,8 @@ test('rowCount returns 0 for SELECT queries', function () {
     $response->shouldReceive('json')->with('result')->andReturn([
         [
             'results' => [['id' => 1]],
-            'meta' => ['changes' => 0, 'last_row_id' => null]
-        ]
+            'meta' => ['changes' => 0, 'last_row_id' => null],
+        ],
     ]);
 
     $connector->shouldReceive('databaseQuery')->once()->andReturn($response);
@@ -37,8 +39,8 @@ test('rowCount returns 0 for WITH queries', function () {
     $response->shouldReceive('json')->with('result')->andReturn([
         [
             'results' => [['id' => 1]],
-            'meta' => ['changes' => 0, 'last_row_id' => null]
-        ]
+            'meta' => ['changes' => 0, 'last_row_id' => null],
+        ],
     ]);
 
     $connector->shouldReceive('databaseQuery')->once()->andReturn($response);
@@ -59,8 +61,8 @@ test('rowCount returns affected rows for INSERT queries', function () {
     $response->shouldReceive('json')->with('result')->andReturn([
         [
             'results' => [],
-            'meta' => ['changes' => 5, 'last_row_id' => 10]
-        ]
+            'meta' => ['changes' => 5, 'last_row_id' => 10],
+        ],
     ]);
 
     $connector->shouldReceive('databaseQuery')->once()->andReturn($response);
@@ -81,8 +83,8 @@ test('execute does not reorder bindings', function () {
     $response->shouldReceive('json')->with('result')->andReturn([
         [
             'results' => [],
-            'meta' => ['changes' => 0, 'last_row_id' => null]
-        ]
+            'meta' => ['changes' => 0, 'last_row_id' => null],
+        ],
     ]);
 
     $connector->shouldReceive('databaseQuery')
@@ -107,10 +109,10 @@ test('fetch returns correct row and advances cursor', function () {
         [
             'results' => [
                 ['id' => 1, 'name' => 'A'],
-                ['id' => 2, 'name' => 'B']
+                ['id' => 2, 'name' => 'B'],
             ],
-            'meta' => ['changes' => 0]
-        ]
+            'meta' => ['changes' => 0],
+        ],
     ]);
 
     $connector->shouldReceive('databaseQuery')->once()->andReturn($response);
@@ -135,10 +137,10 @@ test('fetchAll returns all remaining rows', function () {
             'results' => [
                 ['id' => 1, 'name' => 'A'],
                 ['id' => 2, 'name' => 'B'],
-                ['id' => 3, 'name' => 'C']
+                ['id' => 3, 'name' => 'C'],
             ],
-            'meta' => ['changes' => 0]
-        ]
+            'meta' => ['changes' => 0],
+        ],
     ]);
 
     $connector->shouldReceive('databaseQuery')->once()->andReturn($response);
@@ -170,8 +172,8 @@ test('fetchColumn returns single column value', function () {
             'results' => [
                 ['count' => 100],
             ],
-            'meta' => ['changes' => 0]
-        ]
+            'meta' => ['changes' => 0],
+        ],
     ]);
 
     $connector->shouldReceive('databaseQuery')->once()->andReturn($response);

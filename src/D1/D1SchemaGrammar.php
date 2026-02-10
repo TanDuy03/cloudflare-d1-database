@@ -39,6 +39,7 @@ class D1SchemaGrammar extends SQLiteGrammar
     {
         try {
             $reflection = new \ReflectionMethod(get_parent_class($this), 'compileDropAllTables');
+
             return $reflection->getNumberOfParameters() > 0;
         } catch (\ReflectionException $e) {
             return false;
@@ -59,7 +60,6 @@ class D1SchemaGrammar extends SQLiteGrammar
         $result = self::$supportsSchemaParameter
             ? parent::compileDropAllTables($schema)
             : parent::compileDropAllTables();
-
 
         return $this->replaceSystemTable($result);
     }
@@ -99,8 +99,8 @@ class D1SchemaGrammar extends SQLiteGrammar
      * Compile the query to determine if a table exists.
      * Compatible with Laravel 10, 11, 12
      *
-     * @param string|null $schema
-     * @param string|null $table
+     * @param  string|null  $schema
+     * @param  string|null  $table
      * @return string
      */
     public function compileTableExists($schema = null, $table = null)

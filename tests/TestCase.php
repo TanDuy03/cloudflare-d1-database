@@ -1,10 +1,12 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Ntanduy\CFD1\Test;
 
-use Orchestra\Testbench\TestCase as Orchestra;
 use Ntanduy\CFD1\D1\D1Connection;
 use Ntanduy\CFD1\Test\Mocks\MockCloudflareD1Connector;
+use Orchestra\Testbench\TestCase as Orchestra;
 
 abstract class TestCase extends Orchestra
 {
@@ -13,7 +15,7 @@ abstract class TestCase extends Orchestra
     /**
      * {@inheritdoc}
      */
-    public function setUp(): void
+    protected function setUp(): void
     {
         parent::setUp();
 

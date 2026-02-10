@@ -1,0 +1,30 @@
+includes:
+    # - vendor/pestphp/pest/extension.neon
+
+parameters:
+    level: 5
+    paths:
+        - src
+        - tests
+    excludePaths:
+        - tests/Pest.php
+        - tests/database/factories/UserFactory.php
+    
+    ignoreErrors:
+        # Mockery expectations - false positives from mocking
+        - '#Call to an undefined method Mockery\\.*::(with|once|andReturn)#'
+        - '#Parameter .* constructor expects .*, Mockery\\MockInterface given#'
+        - '#Parameter .* expects .*, PDO given#'
+        - '#Parameter .* expects string, (null|true|false) given#'
+        
+        # Eloquent dynamic methods - Laravel magic methods
+        - '#Call to an undefined static method .*User::(find|create|where|all)#'
+        - '#Access to an undefined property .*::\$(id|name|email|created_at|updated_at)#'
+        
+        # SQLite Grammar - parent class methods called statically
+        - '#Call to an undefined static method Illuminate\\Database\\Schema\\Grammars\\SQLiteGrammar::compile#'
+        
+        # PHPDoc vs native type mismatches
+        - '#Strict comparison using === between string and null will always evaluate to false#'
+        - '#Call to function is_bool\(\) with string will always evaluate to false#'
+        - '#PHPDoc tag @return with type void is incompatible with native type array#'

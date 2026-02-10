@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Ntanduy\CFD1\Test\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
