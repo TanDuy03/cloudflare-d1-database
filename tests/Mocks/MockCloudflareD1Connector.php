@@ -5,9 +5,12 @@ declare(strict_types=1);
 namespace Ntanduy\CFD1\Test\Mocks;
 
 use Ntanduy\CFD1\CloudflareD1Connector;
+use Ntanduy\CFD1\D1\Requests\D1QueryRequest;
 use PDO;
 use PDOException;
-use Saloon\Http\Response;
+use Saloon\Http\Faking\MockClient;
+use Saloon\Http\Faking\MockResponse;
+use Saloon\Http\PendingRequest;
 
 class MockCloudflareD1Connector extends CloudflareD1Connector
 {
@@ -18,6 +21,7 @@ class MockCloudflareD1Connector extends CloudflareD1Connector
     {
         parent::__construct(...$args);
         $this->ensureDatabaseExists();
+        $this->setupMockClient();
     }
 
     public static function reset(): void
@@ -34,7 +38,45 @@ class MockCloudflareD1Connector extends CloudflareD1Connector
         }
     }
 
-    public function databaseQuery(string $query, array $params, bool $retry = true): Response
+    private function setupMockClient(): void
+    {
+        $mockClient = new MockClient([
+            D1QueryRequest::class => function (PendingRequest $pendingRequest) {
+                // Extract request data
+                $request = $pendingRequest->getRequest();
+
+                if ($request instanceof D1QueryRequest) {
+                    // Use reflection to get protected properties
+                    $reflection = new \ReflectionClass($request);
+
+                    $sqlProperty = $reflection->getProperty('sql');
+                    $sqlProperty->setAccessible(true);
+                    $query = $sqlProperty->getValue($request);
+
+                    $paramsProperty = $reflection->getProperty('sqlParams');
+                    $paramsProperty->setAccessible(true);
+                    $params = $paramsProperty->getValue($request);
+
+                    // Execute against in-memory SQLite
+                    $responseBody = $this->executeSqliteQuery($query, $params);
+
+                    return MockResponse::make($responseBody, 200);
+                }
+
+                // Default success response
+                return MockResponse::make([
+                    'success' => true,
+                    'errors' => [],
+                    'messages' => [],
+                    'result' => [['results' => [], 'success' => true]],
+                ], 200);
+            },
+        ]);
+
+        $this->withMockClient($mockClient);
+    }
+
+    private function executeSqliteQuery(string $query, array $params): array
     {
         $this->ensureDatabaseExists();
 
@@ -88,7 +130,7 @@ class MockCloudflareD1Connector extends CloudflareD1Connector
         }
 
         // Construct D1-compatible JSON response
-        $responseBody = json_encode([
+        return [
             'success' => $success,
             'errors' => $errors,
             'messages' => [],
@@ -105,20 +147,6 @@ class MockCloudflareD1Connector extends CloudflareD1Connector
                     ],
                 ],
             ],
-        ]);
-
-        // Create PSR-7 objects for Saloon Response
-        $psrResponse = new \GuzzleHttp\Psr7\Response(
-            200,
-            ['Content-Type' => 'application/json'],
-            $responseBody
-        );
-
-        $psrRequest = new \GuzzleHttp\Psr7\Request('POST', '/mock-query');
-
-        $request = new \Ntanduy\CFD1\D1\Requests\D1QueryRequest($this, 'mock-db', $query, $params);
-        $pendingRequest = new \Saloon\Http\PendingRequest($this, $request);
-
-        return new Response($psrResponse, $pendingRequest, $psrRequest);
+        ];
     }
 }
