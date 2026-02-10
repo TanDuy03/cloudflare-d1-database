@@ -4,12 +4,11 @@ declare(strict_types=1);
 
 namespace Ntanduy\CFD1;
 
-use Illuminate\Contracts\Support\DeferrableProvider;
 use Illuminate\Support\ServiceProvider;
 use InvalidArgumentException;
 use Ntanduy\CFD1\D1\D1Connection;
 
-class D1ServiceProvider extends ServiceProvider implements DeferrableProvider
+class D1ServiceProvider extends ServiceProvider
 {
     /**
      * Boot the service provider.
@@ -127,15 +126,5 @@ class D1ServiceProvider extends ServiceProvider implements DeferrableProvider
             'retries' => (int) ($config['retries'] ?? 2),
             'retry_delay' => (int) ($config['retry_delay'] ?? 100),
         ];
-    }
-
-    /**
-     * Get the services provided by the provider.
-     *
-     * @return array<int, string>
-     */
-    public function provides(): array
-    {
-        return ['db', 'db.connection.d1'];
     }
 }
