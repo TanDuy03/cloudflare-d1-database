@@ -2,17 +2,25 @@
 
 namespace Ntanduy\CFD1\D1\Pdo;
 
+use Ntanduy\CFD1\D1\Pdo\Concerns\MapsSqlState;
 use PDO;
 use PDOException;
 use PDOStatement;
 
 class D1PdoStatement extends PDOStatement
 {
+    use MapsSqlState;
+
     protected int $fetchMode = PDO::FETCH_ASSOC;
+
     protected array $bindings = [];
+
     protected array $responses = [];
+
     protected array $results = [];
+
     protected int $currentResultIndex = 0;
+    
     protected int $affectedRows = 0;
 
     public function __construct(
@@ -80,15 +88,7 @@ class D1PdoStatement extends PDOStatement
             $errorCode = $response->json('errors.0.code');
             $errorMessage = $response->json('errors.0.message', 'Unknown error');
 
-            // Map D1 error codes to SQLSTATE codes
-            $sqlState = match (true) {
-                str_contains($errorMessage, 'UNIQUE constraint') => '23000',
-                str_contains($errorMessage, 'NOT NULL constraint') => '23000',
-                str_contains($errorMessage, 'syntax error') => '42000',
-                str_contains($errorMessage, 'no such table') => '42S02',
-                str_contains($errorMessage, 'no such column') => '42S22',
-                default => 'HY000'
-            };
+            $sqlState = $this->mapErrorToSqlState($errorMessage);
 
             // Throw exception if error mode is set to EXCEPTION
             if ($this->pdo->getAttribute(PDO::ATTR_ERRMODE) === PDO::ERRMODE_EXCEPTION) {

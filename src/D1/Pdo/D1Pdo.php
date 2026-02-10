@@ -3,11 +3,14 @@
 namespace Ntanduy\CFD1\D1\Pdo;
 
 use Ntanduy\CFD1\CloudflareD1Connector;
+use Ntanduy\CFD1\D1\Pdo\Concerns\MapsSqlState;
 use PDO;
 use PDOStatement;
 
 class D1Pdo extends PDO
 {
+    use MapsSqlState;
+    
     protected array $lastInsertIds = [];
 
     protected int $transactionDepth = 0;
@@ -98,15 +101,7 @@ class D1Pdo extends PDO
             $errorCode = $response->json('errors.0.code');
             $errorMessage = $response->json('errors.0.message', 'Unknown error');
 
-            // Map D1 error codes to SQLSTATE codes
-            $sqlState = match (true) {
-                str_contains($errorMessage, 'UNIQUE constraint') => '23000',
-                str_contains($errorMessage, 'NOT NULL constraint') => '23000',
-                str_contains($errorMessage, 'syntax error') => '42000',
-                str_contains($errorMessage, 'no such table') => '42S02',
-                str_contains($errorMessage, 'no such column') => '42S22',
-                default => 'HY000'
-            };
+            $sqlState = $this->mapErrorToSqlState($errorMessage);
 
             $this->errorInfo = [
                 $sqlState,
