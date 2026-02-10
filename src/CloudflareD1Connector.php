@@ -6,7 +6,7 @@ use Saloon\Http\Response;
 
 class CloudflareD1Connector extends CloudflareConnector
 {
-    protected static ?\Closure $queryLogger = null;
+    protected ?\Closure $queryLogger = null;
 
     public function __construct(
         public ?string $database = null,
@@ -19,14 +19,17 @@ class CloudflareD1Connector extends CloudflareConnector
     }
 
     /**
-     * Set a global query logger callback.
+     * Set a query logger callback for this connector instance.
      * Useful for debugging and monitoring D1 queries.
      *
      * @param \Closure|null $callback function(string $query, array $params, float $time, bool $success, ?array $error): void
+     * @return $this
      */
-    public static function setQueryLogger(?\Closure $callback): void
+    public function setQueryLogger(?\Closure $callback): static
     {
-        static::$queryLogger = $callback;
+        $this->queryLogger = $callback;
+
+        return $this;
     }
 
     public function databaseQuery(string $query, array $params, bool $retry = true): Response
@@ -39,7 +42,7 @@ class CloudflareD1Connector extends CloudflareConnector
             ? $this->sendWithRetry($request)
             : $this->send($request);
 
-        if (static::$queryLogger) {
+        if ($this->queryLogger) {
             $time = microtime(true) - $startTime;
             $success = !$response->failed() && $response->json('success');
 
@@ -52,7 +55,7 @@ class CloudflareD1Connector extends CloudflareConnector
                 ];
             }
 
-            (static::$queryLogger)($query, $params, $time, $success, $error);
+            ($this->queryLogger)($query, $params, $time, $success, $error);
         }
 
         return $response;
