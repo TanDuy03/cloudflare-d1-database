@@ -41,26 +41,11 @@ class ExceptionHandlingTest extends TestCase
         DB::table('non_existent_table')->get();
     }
 
-    public function test_transaction_rollback_reverts_data()
+    public function test_transactions_are_not_supported()
     {
-        expect(User::count())->toBe(0);
+        $this->expectException(\PDOException::class);
+        $this->expectExceptionMessage('D1 does not support transactions over stateless HTTP.');
 
-        try {
-            DB::transaction(function () {
-                User::create([
-                    'name' => 'Rollback User',
-                    'email' => 'rollback@example.com',
-                    'password' => 'secret'
-                ]);
-
-                throw new \Exception('Force Rollback');
-            });
-        } catch (\Exception $e) {
-            //
-        }
-
-        // D1 doesn't support real transactions via HTTP API
-        // The data will NOT be rolled back - this is a known limitation
-        expect(User::count())->toBe(1);
+        DB::beginTransaction();
     }
 }

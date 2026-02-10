@@ -10,10 +10,8 @@ use PDOStatement;
 class D1Pdo extends PDO
 {
     use MapsSqlState;
-    
-    protected array $lastInsertIds = [];
 
-    protected int $transactionDepth = 0;
+    protected array $lastInsertIds = [];
 
     protected array $errorInfo = ['00000', null, null];
 
@@ -56,40 +54,28 @@ class D1Pdo extends PDO
 
     public function beginTransaction(): bool
     {
-        $this->transactionDepth++;
-
-        return true;
+        throw new \PDOException(
+            'D1 does not support transactions over stateless HTTP.'
+        );
     }
 
     public function commit(): bool
     {
-        if ($this->transactionDepth <= 0) {
-            // Laravel may call commit multiple times in some scenarios
-            // Silently ignore if no transaction is active
-            return false;
-        }
-
-        $this->transactionDepth--;
-
-        return true;
+        throw new \PDOException(
+            'D1 does not support transactions over stateless HTTP.'
+        );
     }
 
     public function rollBack(): bool
     {
-        if ($this->transactionDepth <= 0) {
-            // Laravel may call rollBack multiple times in some scenarios
-            // Silently ignore if no transaction is active
-            return false;
-        }
-
-        $this->transactionDepth--;
-
-        return true;
+        throw new \PDOException(
+            'D1 does not support transactions over stateless HTTP.'
+        );
     }
 
     public function inTransaction(): bool
     {
-        return $this->transactionDepth > 0;
+        return false;
     }
 
     public function exec($statement): int|false

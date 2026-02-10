@@ -99,32 +99,11 @@ class LaravelIntegrationTest extends TestCase
         expect($users[0]->name)->toBe('Raw User');
     }
 
-    public function test_transactions_from_laravel_viewpoint()
+    public function test_transactions_throw_pdo_exception()
     {
-        // Happy path transaction
-        $result = DB::transaction(function () {
-            return User::create([
-                'name' => 'Transaction User',
-                'email' => 'trans@example.com',
-                'password' => 'secret',
-            ]);
-        });
+        $this->expectException(\PDOException::class);
+        $this->expectExceptionMessage('D1 does not support transactions over stateless HTTP.');
 
-        expect($result)->toBeInstanceOf(User::class);
-        expect(User::where('email', 'trans@example.com')->exists())->toBeTrue();
-
-        // Rollback scenario (simulated)
-        // Since our driver/mock doesn't support actual rollback, we just verify the exception handling
-        // and that the driver's rollBack method is called (which we can't easily spy on here without more mocking).
-        // So we just test that the transaction block executes.
-
-        try {
-            DB::transaction(function () {
-                User::create(['name' => 'Rollback User', 'email' => 'rollback@example.com', 'password' => 'secret']);
-                throw new \Exception('Fail');
-            });
-        } catch (\Exception $e) {
-            expect($e->getMessage())->toBe('Fail');
-        }
+        DB::beginTransaction();
     }
 }
