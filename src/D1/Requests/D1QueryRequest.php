@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ntanduy\CFD1\D1\Requests;
 
+use Ntanduy\CFD1\CloudflareD1Connector;
 use Ntanduy\CFD1\CloudflareRequest;
 use Saloon\Contracts\Body\HasBody;
 use Saloon\Enums\Method;
@@ -16,7 +17,7 @@ class D1QueryRequest extends CloudflareRequest implements HasBody
     protected Method $method = Method::POST;
 
     public function __construct(
-        $connector,
+        CloudflareD1Connector $connector,
         protected string $database,
         protected string $sql,
         protected array $sqlParams,

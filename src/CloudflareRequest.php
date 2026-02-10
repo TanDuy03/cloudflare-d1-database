@@ -11,7 +11,7 @@ abstract class CloudflareRequest extends Request
 {
     protected CloudflareConnector $connector;
 
-    public function __construct($connector)
+    public function __construct(CloudflareConnector $connector)
     {
         $this->connector = $connector;
     }
