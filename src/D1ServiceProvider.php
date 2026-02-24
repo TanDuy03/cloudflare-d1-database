@@ -12,30 +12,37 @@ class D1ServiceProvider extends ServiceProvider
 {
     /**
      * Boot the service provider.
-     *
-     * @return void
      */
-    public function boot()
+    public function boot(): void
     {
-        //
+        if ($this->app->runningInConsole()) {
+            $this->publishes([
+                __DIR__.'/../config/d1-database.php' => config_path('d1-database.php'),
+            ], 'd1-config');
+        }
     }
 
     /**
      * Register the service provider.
-     *
-     * @return void
      */
-    public function register()
+    public function register(): void
     {
+        $this->mergeConfigFrom(
+            __DIR__.'/../config/d1-database.php', 'd1-database'
+        );
+
+        $config = $this->app['config'];
+        $packageDefaults = $config->get('d1-database', []);
+        $userOverrides = $config->get('database.connections.d1', []);
+        $config->set('database.connections.d1', array_merge($packageDefaults, $userOverrides));
+
         $this->registerD1();
     }
 
     /**
      * Register the D1 service.
-     *
-     * @return void
      */
-    protected function registerD1()
+    protected function registerD1(): void
     {
         $this->app->resolving('db', function ($db) {
             $db->extend('d1', function ($config, $name) {
@@ -66,13 +73,10 @@ class D1ServiceProvider extends ServiceProvider
     private function getConfigValue(array $config, string $key, string $default = ''): string
     {
         return $config['auth'][$key] ?? $config[$key] ?? $default;
-
     }
 
     /**
      * Validate the D1 configuration.
-     *
-     * @return void
      *
      * @throws \InvalidArgumentException
      */

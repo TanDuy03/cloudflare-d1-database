@@ -30,7 +30,21 @@ composer require ntanduy/cloudflare-d1-database
 
 ### Integrate Cloudflare D1 with Laravel
 
-Add a new connection in your `config/database.php` file:
+Choose one of the two methods below to integrate Cloudflare D1 into your Laravel project:
+
+### Option 1: Automatic Setup (Recommended)
+
+This method is the quickest way to get started without manually editing your system configuration files.
+
+**Publish Configuration:** Run the following command to automatically generate the D1 configuration:
+
+```php
+php artisan vendor:publish --tag="d1-config"
+```
+
+### Option 2: Manual Setup
+
+If you prefer to manage the connection directly within Laravel's main configuration, add the following array to the `connections` section in your `config/database.php` file:
 
 ```php
 'connections' => [
