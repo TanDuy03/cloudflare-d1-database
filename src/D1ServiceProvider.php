@@ -28,7 +28,8 @@ class D1ServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->mergeConfigFrom(
-            __DIR__.'/../config/d1-database.php', 'd1-database'
+            __DIR__.'/../config/d1-database.php',
+            'd1-database'
         );
 
         $config = $this->app['config'];

@@ -22,8 +22,8 @@ class D1Pdo extends PDO
     protected bool $useRetry = true;
 
     public function __construct(
-        protected string $dsn,
-        protected CloudflareD1Connector $connector,
+        protected readonly string $dsn,
+        protected readonly CloudflareD1Connector $connector,
     ) {
         // Trade-off: extending PDO requires calling parent::__construct(), which
         // opens an unused SQLite in-memory connection (~1MB overhead). This is
@@ -47,20 +47,21 @@ class D1Pdo extends PDO
         return $this->connector;
     }
 
-    public function setLastInsertId($name = null, $value = null): void
+    public function setLastInsertId(?string $name = null, mixed $value = null): void
     {
         $name = $name ?? 'id';
         $this->lastInsertIds[$name] = $value !== null ? (string) $value : null;
     }
 
     #[\ReturnTypeWillChange]
-    public function lastInsertId($name = null): bool|string
+    public function lastInsertId(?string $name = null): bool|string
     {
         $name = $name ?? 'id';
 
         return $this->lastInsertIds[$name] ?? false;
     }
 
+    #[\ReturnTypeWillChange]
     public function beginTransaction(): bool
     {
         throw new \PDOException(
@@ -68,6 +69,7 @@ class D1Pdo extends PDO
         );
     }
 
+    #[\ReturnTypeWillChange]
     public function commit(): bool
     {
         throw new \PDOException(
@@ -75,6 +77,7 @@ class D1Pdo extends PDO
         );
     }
 
+    #[\ReturnTypeWillChange]
     public function rollBack(): bool
     {
         throw new \PDOException(
@@ -82,12 +85,14 @@ class D1Pdo extends PDO
         );
     }
 
+    #[\ReturnTypeWillChange]
     public function inTransaction(): bool
     {
         return false;
     }
 
-    public function exec($statement): int|false
+    #[\ReturnTypeWillChange]
+    public function exec(string $statement): int|false
     {
         $shouldRetry = $this->shouldRetryFor($statement);
         $response = $this->connector->databaseQuery($statement, [], $shouldRetry);
@@ -126,7 +131,8 @@ class D1Pdo extends PDO
         return $resultData['meta']['changes'] ?? 0;
     }
 
-    public function quote($value, $type = PDO::PARAM_STR): string|false
+    #[\ReturnTypeWillChange]
+    public function quote(mixed $value, int $type = PDO::PARAM_STR): string|false
     {
         if ($value === null) {
             return 'NULL';
@@ -153,17 +159,20 @@ class D1Pdo extends PDO
         return $statement;
     }
 
+    #[\ReturnTypeWillChange]
     public function errorCode(): ?string
     {
         return $this->errorInfo[0] ?? null;
     }
 
+    #[\ReturnTypeWillChange]
     public function errorInfo(): array
     {
         return $this->errorInfo;
     }
 
-    public function getAttribute($attribute): mixed
+    #[\ReturnTypeWillChange]
+    public function getAttribute(int $attribute): mixed
     {
         return match ($attribute) {
             PDO::ATTR_DRIVER_NAME => 'sqlite',
@@ -175,7 +184,8 @@ class D1Pdo extends PDO
         };
     }
 
-    public function setAttribute($attribute, $value): bool
+    #[\ReturnTypeWillChange]
+    public function setAttribute(int $attribute, mixed $value): bool
     {
         $this->attributes[$attribute] = $value;
 

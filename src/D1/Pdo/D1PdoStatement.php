@@ -27,12 +27,13 @@ class D1PdoStatement extends PDOStatement
 
     public function __construct(
         protected D1Pdo &$pdo,
-        protected string $query,
-        protected array $options = [],
+        protected readonly string $query,
+        protected readonly array $options = [],
     ) {
         //
     }
 
+    #[\ReturnTypeWillChange]
     public function setFetchMode(int $mode, mixed ...$args): bool
     {
         $this->fetchMode = $mode;
@@ -40,6 +41,7 @@ class D1PdoStatement extends PDOStatement
         return true;
     }
 
+    #[\ReturnTypeWillChange]
     public function bindValue(string|int $param, mixed $value, int $type = PDO::PARAM_STR): bool
     {
         $this->bindings[$param] = match ($type) {
@@ -54,7 +56,7 @@ class D1PdoStatement extends PDOStatement
         return true;
     }
 
-    protected function convertLOBToString($value): string
+    protected function convertLOBToString(mixed $value): string
     {
         if (is_resource($value)) {
             $content = stream_get_contents($value);
@@ -68,6 +70,7 @@ class D1PdoStatement extends PDOStatement
         return (string) $value;
     }
 
+    #[\ReturnTypeWillChange]
     public function execute(?array $params = null): bool
     {
         if ($params !== null) {
@@ -121,6 +124,7 @@ class D1PdoStatement extends PDOStatement
         return true;
     }
 
+    #[\ReturnTypeWillChange]
     public function fetch(int $mode = PDO::FETCH_DEFAULT, int $cursorOrientation = PDO::FETCH_ORI_NEXT, int $cursorOffset = 0): mixed
     {
         if ($cursorOrientation === PDO::FETCH_ORI_ABS) {
@@ -141,6 +145,7 @@ class D1PdoStatement extends PDOStatement
         return $this->formatRow($row, $fetchMode);
     }
 
+    #[\ReturnTypeWillChange]
     public function fetchAll(int $mode = PDO::FETCH_DEFAULT, mixed ...$args): array
     {
         $fetchMode = $mode === PDO::FETCH_DEFAULT ? $this->fetchMode : $mode;
@@ -151,6 +156,7 @@ class D1PdoStatement extends PDOStatement
         return array_map(fn ($row) => $this->formatRow($row, $fetchMode), $rows);
     }
 
+    #[\ReturnTypeWillChange]
     public function fetchColumn(int $column = 0): mixed
     {
         $row = $this->fetch(PDO::FETCH_NUM);
@@ -162,6 +168,7 @@ class D1PdoStatement extends PDOStatement
         return $row[$column] ?? null;
     }
 
+    #[\ReturnTypeWillChange]
     public function rowCount(): int
     {
         if ($this->isSelectQuery()) {
@@ -186,7 +193,7 @@ class D1PdoStatement extends PDOStatement
         return $rows;
     }
 
-    protected function formatRow($row, $mode)
+    protected function formatRow(array $row, int $mode): mixed
     {
         return match ($mode) {
             PDO::FETCH_ASSOC => $row,

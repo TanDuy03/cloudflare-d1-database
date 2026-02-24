@@ -6,8 +6,8 @@ namespace Ntanduy\CFD1\Test\Unit;
 
 use Ntanduy\CFD1\CloudflareD1Connector;
 use Ntanduy\CFD1\D1\Requests\D1QueryRequest;
-use PHPUnit\Framework\Attributes\Test;
 use Orchestra\Testbench\TestCase;
+use PHPUnit\Framework\Attributes\Test;
 use Saloon\Http\Faking\MockClient;
 use Saloon\Http\Faking\MockResponse;
 
@@ -111,6 +111,7 @@ class SendWithRetryTest extends TestCase
                 if ($attempt === 1) {
                     return MockResponse::make(['success' => false], 429);
                 }
+
                 return MockResponse::make($this->successBody(), 200);
             },
         ]);
@@ -135,6 +136,7 @@ class SendWithRetryTest extends TestCase
                 if ($attempt === 1) {
                     return MockResponse::make(['success' => false], 500);
                 }
+
                 return MockResponse::make($this->successBody(), 200);
             },
         ]);
@@ -198,12 +200,14 @@ class SendWithRetryTest extends TestCase
         $connector->withMockClient($mockClient);
 
         // For Throwable path: use a connector subclass that throws
-        $throwingConnector = new class('test-db', 'token', 'account', 'https://api.example.com', ['retries' => 2, 'retry_delay' => 1]) extends CloudflareD1Connector {
+        $throwingConnector = new class('test-db', 'token', 'account', 'https://api.example.com', ['retries' => 2, 'retry_delay' => 1]) extends CloudflareD1Connector
+        {
             private int $sendCount = 0;
 
             public function send(\Saloon\Http\Request $request, ?\Saloon\Http\Faking\MockClient $mockClient = null, ?callable $handleRetry = null): \Saloon\Http\Response
             {
                 $this->sendCount++;
+
                 throw new \RuntimeException("Connection failed (attempt {$this->sendCount})");
             }
 

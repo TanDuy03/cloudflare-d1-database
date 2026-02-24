@@ -20,9 +20,8 @@ parameters:
         # Eloquent dynamic methods - Laravel magic methods
         - '#Call to an undefined static method .*User::(find|create|where|all)#'
         - '#Access to an undefined property .*::\$(id|name|email|created_at|updated_at)#'
-        
-        
-        # PHPDoc vs native type mismatches
+
+        # PDO::quote() accepts mixed but PHPStan infers string from internal stubs
         - '#Strict comparison using === between string and null will always evaluate to false#'
         - '#Call to function is_bool\(\) with string will always evaluate to false#'
-        - '#PHPDoc tag @return with type void is incompatible with native type array#'
+
