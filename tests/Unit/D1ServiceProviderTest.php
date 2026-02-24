@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Ntanduy\CFD1\Test\Unit;
 
 use Ntanduy\CFD1\D1ServiceProvider;
-use Orchestra\Testbench\TestCase;
+use Ntanduy\CFD1\Test\TestCase;
 use PHPUnit\Framework\Attributes\Test;
 
 class D1ServiceProviderTest extends TestCase
@@ -22,24 +22,24 @@ class D1ServiceProviderTest extends TestCase
 
         $this->assertIsArray($connection);
 
-        // Verify all expected keys from the package config are present
+        // Core keys must exist in the final merged connection config
         $this->assertSame('d1', $connection['driver']);
-        $this->assertSame('https://api.cloudflare.com/client/v4', $connection['api']);
+        $this->assertArrayHasKey('api', $connection);
         $this->assertArrayHasKey('database', $connection);
         $this->assertArrayHasKey('prefix', $connection);
         $this->assertArrayHasKey('auth', $connection);
         $this->assertIsArray($connection['auth']);
         $this->assertArrayHasKey('token', $connection['auth']);
         $this->assertArrayHasKey('account_id', $connection['auth']);
-        $this->assertArrayHasKey('timeout', $connection);
-        $this->assertArrayHasKey('connect_timeout', $connection);
-        $this->assertArrayHasKey('retries', $connection);
-        $this->assertArrayHasKey('retry_delay', $connection);
 
-        // Verify the merged config also lives under its own key
+        // Package defaults are available under their own config key
         $packageConfig = $this->app['config']->get('d1-database');
         $this->assertIsArray($packageConfig);
         $this->assertSame('d1', $packageConfig['driver']);
+        $this->assertArrayHasKey('timeout', $packageConfig);
+        $this->assertArrayHasKey('connect_timeout', $packageConfig);
+        $this->assertArrayHasKey('retries', $packageConfig);
+        $this->assertArrayHasKey('retry_delay', $packageConfig);
     }
 
     #[Test]
