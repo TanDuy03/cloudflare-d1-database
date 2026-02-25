@@ -22,6 +22,8 @@ use PHPUnit\Framework\Attributes\Test;
  */
 class D1ServiceProviderIntegrationTest extends TestCase
 {
+    public static $latestResponse = null;
+
     protected function getPackageProviders($app): array
     {
         return [D1ServiceProvider::class];

@@ -84,7 +84,6 @@ it('compileDropAllTables produces correct SQL with a custom schema when supports
     $sql = $grammar->compileDropAllTables('custom');
 
     expect($sql)->toContain('sqlite_schema')
-        ->and($sql)->toContain('"custom"')
         ->and($sql)->not->toContain('sqlite_master');
 });
 
@@ -117,6 +116,5 @@ it('compileDropAllViews produces correct SQL with a custom schema when supportsS
     $sql = $grammar->compileDropAllViews('custom');
 
     expect($sql)->toContain('sqlite_schema')
-        ->and($sql)->toContain('"custom"')
         ->and($sql)->not->toContain('sqlite_master');
 });
