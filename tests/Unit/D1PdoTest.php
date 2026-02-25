@@ -160,7 +160,7 @@ test('exec PDOException has errorInfo property set', function () {
 
     try {
         $pdo->exec('SELECT * FROM foo');
-        test()->fail('Expected PDOException');
+        \PHPUnit\Framework\Assert::fail('Expected PDOException');
     } catch (\PDOException $e) {
         expect($e->errorInfo)->toBe(['42S02', 1000, 'no such table: foo'])
             ->and($e->getCode())->toBe(1000)
