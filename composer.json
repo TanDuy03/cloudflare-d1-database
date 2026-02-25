@@ -1,67 +1,67 @@
 {
-    "name": "ntanduy/cloudflare-d1-database",
-    "description": "Easy configuration and setup for D1 Database connections in Laravel.",
-    "keywords": [
-        "TanDuy03",
-        "laravel",
-        "Cloudflare",
-        "D1",
-        "Database"
-    ],
-    "license": "MIT",
-    "homepage": "https://github.com/TanDuy03/cloudflare-d1-database",
-    "authors": [
-        {
-            "name": "TanDuy03",
-            "email": "contact@ntanduy.com",
-            "role": "Developer"
-        }
-    ],
-    "require": {
-        "php": "^8.2",
-        "illuminate/cache": "^10.0|^11.0|^12.0",
-        "illuminate/contracts": "^10.0|^11.0|^12.0",
-        "illuminate/database": "^10.0|^11.0|^12.0",
-        "illuminate/http": "^10.0|^11.0|^12.0",
-        "illuminate/support": "^10.0|^11.0|^12.0",
-        "saloonphp/laravel-plugin": "^3.5",
-        "saloonphp/saloon": "^3.10"
-    },
-    "autoload": {
-        "psr-4": {
-            "Ntanduy\\CFD1\\": "src/"
-        }
-    },
-    "autoload-dev": {
-        "psr-4": {
-            "Ntanduy\\CFD1\\Test\\": "tests"
-        }
-    },
-    "scripts": {
-        "test": "vendor/bin/pest"
-    },
-    "minimum-stability": "stable",
-    "require-dev": {
-        "laravel/pint": "^1.27",
-        "mockery/mockery": "^1.6",
-        "orchestra/testbench": "^8.0|^9.0|^10.0",
-        "pestphp/pest": "^2.35|^3.0",
-        "phpstan/phpstan": "^2.1"
-    },
-    "config": {
-        "allow-plugins": {
-            "pestphp/pest-plugin": true
-        },
-        "sort-packages": true
-    },
-    "suggest": {
-        "ext-pdo": "Extending the PDO driver for Cloudflare D1 is required."
-    },
-    "extra": {
-        "laravel": {
-            "providers": [
-                "Ntanduy\\CFD1\\D1ServiceProvider"
-            ]
-        }
+  "name": "ntanduy/cloudflare-d1-database",
+  "description": "Easy configuration and setup for D1 Database connections in Laravel.",
+  "keywords": [
+    "TanDuy03",
+    "laravel",
+    "Cloudflare",
+    "D1",
+    "Database"
+  ],
+  "license": "MIT",
+  "homepage": "https://github.com/TanDuy03/cloudflare-d1-database",
+  "authors": [
+    {
+      "name": "TanDuy03",
+      "email": "contact@ntanduy.com",
+      "role": "Developer"
     }
+  ],
+  "require": {
+    "php": "^8.2",
+    "illuminate/cache": "^10.0|^11.0|^12.0",
+    "illuminate/contracts": "^10.0|^11.0|^12.0",
+    "illuminate/database": "^10.0|^11.0|^12.0",
+    "illuminate/http": "^10.0|^11.0|^12.0",
+    "illuminate/support": "^10.0|^11.0|^12.0",
+    "saloonphp/laravel-plugin": "^3.5",
+    "saloonphp/saloon": "^3.10"
+  },
+  "autoload": {
+    "psr-4": {
+      "Ntanduy\\CFD1\\": "src/"
+    }
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "Ntanduy\\CFD1\\Test\\": "tests"
+    }
+  },
+  "scripts": {
+    "test": "vendor/bin/pest"
+  },
+  "minimum-stability": "stable",
+  "require-dev": {
+    "laravel/pint": "^1.27",
+    "mockery/mockery": "^1.6",
+    "orchestra/testbench": "^8.0|^9.0|^10.0",
+    "pestphp/pest": "^2.35|^3.0",
+    "phpstan/phpstan": "^2.1"
+  },
+  "config": {
+    "allow-plugins": {
+      "pestphp/pest-plugin": true
+    },
+    "sort-packages": true
+  },
+  "suggest": {
+    "ext-pdo": "Extending the PDO driver for Cloudflare D1 is required."
+  },
+  "extra": {
+    "laravel": {
+      "providers": [
+        "Ntanduy\\CFD1\\D1ServiceProvider"
+      ]
+    }
+  }
 }
