@@ -33,11 +33,11 @@ afterEach(function () {
 
 it('replaces sqlite_master with sqlite_schema in a given SQL string', function () {
     setSupportsSchemaParameter(true);
-    $grammar = new D1SchemaGrammar();
+    $grammar = new D1SchemaGrammar;
 
     $method = new ReflectionMethod($grammar, 'replaceSystemTable');
 
-    $input  = "delete from \"main\".sqlite_master where type in ('table', 'index', 'trigger')";
+    $input = "delete from \"main\".sqlite_master where type in ('table', 'index', 'trigger')";
     $result = $method->invoke($grammar, $input);
 
     expect($result)->toBe("delete from \"main\".sqlite_schema where type in ('table', 'index', 'trigger')");
@@ -45,21 +45,21 @@ it('replaces sqlite_master with sqlite_schema in a given SQL string', function (
 
 it('returns the string unchanged when sqlite_master is not present', function () {
     setSupportsSchemaParameter(true);
-    $grammar = new D1SchemaGrammar();
+    $grammar = new D1SchemaGrammar;
 
     $method = new ReflectionMethod($grammar, 'replaceSystemTable');
 
-    $input  = "select * from users";
+    $input = 'select * from users';
     $result = $method->invoke($grammar, $input);
 
-    expect($result)->toBe("select * from users");
+    expect($result)->toBe('select * from users');
 });
 
 // ── compileDropAllTables ───────────────────────────────────────────────
 
 it('compileDropAllTables replaces sqlite_master with sqlite_schema when supportsSchemaParameter is true', function () {
     setSupportsSchemaParameter(true);
-    $grammar = new D1SchemaGrammar();
+    $grammar = new D1SchemaGrammar;
 
     $sql = $grammar->compileDropAllTables();
 
@@ -69,7 +69,7 @@ it('compileDropAllTables replaces sqlite_master with sqlite_schema when supports
 
 it('compileDropAllTables replaces sqlite_master with sqlite_schema when supportsSchemaParameter is false', function () {
     setSupportsSchemaParameter(false);
-    $grammar = new D1SchemaGrammar();
+    $grammar = new D1SchemaGrammar;
 
     $sql = $grammar->compileDropAllTables();
 
@@ -79,7 +79,7 @@ it('compileDropAllTables replaces sqlite_master with sqlite_schema when supports
 
 it('compileDropAllTables produces correct SQL with a custom schema when supportsSchemaParameter is true', function () {
     setSupportsSchemaParameter(true);
-    $grammar = new D1SchemaGrammar();
+    $grammar = new D1SchemaGrammar;
 
     $sql = $grammar->compileDropAllTables('custom');
 
@@ -92,7 +92,7 @@ it('compileDropAllTables produces correct SQL with a custom schema when supports
 
 it('compileDropAllViews replaces sqlite_master with sqlite_schema when supportsSchemaParameter is true', function () {
     setSupportsSchemaParameter(true);
-    $grammar = new D1SchemaGrammar();
+    $grammar = new D1SchemaGrammar;
 
     $sql = $grammar->compileDropAllViews();
 
@@ -102,7 +102,7 @@ it('compileDropAllViews replaces sqlite_master with sqlite_schema when supportsS
 
 it('compileDropAllViews replaces sqlite_master with sqlite_schema when supportsSchemaParameter is false', function () {
     setSupportsSchemaParameter(false);
-    $grammar = new D1SchemaGrammar();
+    $grammar = new D1SchemaGrammar;
 
     $sql = $grammar->compileDropAllViews();
 
@@ -112,7 +112,7 @@ it('compileDropAllViews replaces sqlite_master with sqlite_schema when supportsS
 
 it('compileDropAllViews produces correct SQL with a custom schema when supportsSchemaParameter is true', function () {
     setSupportsSchemaParameter(true);
-    $grammar = new D1SchemaGrammar();
+    $grammar = new D1SchemaGrammar;
 
     $sql = $grammar->compileDropAllViews('custom');
 
