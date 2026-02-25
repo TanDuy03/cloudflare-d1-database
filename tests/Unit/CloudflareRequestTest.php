@@ -17,7 +17,8 @@ class CloudflareRequestTest extends TestCase
     {
         $connector = $this->createMock(CloudflareConnector::class);
 
-        $request = new class ($connector) extends CloudflareRequest {
+        $request = new class($connector) extends CloudflareRequest
+        {
             public function resolveEndpoint(): string
             {
                 return '/test';

@@ -1,5 +1,6 @@
 # D1 - Cloudflare bindings for Laravel
 
+[![codecov](https://codecov.io/gh/TanDuy03/cloudflare-d1-database/graph/badge.svg?token=9MSJ527ZMX)](https://codecov.io/gh/TanDuy03/cloudflare-d1-database)
 [![Tests](https://github.com/TanDuy03/cloudflare-d1-database/actions/workflows/tests.yml/badge.svg)](https://github.com/TanDuy03/cloudflare-d1-database/actions/workflows/tests.yml)
 ![Packagist Dependency Version](https://img.shields.io/packagist/dependency-v/ntanduy/cloudflare-d1-database/php)
 [![Latest Stable Version](https://poser.pugx.org/ntanduy/cloudflare-d1-database/v/stable)](https://packagist.org/packages/ntanduy/cloudflare-d1-database)
