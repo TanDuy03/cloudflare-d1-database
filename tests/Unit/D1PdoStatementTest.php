@@ -184,3 +184,151 @@ test('fetchColumn returns single column value', function () {
     expect($stmt->fetchColumn(0))->toBe(100);
     expect($stmt->fetchColumn(0))->toBeFalse(); // No more rows
 });
+
+// ── bindValue type branches ────────────────────────────────────────────
+
+test('bindValue casts PARAM_BOOL to boolean', function () {
+    $connector = Mockery::mock(CloudflareD1Connector::class);
+    $pdo = new D1Pdo('dsn', $connector);
+
+    $response = Mockery::mock(Response::class);
+    $response->shouldReceive('failed')->andReturn(false);
+    $response->shouldReceive('json')->with('success')->andReturn(true);
+    $response->shouldReceive('json')->with('result')->andReturn([
+        ['results' => [], 'meta' => ['changes' => 0, 'last_row_id' => null]],
+    ]);
+
+    $connector->shouldReceive('databaseQuery')
+        ->once()
+        ->with('INSERT INTO t (active) VALUES (?)', [true], false)
+        ->andReturn($response);
+
+    $stmt = new D1PdoStatement($pdo, 'INSERT INTO t (active) VALUES (?)');
+    $stmt->bindValue(1, 1, PDO::PARAM_BOOL);
+    $stmt->execute();
+
+    expect(true)->toBeTrue();
+});
+
+test('bindValue casts PARAM_INT to integer', function () {
+    $connector = Mockery::mock(CloudflareD1Connector::class);
+    $pdo = new D1Pdo('dsn', $connector);
+
+    $response = Mockery::mock(Response::class);
+    $response->shouldReceive('failed')->andReturn(false);
+    $response->shouldReceive('json')->with('success')->andReturn(true);
+    $response->shouldReceive('json')->with('result')->andReturn([
+        ['results' => [], 'meta' => ['changes' => 0, 'last_row_id' => null]],
+    ]);
+
+    $connector->shouldReceive('databaseQuery')
+        ->once()
+        ->with('INSERT INTO t (age) VALUES (?)', [42], false)
+        ->andReturn($response);
+
+    $stmt = new D1PdoStatement($pdo, 'INSERT INTO t (age) VALUES (?)');
+    $stmt->bindValue(1, '42', PDO::PARAM_INT);
+    $stmt->execute();
+
+    expect(true)->toBeTrue();
+});
+
+test('bindValue casts PARAM_NULL to null', function () {
+    $connector = Mockery::mock(CloudflareD1Connector::class);
+    $pdo = new D1Pdo('dsn', $connector);
+
+    $response = Mockery::mock(Response::class);
+    $response->shouldReceive('failed')->andReturn(false);
+    $response->shouldReceive('json')->with('success')->andReturn(true);
+    $response->shouldReceive('json')->with('result')->andReturn([
+        ['results' => [], 'meta' => ['changes' => 0, 'last_row_id' => null]],
+    ]);
+
+    $connector->shouldReceive('databaseQuery')
+        ->once()
+        ->with('INSERT INTO t (col) VALUES (?)', [null], false)
+        ->andReturn($response);
+
+    $stmt = new D1PdoStatement($pdo, 'INSERT INTO t (col) VALUES (?)');
+    $stmt->bindValue(1, 'anything', PDO::PARAM_NULL);
+    $stmt->execute();
+
+    expect(true)->toBeTrue();
+});
+
+test('bindValue passes through unknown type as-is', function () {
+    $connector = Mockery::mock(CloudflareD1Connector::class);
+    $pdo = new D1Pdo('dsn', $connector);
+
+    $response = Mockery::mock(Response::class);
+    $response->shouldReceive('failed')->andReturn(false);
+    $response->shouldReceive('json')->with('success')->andReturn(true);
+    $response->shouldReceive('json')->with('result')->andReturn([
+        ['results' => [], 'meta' => ['changes' => 0, 'last_row_id' => null]],
+    ]);
+
+    $connector->shouldReceive('databaseQuery')
+        ->once()
+        ->with('INSERT INTO t (col) VALUES (?)', ['raw'], false)
+        ->andReturn($response);
+
+    $stmt = new D1PdoStatement($pdo, 'INSERT INTO t (col) VALUES (?)');
+    $stmt->bindValue(1, 'raw', 999);
+    $stmt->execute();
+
+    expect(true)->toBeTrue();
+});
+
+// ── convertLOBToString (via PARAM_LOB) ─────────────────────────────────
+
+test('bindValue PARAM_LOB converts resource stream to string', function () {
+    $connector = Mockery::mock(CloudflareD1Connector::class);
+    $pdo = new D1Pdo('dsn', $connector);
+
+    $stream = fopen('php://memory', 'r+');
+    fwrite($stream, 'binary-data');
+    rewind($stream);
+
+    $response = Mockery::mock(Response::class);
+    $response->shouldReceive('failed')->andReturn(false);
+    $response->shouldReceive('json')->with('success')->andReturn(true);
+    $response->shouldReceive('json')->with('result')->andReturn([
+        ['results' => [], 'meta' => ['changes' => 0, 'last_row_id' => null]],
+    ]);
+
+    $connector->shouldReceive('databaseQuery')
+        ->once()
+        ->with('INSERT INTO t (data) VALUES (?)', ['binary-data'], false)
+        ->andReturn($response);
+
+    $stmt = new D1PdoStatement($pdo, 'INSERT INTO t (data) VALUES (?)');
+    $stmt->bindValue(1, $stream, PDO::PARAM_LOB);
+    $stmt->execute();
+
+    fclose($stream);
+
+    expect(true)->toBeTrue();
+});
+
+test('bindValue PARAM_LOB casts non-resource to string', function () {
+    $connector = Mockery::mock(CloudflareD1Connector::class);
+    $pdo = new D1Pdo('dsn', $connector);
+
+    $response = Mockery::mock(Response::class);
+    $response->shouldReceive('failed')->andReturn(false);
+    $response->shouldReceive('json')->with('success')->andReturn(true);
+    $response->shouldReceive('json')->with('result')->andReturn([
+        ['results' => [], 'meta' => ['changes' => 0, 'last_row_id' => null]],
+    ]);
+
+    $connector->shouldReceive('databaseQuery')
+        ->once()
+        ->with('INSERT INTO t (data) VALUES (?)', ['12345'], false)
+        ->andReturn($response);
+
+    $stmt = new D1PdoStatement($pdo, 'INSERT INTO t (data) VALUES (?)');
+    $stmt->bindValue(1, 12345, PDO::PARAM_LOB);
+    $stmt->execute();
+
+    expect(true)->toBeTrue();
+});
