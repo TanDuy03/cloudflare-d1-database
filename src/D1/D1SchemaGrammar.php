@@ -33,12 +33,22 @@ class D1SchemaGrammar extends SQLiteGrammar
     protected function detectSchemaParameterSupport(): bool
     {
         try {
-            $reflection = new \ReflectionMethod(get_parent_class($this), 'compileDropAllTables');
+            $reflection = new \ReflectionMethod($this->getParentClassForDetection(), 'compileDropAllTables');
 
             return $reflection->getNumberOfParameters() > 0;
         } catch (\ReflectionException $e) {
             return false;
         }
+    }
+
+    /**
+     * Get the parent class name used for schema parameter detection.
+     *
+     * @codeCoverageIgnore
+     */
+    protected function getParentClassForDetection(): string
+    {
+        return get_parent_class($this);
     }
 
     protected function replaceSystemTable(string $sql): string

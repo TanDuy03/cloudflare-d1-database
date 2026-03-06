@@ -154,32 +154,22 @@ it('compileTableExists returns Laravel 10 SQL when called with zero arguments', 
 // ── detectSchemaParameterSupport catch block ───────────────────────────
 
 it('detectSchemaParameterSupport returns false when ReflectionException is thrown', function () {
-    // Force $supportsSchemaParameter to null so the constructor triggers detection
+    // Reset cache so the constructor triggers fresh detection
     $ref = new ReflectionProperty(D1SchemaGrammar::class, 'supportsSchemaParameter');
     $ref->setValue(null, null);
 
-    // Create an anonymous class whose parent does NOT have compileDropAllTables,
-    // which will cause ReflectionMethod to throw ReflectionException.
-    // We override detectSchemaParameterSupport to call Reflection on a class
-    // without the method.
+    // Subclass overrides only getParentClassForDetection() to return stdClass
+    // (which has no compileDropAllTables), triggering ReflectionException in
+    // the original detectSchemaParameterSupport() catch block.
     $grammar = new class extends D1SchemaGrammar
     {
-        protected function detectSchemaParameterSupport(): bool
+        protected function getParentClassForDetection(): string
         {
-            try {
-                // Deliberately reference a method that doesn't exist on stdClass
-                $reflection = new \ReflectionMethod(\stdClass::class, 'compileDropAllTables');
-
-                return $reflection->getNumberOfParameters() > 0;
-            } catch (\ReflectionException $e) {
-                return false;
-            }
+            return \stdClass::class;
         }
     };
 
-    // The anonymous class constructor calls detectSchemaParameterSupport(),
-    // which hits the catch block and returns false
-    $method = new ReflectionMethod($grammar, 'detectSchemaParameterSupport');
+    $method = new ReflectionMethod(D1SchemaGrammar::class, 'detectSchemaParameterSupport');
     $result = $method->invoke($grammar);
 
     expect($result)->toBeFalse();
