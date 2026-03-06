@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Ntanduy\CFD1\D1\Pdo;
 
 use Ntanduy\CFD1\CloudflareD1Connector;
+use Ntanduy\CFD1\D1\Exceptions\D1QueryException;
+use Ntanduy\CFD1\D1\Exceptions\D1TransactionException;
 use Ntanduy\CFD1\D1\Pdo\Concerns\MapsSqlState;
 use PDO;
 use PDOStatement;
@@ -64,7 +66,7 @@ class D1Pdo extends PDO
     #[\ReturnTypeWillChange]
     public function beginTransaction(): bool
     {
-        throw new \PDOException(
+        throw new D1TransactionException(
             'D1 does not support transactions over stateless HTTP.'
         );
     }
@@ -72,7 +74,7 @@ class D1Pdo extends PDO
     #[\ReturnTypeWillChange]
     public function commit(): bool
     {
-        throw new \PDOException(
+        throw new D1TransactionException(
             'D1 does not support transactions over stateless HTTP.'
         );
     }
@@ -80,7 +82,7 @@ class D1Pdo extends PDO
     #[\ReturnTypeWillChange]
     public function rollBack(): bool
     {
-        throw new \PDOException(
+        throw new D1TransactionException(
             'D1 does not support transactions over stateless HTTP.'
         );
     }
@@ -111,10 +113,7 @@ class D1Pdo extends PDO
 
             // Throw exception if error mode is set to EXCEPTION
             if ($this->getAttribute(PDO::ATTR_ERRMODE) === PDO::ERRMODE_EXCEPTION) {
-                $exception = new \PDOException($errorMessage, (int) $errorCode);
-                $exception->errorInfo = $this->errorInfo;
-
-                throw $exception;
+                throw D1QueryException::fromApiError($errorMessage, (int) $errorCode, $sqlState);
             }
 
             return false;

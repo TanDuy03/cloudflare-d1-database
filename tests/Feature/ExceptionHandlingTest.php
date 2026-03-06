@@ -6,6 +6,7 @@ namespace Ntanduy\CFD1\Test\Feature;
 
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
+use Ntanduy\CFD1\D1\Exceptions\D1TransactionException;
 use Ntanduy\CFD1\Test\Models\User;
 use Ntanduy\CFD1\Test\TestCase;
 
@@ -45,7 +46,7 @@ class ExceptionHandlingTest extends TestCase
 
     public function test_transactions_are_not_supported()
     {
-        $this->expectException(\PDOException::class);
+        $this->expectException(D1TransactionException::class);
         $this->expectExceptionMessage('D1 does not support transactions over stateless HTTP.');
 
         DB::beginTransaction();

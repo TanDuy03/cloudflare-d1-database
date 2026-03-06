@@ -3,6 +3,8 @@
 declare(strict_types=1);
 
 use Ntanduy\CFD1\CloudflareD1Connector;
+use Ntanduy\CFD1\D1\Exceptions\D1QueryException;
+use Ntanduy\CFD1\D1\Exceptions\D1TransactionException;
 use Ntanduy\CFD1\D1\Pdo\D1Pdo;
 
 test('quote handles null', function () {
@@ -41,23 +43,23 @@ test('getAttribute returns correct client version', function () {
     expect($pdo->getAttribute(PDO::ATTR_CLIENT_VERSION))->toBe('D1');
 });
 
-test('beginTransaction throws PDOException', function () {
+test('beginTransaction throws D1TransactionException', function () {
     $pdo = new D1Pdo('dsn', Mockery::mock(CloudflareD1Connector::class));
 
     $pdo->beginTransaction();
-})->throws(\PDOException::class, 'D1 does not support transactions over stateless HTTP.');
+})->throws(D1TransactionException::class, 'D1 does not support transactions over stateless HTTP.');
 
-test('commit throws PDOException', function () {
+test('commit throws D1TransactionException', function () {
     $pdo = new D1Pdo('dsn', Mockery::mock(CloudflareD1Connector::class));
 
     $pdo->commit();
-})->throws(\PDOException::class, 'D1 does not support transactions over stateless HTTP.');
+})->throws(D1TransactionException::class, 'D1 does not support transactions over stateless HTTP.');
 
-test('rollBack throws PDOException', function () {
+test('rollBack throws D1TransactionException', function () {
     $pdo = new D1Pdo('dsn', Mockery::mock(CloudflareD1Connector::class));
 
     $pdo->rollBack();
-})->throws(\PDOException::class, 'D1 does not support transactions over stateless HTTP.');
+})->throws(D1TransactionException::class, 'D1 does not support transactions over stateless HTTP.');
 
 test('inTransaction always returns false', function () {
     $pdo = new D1Pdo('dsn', Mockery::mock(CloudflareD1Connector::class));
@@ -95,7 +97,7 @@ test('lastInsertId manages state', function () {
 
 // ── exec error handling ────────────────────────────────────────────────
 
-test('exec throws PDOException on failed response when ERRMODE_EXCEPTION', function () {
+test('exec throws D1QueryException on failed response when ERRMODE_EXCEPTION', function () {
     $connector = Mockery::mock(CloudflareD1Connector::class);
     $pdo = new D1Pdo('dsn', $connector);
 
@@ -108,7 +110,7 @@ test('exec throws PDOException on failed response when ERRMODE_EXCEPTION', funct
 
     // ERRMODE_EXCEPTION is the default
     $pdo->exec('INVALID SQL');
-})->throws(\PDOException::class, 'syntax error near "INVALID"');
+})->throws(D1QueryException::class, 'syntax error near "INVALID"');
 
 test('exec returns false on failed response when ERRMODE_SILENT', function () {
     $connector = Mockery::mock(CloudflareD1Connector::class);
@@ -147,7 +149,7 @@ test('exec populates errorInfo on failure', function () {
         ->and($pdo->errorInfo())->toBe(['42S02', 1000, 'no such table: users']);
 });
 
-test('exec PDOException has errorInfo property set', function () {
+test('exec D1QueryException has errorInfo property set', function () {
     $connector = Mockery::mock(CloudflareD1Connector::class);
     $pdo = new D1Pdo('dsn', $connector);
 
@@ -160,11 +162,12 @@ test('exec PDOException has errorInfo property set', function () {
 
     try {
         $pdo->exec('SELECT * FROM foo');
-        \PHPUnit\Framework\Assert::fail('Expected PDOException');
-    } catch (\PDOException $e) {
+        \PHPUnit\Framework\Assert::fail('Expected D1QueryException');
+    } catch (D1QueryException $e) {
         expect($e->errorInfo)->toBe(['42S02', 1000, 'no such table: foo'])
             ->and($e->getCode())->toBe(1000)
-            ->and($e->getMessage())->toBe('no such table: foo');
+            ->and($e->getMessage())->toBe('no such table: foo')
+            ->and($e)->toBeInstanceOf(\PDOException::class);
     }
 });
 

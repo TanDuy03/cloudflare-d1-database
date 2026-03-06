@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace Ntanduy\CFD1\D1\Pdo;
 
+use Ntanduy\CFD1\D1\Exceptions\D1QueryException;
+use Ntanduy\CFD1\D1\Exceptions\D1StreamException;
+use Ntanduy\CFD1\D1\Exceptions\D1UnsupportedFeatureException;
 use Ntanduy\CFD1\D1\Pdo\Concerns\MapsSqlState;
 use PDO;
-use PDOException;
 use PDOStatement;
 
 class D1PdoStatement extends PDOStatement
@@ -61,7 +63,7 @@ class D1PdoStatement extends PDOStatement
         if (is_resource($value)) {
             $content = stream_get_contents($value);
             if ($content === false) {
-                throw new PDOException('Failed to read LOB stream');
+                throw new D1StreamException('Failed to read LOB stream');
             }
 
             return $content;
@@ -96,10 +98,7 @@ class D1PdoStatement extends PDOStatement
 
             // Throw exception if error mode is set to EXCEPTION
             if ($this->pdo->getAttribute(PDO::ATTR_ERRMODE) === PDO::ERRMODE_EXCEPTION) {
-                $exception = new PDOException($errorMessage, (int) $errorCode);
-                $exception->errorInfo = [$sqlState, $errorCode, $errorMessage];
-
-                throw $exception;
+                throw D1QueryException::fromApiError($errorMessage, (int) $errorCode, $sqlState);
             }
 
             return false;
@@ -200,7 +199,7 @@ class D1PdoStatement extends PDOStatement
             PDO::FETCH_OBJ => (object) $row,
             PDO::FETCH_NUM => array_values($row),
             PDO::FETCH_BOTH => array_merge($row, array_values($row)),
-            default => throw new PDOException('Unsupported fetch mode.'),
+            default => throw new D1UnsupportedFeatureException('Unsupported fetch mode.'),
         };
     }
 }
