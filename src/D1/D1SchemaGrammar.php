@@ -8,7 +8,6 @@ use Illuminate\Database\Schema\Grammars\SQLiteGrammar;
 
 class D1SchemaGrammar extends SQLiteGrammar
 {
-
     /**
      * Cache for method signature detection
      */

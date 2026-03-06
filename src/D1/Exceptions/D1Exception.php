@@ -10,15 +10,17 @@ use PDOException;
  * Base exception for all Cloudflare D1 driver errors.
  *
  * Extends PDOException so existing catch blocks remain compatible.
+ *
+ * @phpstan-consistent-constructor
  */
 class D1Exception extends PDOException
 {
     /**
      * Create an exception from a Cloudflare API error response.
      *
-     * @param  string  $message    Error message from the API
-     * @param  int|null  $code     Error code from the API
-     * @param  string  $sqlState   Mapped SQLSTATE code
+     * @param  string  $message  Error message from the API
+     * @param  int|null  $code  Error code from the API
+     * @param  string  $sqlState  Mapped SQLSTATE code
      */
     public static function fromApiError(string $message, ?int $code, string $sqlState): static
     {
