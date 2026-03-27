@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Ntanduy\CFD1\Test;
 
 use Ntanduy\CFD1\D1\D1Connection;
+use Ntanduy\CFD1\D1ServiceProvider;
 use Ntanduy\CFD1\Test\Mocks\MockCloudflareD1Connector;
 use Orchestra\Testbench\TestCase as Orchestra;
 
@@ -33,7 +34,7 @@ abstract class TestCase extends Orchestra
     protected function getPackageProviders($app)
     {
         return [
-            \Ntanduy\CFD1\D1ServiceProvider::class,
+            D1ServiceProvider::class,
         ];
     }
 

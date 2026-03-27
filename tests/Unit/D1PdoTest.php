@@ -6,6 +6,8 @@ use Ntanduy\CFD1\CloudflareD1Connector;
 use Ntanduy\CFD1\D1\Exceptions\D1QueryException;
 use Ntanduy\CFD1\D1\Exceptions\D1TransactionException;
 use Ntanduy\CFD1\D1\Pdo\D1Pdo;
+use PHPUnit\Framework\Assert;
+use Saloon\Http\Response;
 
 test('quote handles null', function () {
     $pdo = new D1Pdo('dsn', Mockery::mock(CloudflareD1Connector::class));
@@ -71,7 +73,7 @@ test('exec returns affected rows', function () {
     $connector = Mockery::mock(CloudflareD1Connector::class);
     $pdo = new D1Pdo('dsn', $connector);
 
-    $response = Mockery::mock(Saloon\Http\Response::class);
+    $response = Mockery::mock(Response::class);
     $response->shouldReceive('failed')->andReturn(false);
     $response->shouldReceive('json')->with('success')->andReturn(true);
     $response->shouldReceive('json')->with('result.0')->andReturn(['meta' => ['changes' => 10]]);
@@ -101,7 +103,7 @@ test('exec throws D1QueryException on failed response when ERRMODE_EXCEPTION', f
     $connector = Mockery::mock(CloudflareD1Connector::class);
     $pdo = new D1Pdo('dsn', $connector);
 
-    $response = Mockery::mock(Saloon\Http\Response::class);
+    $response = Mockery::mock(Response::class);
     $response->shouldReceive('failed')->andReturn(true);
     $response->shouldReceive('json')->with('errors.0.code')->andReturn(7500);
     $response->shouldReceive('json')->with('errors.0.message', 'Unknown error')->andReturn('syntax error near "INVALID"');
@@ -117,7 +119,7 @@ test('exec returns false on failed response when ERRMODE_SILENT', function () {
     $pdo = new D1Pdo('dsn', $connector);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_SILENT);
 
-    $response = Mockery::mock(Saloon\Http\Response::class);
+    $response = Mockery::mock(Response::class);
     $response->shouldReceive('failed')->andReturn(false);
     $response->shouldReceive('json')->with('success')->andReturn(false);
     $response->shouldReceive('json')->with('errors.0.code')->andReturn(1000);
@@ -135,7 +137,7 @@ test('exec populates errorInfo on failure', function () {
     $pdo = new D1Pdo('dsn', $connector);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_SILENT);
 
-    $response = Mockery::mock(Saloon\Http\Response::class);
+    $response = Mockery::mock(Response::class);
     $response->shouldReceive('failed')->andReturn(false);
     $response->shouldReceive('json')->with('success')->andReturn(false);
     $response->shouldReceive('json')->with('errors.0.code')->andReturn(1000);
@@ -153,7 +155,7 @@ test('exec D1QueryException has errorInfo property set', function () {
     $connector = Mockery::mock(CloudflareD1Connector::class);
     $pdo = new D1Pdo('dsn', $connector);
 
-    $response = Mockery::mock(Saloon\Http\Response::class);
+    $response = Mockery::mock(Response::class);
     $response->shouldReceive('failed')->andReturn(true);
     $response->shouldReceive('json')->with('errors.0.code')->andReturn(1000);
     $response->shouldReceive('json')->with('errors.0.message', 'Unknown error')->andReturn('no such table: foo');
@@ -162,12 +164,12 @@ test('exec D1QueryException has errorInfo property set', function () {
 
     try {
         $pdo->exec('SELECT * FROM foo');
-        \PHPUnit\Framework\Assert::fail('Expected D1QueryException');
+        Assert::fail('Expected D1QueryException');
     } catch (D1QueryException $e) {
         expect($e->errorInfo)->toBe(['42S02', 1000, 'no such table: foo'])
             ->and($e->getCode())->toBe(1000)
             ->and($e->getMessage())->toBe('no such table: foo')
-            ->and($e)->toBeInstanceOf(\PDOException::class);
+            ->and($e)->toBeInstanceOf(PDOException::class);
     }
 });
 
@@ -177,7 +179,7 @@ test('query executes and returns a PDOStatement', function () {
     $connector = Mockery::mock(CloudflareD1Connector::class);
     $pdo = new D1Pdo('dsn', $connector);
 
-    $response = Mockery::mock(Saloon\Http\Response::class);
+    $response = Mockery::mock(Response::class);
     $response->shouldReceive('failed')->andReturn(false);
     $response->shouldReceive('json')->with('success')->andReturn(true);
     $response->shouldReceive('json')->with('result')->andReturn([
@@ -188,14 +190,14 @@ test('query executes and returns a PDOStatement', function () {
 
     $stmt = $pdo->query('SELECT * FROM users');
 
-    expect($stmt)->toBeInstanceOf(\PDOStatement::class);
+    expect($stmt)->toBeInstanceOf(PDOStatement::class);
 });
 
 test('query applies fetch mode when provided', function () {
     $connector = Mockery::mock(CloudflareD1Connector::class);
     $pdo = new D1Pdo('dsn', $connector);
 
-    $response = Mockery::mock(Saloon\Http\Response::class);
+    $response = Mockery::mock(Response::class);
     $response->shouldReceive('failed')->andReturn(false);
     $response->shouldReceive('json')->with('success')->andReturn(true);
     $response->shouldReceive('json')->with('result')->andReturn([

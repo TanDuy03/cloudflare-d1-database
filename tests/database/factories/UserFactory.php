@@ -3,8 +3,9 @@
 declare(strict_types=1);
 
 use Illuminate\Support\Str;
+use Ntanduy\CFD1\Test\Models\User;
 
-$factory->define(\Ntanduy\CFD1\Test\Models\User::class, function () {
+$factory->define(User::class, function () {
     return [
         'name' => 'Name'.Str::random(5),
         'email' => Str::random(5).'@gmail.com',

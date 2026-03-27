@@ -165,7 +165,7 @@ it('detectSchemaParameterSupport returns false when ReflectionException is throw
     {
         protected function getParentClassForDetection(): string
         {
-            return \stdClass::class;
+            return stdClass::class;
         }
     };
 

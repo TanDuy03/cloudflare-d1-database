@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use Ntanduy\CFD1\D1\Pdo\Concerns\MapsSqlState;
 use Ntanduy\CFD1\Enums\SqlState;
 
 /*
@@ -19,7 +20,7 @@ function mapsSqlStateInstance(): object
 {
     return new class
     {
-        use \Ntanduy\CFD1\D1\Pdo\Concerns\MapsSqlState {
+        use MapsSqlState {
             mapErrorToSqlState as public;
         }
     };

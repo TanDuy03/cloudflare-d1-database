@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Ntanduy\CFD1\Test\Unit;
 
 use Illuminate\Support\Facades\DB;
+use Ntanduy\CFD1\D1\Pdo\D1PdoStatement;
 use Ntanduy\CFD1\Test\TestCase;
 
 class NullHandlingTest extends TestCase
@@ -15,7 +16,7 @@ class NullHandlingTest extends TestCase
         // by testing the D1PdoStatement directly
 
         $pdo = DB::connection('d1')->getPdo();
-        $statement = new \Ntanduy\CFD1\D1\Pdo\D1PdoStatement($pdo, 'test query');
+        $statement = new D1PdoStatement($pdo, 'test query');
 
         // Test that NULL values are preserved when PDO::PARAM_STR is used
         $statement->bindValue(1, null, \PDO::PARAM_STR);

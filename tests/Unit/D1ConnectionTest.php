@@ -3,6 +3,8 @@
 declare(strict_types=1);
 
 use Illuminate\Contracts\Events\Dispatcher;
+use Illuminate\Database\Events\TransactionBeginning;
+use Mockery\MockInterface;
 use Ntanduy\CFD1\CloudflareD1Connector;
 use Ntanduy\CFD1\D1\D1Connection;
 use Ntanduy\CFD1\D1\Pdo\D1Pdo;
@@ -87,7 +89,7 @@ test('beginTransaction increments transaction count and fires event', function (
 
     // Set up event dispatcher to capture the event
     $firedEvents = [];
-    /** @var Dispatcher&\Mockery\MockInterface $dispatcher */
+    /** @var Dispatcher&MockInterface $dispatcher */
     $dispatcher = Mockery::mock(Dispatcher::class);
     $dispatcher->shouldReceive('dispatch')->once()->withArgs(function ($event) use (&$firedEvents) {
         $firedEvents[] = $event;
@@ -100,7 +102,7 @@ test('beginTransaction increments transaction count and fires event', function (
     $connection->beginTransaction();
 
     expect($firedEvents)->toHaveCount(1);
-    expect($firedEvents[0])->toBeInstanceOf(\Illuminate\Database\Events\TransactionBeginning::class);
+    expect($firedEvents[0])->toBeInstanceOf(TransactionBeginning::class);
 });
 
 test('beginTransaction does not call pdo beginTransaction on nested transactions', function () {
@@ -113,7 +115,7 @@ test('beginTransaction does not call pdo beginTransaction on nested transactions
     $ref = new ReflectionProperty($connection, 'pdo');
     $ref->setValue($connection, $mockPdo);
 
-    /** @var Dispatcher&\Mockery\MockInterface $dispatcher */
+    /** @var Dispatcher&MockInterface $dispatcher */
     $dispatcher = Mockery::mock(Dispatcher::class);
     $dispatcher->shouldReceive('dispatch');
 

@@ -79,7 +79,7 @@ class D1ServiceProvider extends ServiceProvider
     /**
      * Validate the D1 configuration.
      *
-     * @throws \InvalidArgumentException
+     * @throws InvalidArgumentException
      */
     private function getValidatedCredentials(array $config): array
     {

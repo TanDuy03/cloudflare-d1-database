@@ -6,6 +6,7 @@ namespace Ntanduy\CFD1\Test\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
+use Ntanduy\CFD1\Test\Factories\UserFactory;
 
 class User extends Authenticatable
 {
@@ -24,6 +25,6 @@ class User extends Authenticatable
 
     protected static function newFactory()
     {
-        return new \Ntanduy\CFD1\Test\Factories\UserFactory;
+        return new UserFactory;
     }
 }

@@ -10,6 +10,8 @@ use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Saloon\Http\Faking\MockClient;
 use Saloon\Http\Faking\MockResponse;
+use Saloon\Http\Request;
+use Saloon\Http\Response;
 
 class SendWithRetryTest extends TestCase
 {
@@ -204,7 +206,7 @@ class SendWithRetryTest extends TestCase
         {
             private int $sendCount = 0;
 
-            public function send(\Saloon\Http\Request $request, ?\Saloon\Http\Faking\MockClient $mockClient = null, ?callable $handleRetry = null): \Saloon\Http\Response
+            public function send(Request $request, ?MockClient $mockClient = null, ?callable $handleRetry = null): Response
             {
                 $this->sendCount++;
 
