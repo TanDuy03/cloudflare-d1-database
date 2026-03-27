@@ -24,8 +24,8 @@
     "illuminate/database": "^10.0|^11.0|^12.0|^13.0",
     "illuminate/http": "^10.0|^11.0|^12.0|^13.0",
     "illuminate/support": "^10.0|^11.0|^12.0|^13.0",
-    "saloonphp/laravel-plugin": "^4.0",
-    "saloonphp/saloon": "^4.0"
+    "saloonphp/laravel-plugin": "^3.5|^4.0",
+    "saloonphp/saloon": "^3.10|^4.0"
   },
   "autoload": {
     "psr-4": {
