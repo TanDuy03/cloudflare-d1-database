@@ -20,6 +20,12 @@ jobs:
           php-version: 8.2
           coverage: none
 
+      - name: Install dependencies
+        run: composer update --prefer-dist --no-interaction
+
+      - name: Run Pint
+        run: vendor/bin/pint --test
+
   static-analysis:
     name: Static Analysis
     runs-on: ubuntu-latest
