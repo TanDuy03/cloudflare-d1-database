@@ -135,14 +135,14 @@ class D1ServiceProvider extends ServiceProvider
         }
 
         return [
-            'database' => $database,
-            'token' => $token,
+            'database'   => $database,
+            'token'      => $token,
             'account_id' => $accountId,
         ];
     }
 
     /**
-     * Get performance and retry configuration options
+     * Get performance and retry configuration options.
      *
      * Returns configuration for HTTP client behavior:
      * - timeout: Maximum time to wait for response (seconds)
@@ -155,16 +155,17 @@ class D1ServiceProvider extends ServiceProvider
      * - Rate limiting (429)
      * - Network failures
      *
-     * @param  array  $config  Database connection configuration
+     * @param array $config Database connection configuration
+     *
      * @return array Performance options with sensible defaults
      */
     private function getPerformanceOptions(array $config): array
     {
         return [
-            'timeout' => (int) ($config['timeout'] ?? 10),
+            'timeout'         => (int) ($config['timeout'] ?? 10),
             'connect_timeout' => (int) ($config['connect_timeout'] ?? 5),
-            'retries' => (int) ($config['retries'] ?? 2),
-            'retry_delay' => (int) ($config['retry_delay'] ?? 100),
+            'retries'         => (int) ($config['retries'] ?? 2),
+            'retry_delay'     => (int) ($config['retry_delay'] ?? 100),
         ];
     }
 }

@@ -19,9 +19,9 @@ class CloudflareWorkerConnectorTest extends TestCase
             workerUrl: 'https://d1-worker.example.workers.dev',
             workerSecret: 'test-secret-token',
             options: array_merge([
-                'retries' => 0,
-                'retry_delay' => 1,
-                'timeout' => 5,
+                'retries'         => 0,
+                'retry_delay'     => 1,
+                'timeout'         => 5,
                 'connect_timeout' => 2,
             ], $options),
         );
@@ -30,20 +30,20 @@ class CloudflareWorkerConnectorTest extends TestCase
     private function successBody(): array
     {
         return [
-            'success' => true,
-            'errors' => [],
+            'success'  => true,
+            'errors'   => [],
             'messages' => [],
-            'result' => [['results' => [['id' => 1]], 'success' => true, 'meta' => ['changes' => 0]]],
+            'result'   => [['results' => [['id' => 1]], 'success' => true, 'meta' => ['changes' => 0]]],
         ];
     }
 
     private function failureBody(int|string $code = 1000, string $message = 'SQL error'): array
     {
         return [
-            'success' => false,
-            'errors' => [['code' => $code, 'message' => $message]],
+            'success'  => false,
+            'errors'   => [['code' => $code, 'message' => $message]],
             'messages' => [],
-            'result' => [],
+            'result'   => [],
         ];
     }
 
@@ -168,7 +168,7 @@ class CloudflareWorkerConnectorTest extends TestCase
         $mockClient = new MockClient([
             WorkerQueryRequest::class => MockResponse::make([
                 'success' => false,
-                'errors' => [['code' => 401, 'message' => 'Unauthorized']],
+                'errors'  => [['code' => 401, 'message' => 'Unauthorized']],
             ], 401),
         ]);
         $connector->withMockClient($mockClient);

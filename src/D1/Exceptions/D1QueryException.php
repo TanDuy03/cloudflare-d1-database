@@ -9,4 +9,6 @@ namespace Ntanduy\CFD1\D1\Exceptions;
  *
  * Used in D1Pdo::exec() and D1PdoStatement::execute().
  */
-class D1QueryException extends D1Exception {}
+class D1QueryException extends D1Exception
+{
+}

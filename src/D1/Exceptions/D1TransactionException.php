@@ -9,4 +9,6 @@ namespace Ntanduy\CFD1\D1\Exceptions;
  *
  * D1 does not support transactions over stateless HTTP.
  */
-class D1TransactionException extends D1Exception {}
+class D1TransactionException extends D1Exception
+{
+}

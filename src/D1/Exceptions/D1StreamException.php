@@ -7,4 +7,6 @@ namespace Ntanduy\CFD1\D1\Exceptions;
 /**
  * Thrown when reading a LOB (Large Object) stream fails.
  */
-class D1StreamException extends D1Exception {}
+class D1StreamException extends D1Exception
+{
+}

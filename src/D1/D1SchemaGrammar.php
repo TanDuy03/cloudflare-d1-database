@@ -9,7 +9,7 @@ use Illuminate\Database\Schema\Grammars\SQLiteGrammar;
 class D1SchemaGrammar extends SQLiteGrammar
 {
     /**
-     * Cache for method signature detection
+     * Cache for method signature detection.
      */
     protected static ?bool $supportsSchemaParameter = null;
 
@@ -28,7 +28,7 @@ class D1SchemaGrammar extends SQLiteGrammar
 
     /**
      * Detect if parent methods support schema parameter (Laravel 12+)
-     * Uses reflection to check method signature once
+     * Uses reflection to check method signature once.
      */
     protected function detectSchemaParameterSupport(): bool
     {
@@ -58,7 +58,7 @@ class D1SchemaGrammar extends SQLiteGrammar
 
     /**
      * Compile the SQL needed to drop all tables.
-     * Compatible with Laravel 10, 11, 12
+     * Compatible with Laravel 10, 11, 12.
      */
     public function compileDropAllTables($schema = null)
     {
@@ -71,7 +71,7 @@ class D1SchemaGrammar extends SQLiteGrammar
 
     /**
      * Compile the SQL needed to drop all views.
-     * Compatible with Laravel 10, 11, 12
+     * Compatible with Laravel 10, 11, 12.
      */
     public function compileDropAllViews($schema = null)
     {
@@ -102,10 +102,11 @@ class D1SchemaGrammar extends SQLiteGrammar
 
     /**
      * Compile the query to determine if a table exists.
-     * Compatible with Laravel 10, 11, 12
+     * Compatible with Laravel 10, 11, 12.
      *
-     * @param  string|null  $schema
-     * @param  string|null  $table
+     * @param string|null $schema
+     * @param string|null $table
+     *
      * @return string
      */
     public function compileTableExists($schema = null, $table = null)

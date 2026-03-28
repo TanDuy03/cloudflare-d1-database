@@ -47,12 +47,12 @@ abstract class TestCase extends Orchestra
         $app['config']->set('auth.providers.users.model', Models\User::class);
         $app['config']->set('database.default', 'd1');
         $app['config']->set('database.connections.d1', [
-            'driver' => 'd1',
-            'prefix' => '',
+            'driver'   => 'd1',
+            'prefix'   => '',
             'database' => 'DB1',
-            'api' => 'http://127.0.0.1:8787/api/client/v4',
-            'auth' => [
-                'token' => env('CF_D1_API_TOKEN', getenv('CF_D1_API_TOKEN') ?: ''),
+            'api'      => 'http://127.0.0.1:8787/api/client/v4',
+            'auth'     => [
+                'token'      => env('CF_D1_API_TOKEN', getenv('CF_D1_API_TOKEN') ?: ''),
                 'account_id' => env('CF_D1_ACCOUNT_ID', getenv('CF_D1_ACCOUNT_ID') ?: ''),
             ],
         ]);

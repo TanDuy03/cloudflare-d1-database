@@ -65,10 +65,10 @@ class MockCloudflareD1Connector extends CloudflareD1Connector
 
                 // Default success response
                 return MockResponse::make([
-                    'success' => true,
-                    'errors' => [],
+                    'success'  => true,
+                    'errors'   => [],
                     'messages' => [],
-                    'result' => [['results' => [], 'success' => true]],
+                    'result'   => [['results' => [], 'success' => true]],
                 ], 200);
             },
         ]);
@@ -118,12 +118,11 @@ class MockCloudflareD1Connector extends CloudflareD1Connector
                     }
                 }
             }
-
         } catch (PDOException $e) {
             $success = false;
             $errors = [
                 [
-                    'code' => $e->getCode() !== '00000' ? $e->getCode() : 7500,
+                    'code'    => $e->getCode() !== '00000' ? $e->getCode() : 7500,
                     'message' => $e->getMessage(),
                 ],
             ];
@@ -131,18 +130,18 @@ class MockCloudflareD1Connector extends CloudflareD1Connector
 
         // Construct D1-compatible JSON response
         return [
-            'success' => $success,
-            'errors' => $errors,
+            'success'  => $success,
+            'errors'   => $errors,
             'messages' => [],
-            'result' => [
+            'result'   => [
                 [
                     'results' => $results,
-                    'meta' => [
-                        'served_by' => 'mock-sqlite-memory',
-                        'duration' => 0.001,
-                        'changes' => $changes,
-                        'last_row_id' => $lastRowId,
-                        'rows_read' => count($results),
+                    'meta'    => [
+                        'served_by'    => 'mock-sqlite-memory',
+                        'duration'     => 0.001,
+                        'changes'      => $changes,
+                        'last_row_id'  => $lastRowId,
+                        'rows_read'    => count($results),
                         'rows_written' => $changes,
                     ],
                 ],

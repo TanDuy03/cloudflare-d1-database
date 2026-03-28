@@ -34,12 +34,12 @@ class D1ServiceProviderIntegrationTest extends TestCase
         $app['config']->set('app.key', 'wslxrEFGWY6GfGhvN9L3wH3KSRJQQpBD');
         $app['config']->set('database.default', 'd1');
         $app['config']->set('database.connections.d1', [
-            'driver' => 'd1',
-            'prefix' => '',
+            'driver'   => 'd1',
+            'prefix'   => '',
             'database' => 'test-db-id',
-            'api' => 'https://api.cloudflare.com/client/v4',
-            'auth' => [
-                'token' => 'test-token',
+            'api'      => 'https://api.cloudflare.com/client/v4',
+            'auth'     => [
+                'token'      => 'test-token',
                 'account_id' => 'test-account-id',
             ],
         ]);
@@ -63,10 +63,10 @@ class D1ServiceProviderIntegrationTest extends TestCase
     public function test_creates_d1_connection_with_flat_config(): void
     {
         $this->app['config']->set('database.connections.d1', [
-            'driver' => 'd1',
-            'prefix' => '',
-            'database' => 'test-db-flat',
-            'token' => 'flat-token',
+            'driver'     => 'd1',
+            'prefix'     => '',
+            'database'   => 'test-db-flat',
+            'token'      => 'flat-token',
             'account_id' => 'flat-account',
         ]);
 
@@ -82,11 +82,11 @@ class D1ServiceProviderIntegrationTest extends TestCase
     public function test_uses_default_api_when_not_configured(): void
     {
         $this->app['config']->set('database.connections.d1', [
-            'driver' => 'd1',
-            'prefix' => '',
+            'driver'   => 'd1',
+            'prefix'   => '',
             'database' => 'test-db-id',
-            'auth' => [
-                'token' => 'test-token',
+            'auth'     => [
+                'token'      => 'test-token',
                 'account_id' => 'test-account-id',
             ],
             // No 'api' key → falls back to default
@@ -101,12 +101,12 @@ class D1ServiceProviderIntegrationTest extends TestCase
     public function test_uses_custom_api_when_configured(): void
     {
         $this->app['config']->set('database.connections.d1', [
-            'driver' => 'd1',
-            'prefix' => '',
+            'driver'   => 'd1',
+            'prefix'   => '',
             'database' => 'test-db-id',
-            'api' => 'https://custom.api.example.com/v4',
-            'auth' => [
-                'token' => 'test-token',
+            'api'      => 'https://custom.api.example.com/v4',
+            'auth'     => [
+                'token'      => 'test-token',
                 'account_id' => 'test-account-id',
             ],
         ]);
@@ -123,11 +123,11 @@ class D1ServiceProviderIntegrationTest extends TestCase
     {
         // Config has no timeout/connect_timeout/retries/retry_delay keys
         $this->app['config']->set('database.connections.d1', [
-            'driver' => 'd1',
-            'prefix' => '',
+            'driver'   => 'd1',
+            'prefix'   => '',
             'database' => 'test-db-id',
-            'auth' => [
-                'token' => 'test-token',
+            'auth'     => [
+                'token'      => 'test-token',
                 'account_id' => 'test-account-id',
             ],
         ]);
@@ -141,17 +141,17 @@ class D1ServiceProviderIntegrationTest extends TestCase
     public function test_uses_custom_performance_options(): void
     {
         $this->app['config']->set('database.connections.d1', [
-            'driver' => 'd1',
-            'prefix' => '',
+            'driver'   => 'd1',
+            'prefix'   => '',
             'database' => 'test-db-id',
-            'auth' => [
-                'token' => 'test-token',
+            'auth'     => [
+                'token'      => 'test-token',
                 'account_id' => 'test-account-id',
             ],
-            'timeout' => 30,
+            'timeout'         => 30,
             'connect_timeout' => 15,
-            'retries' => 5,
-            'retry_delay' => 500,
+            'retries'         => 5,
+            'retry_delay'     => 500,
         ]);
 
         $connection = $this->app['db']->connection('d1');
@@ -163,11 +163,11 @@ class D1ServiceProviderIntegrationTest extends TestCase
     public function test_uses_partial_performance_options(): void
     {
         $this->app['config']->set('database.connections.d1', [
-            'driver' => 'd1',
-            'prefix' => '',
+            'driver'   => 'd1',
+            'prefix'   => '',
             'database' => 'test-db-id',
-            'auth' => [
-                'token' => 'test-token',
+            'auth'     => [
+                'token'      => 'test-token',
                 'account_id' => 'test-account-id',
             ],
             'timeout' => 20,
@@ -187,8 +187,8 @@ class D1ServiceProviderIntegrationTest extends TestCase
         $this->app['config']->set('database.connections.d1', [
             'driver' => 'd1',
             'prefix' => '',
-            'auth' => [
-                'token' => 'test-token',
+            'auth'   => [
+                'token'      => 'test-token',
                 'account_id' => 'test-account-id',
             ],
         ]);
@@ -203,11 +203,11 @@ class D1ServiceProviderIntegrationTest extends TestCase
     public function test_throws_when_database_is_empty_string(): void
     {
         $this->app['config']->set('database.connections.d1', [
-            'driver' => 'd1',
-            'prefix' => '',
+            'driver'   => 'd1',
+            'prefix'   => '',
             'database' => '',
-            'auth' => [
-                'token' => 'test-token',
+            'auth'     => [
+                'token'      => 'test-token',
                 'account_id' => 'test-account-id',
             ],
         ]);
@@ -222,8 +222,8 @@ class D1ServiceProviderIntegrationTest extends TestCase
     public function test_throws_when_token_is_missing(): void
     {
         $this->app['config']->set('database.connections.d1', [
-            'driver' => 'd1',
-            'prefix' => '',
+            'driver'   => 'd1',
+            'prefix'   => '',
             'database' => 'test-db',
         ]);
 
@@ -237,11 +237,11 @@ class D1ServiceProviderIntegrationTest extends TestCase
     public function test_throws_when_token_is_empty_string(): void
     {
         $this->app['config']->set('database.connections.d1', [
-            'driver' => 'd1',
-            'prefix' => '',
+            'driver'   => 'd1',
+            'prefix'   => '',
             'database' => 'test-db',
-            'auth' => [
-                'token' => '',
+            'auth'     => [
+                'token'      => '',
                 'account_id' => 'test-account-id',
             ],
         ]);
@@ -256,10 +256,10 @@ class D1ServiceProviderIntegrationTest extends TestCase
     public function test_throws_when_account_id_is_missing(): void
     {
         $this->app['config']->set('database.connections.d1', [
-            'driver' => 'd1',
-            'prefix' => '',
+            'driver'   => 'd1',
+            'prefix'   => '',
             'database' => 'test-db',
-            'auth' => [
+            'auth'     => [
                 'token' => 'test-token',
             ],
         ]);
@@ -274,11 +274,11 @@ class D1ServiceProviderIntegrationTest extends TestCase
     public function test_throws_when_account_id_is_empty_string(): void
     {
         $this->app['config']->set('database.connections.d1', [
-            'driver' => 'd1',
-            'prefix' => '',
+            'driver'   => 'd1',
+            'prefix'   => '',
             'database' => 'test-db',
-            'auth' => [
-                'token' => 'test-token',
+            'auth'     => [
+                'token'      => 'test-token',
                 'account_id' => '',
             ],
         ]);

@@ -18,8 +18,7 @@ use Ntanduy\CFD1\Enums\SqlState;
 // Anonymous class that uses the trait so we can call the protected method
 function mapsSqlStateInstance(): object
 {
-    return new class
-    {
+    return new class() {
         use MapsSqlState {
             mapErrorToSqlState as public;
         }
@@ -33,19 +32,19 @@ dataset('uncovered error mappings', [
     'ambiguous column name' => ['ambiguous column name: foo',          SqlState::AMBIGUOUS_COLUMN->value],
 
     // DATA ERRORS
-    'datatype mismatch' => ['datatype mismatch on column x',       SqlState::DATA_EXCEPTION->value],
-    'division by zero' => ['division by zero',                    SqlState::DIVISION_BY_ZERO->value],
+    'datatype mismatch'      => ['datatype mismatch on column x',       SqlState::DATA_EXCEPTION->value],
+    'division by zero'       => ['division by zero',                    SqlState::DIVISION_BY_ZERO->value],
     'string or blob too big' => ['string or blob too big',              SqlState::STRING_DATA_RIGHT_TRUNCATION->value],
 
     // SYSTEM ERRORS
-    'disk I/O error' => ['disk I/O error',                                SqlState::INSUFFICIENT_RESOURCES->value],
-    'database or disk is full' => ['database or disk is full',                      SqlState::INSUFFICIENT_RESOURCES->value],
+    'disk I/O error'                       => ['disk I/O error',                                SqlState::INSUFFICIENT_RESOURCES->value],
+    'database or disk is full'             => ['database or disk is full',                      SqlState::INSUFFICIENT_RESOURCES->value],
     'attempt to write a readonly database' => ['attempt to write a readonly database',          SqlState::READ_ONLY_SQL_TRANSACTION->value],
 
     // D1 / CLOUDFLARE SPECIFIC
     'upstream service timeout' => ['upstream service timeout after 30s', SqlState::CONNECTION_FAILURE->value],
-    'service unavailable' => ['service unavailable',                SqlState::CONNECTION_FAILURE->value],
-    '502 Bad Gateway' => ['502 Bad Gateway',                    SqlState::CONNECTION_FAILURE->value],
+    'service unavailable'      => ['service unavailable',                SqlState::CONNECTION_FAILURE->value],
+    '502 Bad Gateway'          => ['502 Bad Gateway',                    SqlState::CONNECTION_FAILURE->value],
 ]);
 
 // ── Test ───────────────────────────────────────────────────────────────

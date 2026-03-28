@@ -33,7 +33,7 @@ afterEach(function () {
 
 it('replaces sqlite_master with sqlite_schema in a given SQL string', function () {
     setSupportsSchemaParameter(true);
-    $grammar = new D1SchemaGrammar;
+    $grammar = new D1SchemaGrammar();
 
     $method = new ReflectionMethod($grammar, 'replaceSystemTable');
 
@@ -45,7 +45,7 @@ it('replaces sqlite_master with sqlite_schema in a given SQL string', function (
 
 it('returns the string unchanged when sqlite_master is not present', function () {
     setSupportsSchemaParameter(true);
-    $grammar = new D1SchemaGrammar;
+    $grammar = new D1SchemaGrammar();
 
     $method = new ReflectionMethod($grammar, 'replaceSystemTable');
 
@@ -59,7 +59,7 @@ it('returns the string unchanged when sqlite_master is not present', function ()
 
 it('compileDropAllTables replaces sqlite_master with sqlite_schema when supportsSchemaParameter is true', function () {
     setSupportsSchemaParameter(true);
-    $grammar = new D1SchemaGrammar;
+    $grammar = new D1SchemaGrammar();
 
     $sql = $grammar->compileDropAllTables();
 
@@ -69,7 +69,7 @@ it('compileDropAllTables replaces sqlite_master with sqlite_schema when supports
 
 it('compileDropAllTables replaces sqlite_master with sqlite_schema when supportsSchemaParameter is false', function () {
     setSupportsSchemaParameter(false);
-    $grammar = new D1SchemaGrammar;
+    $grammar = new D1SchemaGrammar();
 
     $sql = $grammar->compileDropAllTables();
 
@@ -79,7 +79,7 @@ it('compileDropAllTables replaces sqlite_master with sqlite_schema when supports
 
 it('compileDropAllTables produces correct SQL with a custom schema when supportsSchemaParameter is true', function () {
     setSupportsSchemaParameter(true);
-    $grammar = new D1SchemaGrammar;
+    $grammar = new D1SchemaGrammar();
 
     $sql = $grammar->compileDropAllTables('custom');
 
@@ -91,7 +91,7 @@ it('compileDropAllTables produces correct SQL with a custom schema when supports
 
 it('compileDropAllViews replaces sqlite_master with sqlite_schema when supportsSchemaParameter is true', function () {
     setSupportsSchemaParameter(true);
-    $grammar = new D1SchemaGrammar;
+    $grammar = new D1SchemaGrammar();
 
     $sql = $grammar->compileDropAllViews();
 
@@ -101,7 +101,7 @@ it('compileDropAllViews replaces sqlite_master with sqlite_schema when supportsS
 
 it('compileDropAllViews replaces sqlite_master with sqlite_schema when supportsSchemaParameter is false', function () {
     setSupportsSchemaParameter(false);
-    $grammar = new D1SchemaGrammar;
+    $grammar = new D1SchemaGrammar();
 
     $sql = $grammar->compileDropAllViews();
 
@@ -111,7 +111,7 @@ it('compileDropAllViews replaces sqlite_master with sqlite_schema when supportsS
 
 it('compileDropAllViews produces correct SQL with a custom schema when supportsSchemaParameter is true', function () {
     setSupportsSchemaParameter(true);
-    $grammar = new D1SchemaGrammar;
+    $grammar = new D1SchemaGrammar();
 
     $sql = $grammar->compileDropAllViews('custom');
 
@@ -123,7 +123,7 @@ it('compileDropAllViews produces correct SQL with a custom schema when supportsS
 
 it('compileGetAllTables returns the correct SQL', function () {
     setSupportsSchemaParameter(true);
-    $grammar = new D1SchemaGrammar;
+    $grammar = new D1SchemaGrammar();
 
     expect($grammar->compileGetAllTables())
         ->toBe("select name, type from sqlite_schema where type = 'table' and name not like 'sqlite_%'");
@@ -133,7 +133,7 @@ it('compileGetAllTables returns the correct SQL', function () {
 
 it('compileGetAllViews returns the correct SQL', function () {
     setSupportsSchemaParameter(true);
-    $grammar = new D1SchemaGrammar;
+    $grammar = new D1SchemaGrammar();
 
     expect($grammar->compileGetAllViews())
         ->toBe("select name, type from sqlite_schema where type = 'view'");
@@ -143,7 +143,7 @@ it('compileGetAllViews returns the correct SQL', function () {
 
 it('compileTableExists returns Laravel 10 SQL when called with zero arguments', function () {
     setSupportsSchemaParameter(true);
-    $grammar = new D1SchemaGrammar;
+    $grammar = new D1SchemaGrammar();
 
     // Calling with NO arguments triggers the func_num_args() === 0 branch
     $sql = $grammar->compileTableExists();
@@ -161,8 +161,7 @@ it('detectSchemaParameterSupport returns false when ReflectionException is throw
     // Subclass overrides only getParentClassForDetection() to return stdClass
     // (which has no compileDropAllTables), triggering ReflectionException in
     // the original detectSchemaParameterSupport() catch block.
-    $grammar = new class extends D1SchemaGrammar
-    {
+    $grammar = new class() extends D1SchemaGrammar {
         protected function getParentClassForDetection(): string
         {
             return stdClass::class;

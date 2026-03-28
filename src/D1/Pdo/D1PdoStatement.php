@@ -47,12 +47,12 @@ class D1PdoStatement extends PDOStatement
     public function bindValue(string|int $param, mixed $value, int $type = PDO::PARAM_STR): bool
     {
         $this->bindings[$param] = match ($type) {
-            PDO::PARAM_STR => $value === null ? null : (string) $value,
+            PDO::PARAM_STR  => $value === null ? null : (string) $value,
             PDO::PARAM_BOOL => (bool) $value,
-            PDO::PARAM_INT => (int) $value,
+            PDO::PARAM_INT  => (int) $value,
             PDO::PARAM_NULL => null,
-            PDO::PARAM_LOB => $this->convertLOBToString($value),
-            default => $value,
+            PDO::PARAM_LOB  => $this->convertLOBToString($value),
+            default         => $value,
         };
 
         return true;
@@ -196,10 +196,10 @@ class D1PdoStatement extends PDOStatement
     {
         return match ($mode) {
             PDO::FETCH_ASSOC => $row,
-            PDO::FETCH_OBJ => (object) $row,
-            PDO::FETCH_NUM => array_values($row),
-            PDO::FETCH_BOTH => array_merge($row, array_values($row)),
-            default => throw new D1UnsupportedFeatureException('Unsupported fetch mode.'),
+            PDO::FETCH_OBJ   => (object) $row,
+            PDO::FETCH_NUM   => array_values($row),
+            PDO::FETCH_BOTH  => array_merge($row, array_values($row)),
+            default          => throw new D1UnsupportedFeatureException('Unsupported fetch mode.'),
         };
     }
 }

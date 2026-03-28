@@ -174,12 +174,12 @@ class D1Pdo extends PDO
     public function getAttribute(int $attribute): mixed
     {
         return match ($attribute) {
-            PDO::ATTR_DRIVER_NAME => 'sqlite',
-            PDO::ATTR_SERVER_VERSION => 'D1',
-            PDO::ATTR_CLIENT_VERSION => 'D1',
+            PDO::ATTR_DRIVER_NAME      => 'sqlite',
+            PDO::ATTR_SERVER_VERSION   => 'D1',
+            PDO::ATTR_CLIENT_VERSION   => 'D1',
             PDO::ATTR_EMULATE_PREPARES => $this->attributes[$attribute] ?? true,
-            PDO::ATTR_ERRMODE => $this->attributes[$attribute] ?? PDO::ERRMODE_EXCEPTION,
-            default => $this->attributes[$attribute] ?? null,
+            PDO::ATTR_ERRMODE          => $this->attributes[$attribute] ?? PDO::ERRMODE_EXCEPTION,
+            default                    => $this->attributes[$attribute] ?? null,
         };
     }
 

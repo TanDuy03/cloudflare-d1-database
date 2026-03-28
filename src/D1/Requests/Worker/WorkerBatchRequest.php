@@ -17,7 +17,7 @@ class WorkerBatchRequest extends CloudflareRequest implements HasBody
     protected Method $method = Method::POST;
 
     /**
-     * @param  array<int, array{sql: string, bindings: array}>  $statements
+     * @param array<int, array{sql: string, bindings: array}> $statements
      */
     public function __construct(
         CloudflareWorkerConnector $connector,

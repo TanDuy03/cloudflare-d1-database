@@ -32,7 +32,7 @@ class WorkerQueryRequest extends CloudflareRequest implements HasBody
     protected function defaultBody(): array
     {
         return [
-            'sql' => $this->sql,
+            'sql'      => $this->sql,
             'bindings' => $this->bindings,
         ];
     }

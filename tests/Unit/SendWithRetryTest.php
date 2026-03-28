@@ -23,9 +23,9 @@ class SendWithRetryTest extends TestCase
             accountId: 'test-account-id',
             apiUrl: 'https://api.cloudflare.com/client/v4',
             options: array_merge([
-                'retries' => 2,
-                'retry_delay' => 10, // Keep low for fast tests
-                'timeout' => 5,
+                'retries'         => 2,
+                'retry_delay'     => 10, // Keep low for fast tests
+                'timeout'         => 5,
                 'connect_timeout' => 2,
             ], $options),
         );
@@ -39,10 +39,10 @@ class SendWithRetryTest extends TestCase
     private function successBody(): array
     {
         return [
-            'success' => true,
-            'errors' => [],
+            'success'  => true,
+            'errors'   => [],
             'messages' => [],
-            'result' => [['results' => [['1' => 1]], 'success' => true]],
+            'result'   => [['results' => [['1' => 1]], 'success' => true]],
         ];
     }
 
@@ -202,8 +202,7 @@ class SendWithRetryTest extends TestCase
         $connector->withMockClient($mockClient);
 
         // For Throwable path: use a connector subclass that throws
-        $throwingConnector = new class('test-db', 'token', 'account', 'https://api.example.com', ['retries' => 2, 'retry_delay' => 1]) extends CloudflareD1Connector
-        {
+        $throwingConnector = new class('test-db', 'token', 'account', 'https://api.example.com', ['retries' => 2, 'retry_delay' => 1]) extends CloudflareD1Connector {
             private int $sendCount = 0;
 
             public function send(Request $request, ?MockClient $mockClient = null, ?callable $handleRetry = null): Response

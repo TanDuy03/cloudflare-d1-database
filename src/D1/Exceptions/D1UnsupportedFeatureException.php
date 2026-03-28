@@ -9,4 +9,6 @@ namespace Ntanduy\CFD1\D1\Exceptions;
  *
  * For example, an unsupported fetch mode in D1PdoStatement::formatRow().
  */
-class D1UnsupportedFeatureException extends D1Exception {}
+class D1UnsupportedFeatureException extends D1Exception
+{
+}

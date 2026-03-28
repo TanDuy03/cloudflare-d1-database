@@ -17,7 +17,7 @@ test('rowCount returns 0 for SELECT queries', function () {
     $response->shouldReceive('json')->with('result')->andReturn([
         [
             'results' => [['id' => 1]],
-            'meta' => ['changes' => 0, 'last_row_id' => null],
+            'meta'    => ['changes' => 0, 'last_row_id' => null],
         ],
     ]);
 
@@ -39,7 +39,7 @@ test('rowCount returns 0 for WITH queries', function () {
     $response->shouldReceive('json')->with('result')->andReturn([
         [
             'results' => [['id' => 1]],
-            'meta' => ['changes' => 0, 'last_row_id' => null],
+            'meta'    => ['changes' => 0, 'last_row_id' => null],
         ],
     ]);
 
@@ -61,7 +61,7 @@ test('rowCount returns affected rows for INSERT queries', function () {
     $response->shouldReceive('json')->with('result')->andReturn([
         [
             'results' => [],
-            'meta' => ['changes' => 5, 'last_row_id' => 10],
+            'meta'    => ['changes' => 5, 'last_row_id' => 10],
         ],
     ]);
 
@@ -83,7 +83,7 @@ test('execute does not reorder bindings', function () {
     $response->shouldReceive('json')->with('result')->andReturn([
         [
             'results' => [],
-            'meta' => ['changes' => 0, 'last_row_id' => null],
+            'meta'    => ['changes' => 0, 'last_row_id' => null],
         ],
     ]);
 

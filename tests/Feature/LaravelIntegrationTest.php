@@ -15,8 +15,8 @@ class LaravelIntegrationTest extends TestCase
     {
         // Create
         $id = DB::table('users')->insertGetId([
-            'name' => 'Builder User',
-            'email' => 'builder@example.com',
+            'name'     => 'Builder User',
+            'email'    => 'builder@example.com',
             'password' => 'secret',
         ]);
 
@@ -46,8 +46,8 @@ class LaravelIntegrationTest extends TestCase
     {
         // Create
         $user = User::create([
-            'name' => 'Eloquent User',
-            'email' => 'eloquent@example.com',
+            'name'     => 'Eloquent User',
+            'email'    => 'eloquent@example.com',
             'password' => 'secret',
         ]);
 

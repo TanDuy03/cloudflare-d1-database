@@ -38,8 +38,8 @@ class CloudflareWorkerConnector extends CloudflareConnector
     protected function defaultHeaders(): array
     {
         return [
-            'Content-Type' => 'application/json',
-            'Accept' => 'application/json',
+            'Content-Type'  => 'application/json',
+            'Accept'        => 'application/json',
             'Authorization' => 'Bearer '.$this->workerSecret,
         ];
     }

@@ -27,11 +27,11 @@ class D1ServiceProviderWorkerTest extends Orchestra
     public function test_worker_driver_creates_worker_connector(): void
     {
         $this->app['config']->set('database.connections.d1', [
-            'driver' => 'd1',
-            'd1_driver' => 'worker',
-            'database' => 'test-db',
-            'prefix' => '',
-            'worker_url' => 'https://test-worker.workers.dev',
+            'driver'        => 'd1',
+            'd1_driver'     => 'worker',
+            'database'      => 'test-db',
+            'prefix'        => '',
+            'worker_url'    => 'https://test-worker.workers.dev',
             'worker_secret' => 'test-secret',
         ]);
 
@@ -48,11 +48,11 @@ class D1ServiceProviderWorkerTest extends Orchestra
     public function test_worker_connector_resolves_correct_base_url(): void
     {
         $this->app['config']->set('database.connections.d1', [
-            'driver' => 'd1',
-            'd1_driver' => 'worker',
-            'database' => 'test-db',
-            'prefix' => '',
-            'worker_url' => 'https://my-custom-worker.example.dev',
+            'driver'        => 'd1',
+            'd1_driver'     => 'worker',
+            'database'      => 'test-db',
+            'prefix'        => '',
+            'worker_url'    => 'https://my-custom-worker.example.dev',
             'worker_secret' => 'my-secret',
         ]);
 
@@ -70,11 +70,11 @@ class D1ServiceProviderWorkerTest extends Orchestra
     public function test_worker_driver_throws_when_worker_url_missing(): void
     {
         $this->app['config']->set('database.connections.d1', [
-            'driver' => 'd1',
-            'd1_driver' => 'worker',
-            'database' => 'test-db',
-            'prefix' => '',
-            'worker_url' => '',
+            'driver'        => 'd1',
+            'd1_driver'     => 'worker',
+            'database'      => 'test-db',
+            'prefix'        => '',
+            'worker_url'    => '',
             'worker_secret' => 'test-secret',
         ]);
 
@@ -88,11 +88,11 @@ class D1ServiceProviderWorkerTest extends Orchestra
     public function test_worker_driver_throws_when_worker_secret_missing(): void
     {
         $this->app['config']->set('database.connections.d1', [
-            'driver' => 'd1',
-            'd1_driver' => 'worker',
-            'database' => 'test-db',
-            'prefix' => '',
-            'worker_url' => 'https://test.workers.dev',
+            'driver'        => 'd1',
+            'd1_driver'     => 'worker',
+            'database'      => 'test-db',
+            'prefix'        => '',
+            'worker_url'    => 'https://test.workers.dev',
             'worker_secret' => '',
         ]);
 
@@ -108,12 +108,12 @@ class D1ServiceProviderWorkerTest extends Orchestra
     public function test_rest_driver_still_works(): void
     {
         $this->app['config']->set('database.connections.d1', [
-            'driver' => 'd1',
+            'driver'    => 'd1',
             'd1_driver' => 'rest',
-            'database' => 'test-db',
-            'prefix' => '',
-            'auth' => [
-                'token' => 'test-token',
+            'database'  => 'test-db',
+            'prefix'    => '',
+            'auth'      => [
+                'token'      => 'test-token',
                 'account_id' => 'test-account',
             ],
         ]);
@@ -131,11 +131,11 @@ class D1ServiceProviderWorkerTest extends Orchestra
     public function test_default_d1_driver_is_rest(): void
     {
         $this->app['config']->set('database.connections.d1', [
-            'driver' => 'd1',
+            'driver'   => 'd1',
             'database' => 'test-db',
-            'prefix' => '',
-            'auth' => [
-                'token' => 'test-token',
+            'prefix'   => '',
+            'auth'     => [
+                'token'      => 'test-token',
                 'account_id' => 'test-account',
             ],
         ]);
@@ -152,16 +152,16 @@ class D1ServiceProviderWorkerTest extends Orchestra
     public function test_performance_options_passed_to_worker(): void
     {
         $this->app['config']->set('database.connections.d1', [
-            'driver' => 'd1',
-            'd1_driver' => 'worker',
-            'database' => 'test-db',
-            'prefix' => '',
-            'worker_url' => 'https://test.workers.dev',
-            'worker_secret' => 'test-secret',
-            'timeout' => 30,
+            'driver'          => 'd1',
+            'd1_driver'       => 'worker',
+            'database'        => 'test-db',
+            'prefix'          => '',
+            'worker_url'      => 'https://test.workers.dev',
+            'worker_secret'   => 'test-secret',
+            'timeout'         => 30,
             'connect_timeout' => 10,
-            'retries' => 5,
-            'retry_delay' => 200,
+            'retries'         => 5,
+            'retry_delay'     => 200,
         ]);
 
         /** @var D1Connection $connection */

@@ -21,9 +21,9 @@ function makeLoggerConnector(array $options = []): CloudflareD1Connector
         accountId: 'test-account-id',
         apiUrl: 'https://api.cloudflare.com/client/v4',
         options: array_merge([
-            'retries' => 0,       // no retries – keep tests fast & deterministic
-            'retry_delay' => 1,
-            'timeout' => 5,
+            'retries'         => 0,       // no retries – keep tests fast & deterministic
+            'retry_delay'     => 1,
+            'timeout'         => 5,
             'connect_timeout' => 2,
         ], $options),
     );
@@ -32,20 +32,20 @@ function makeLoggerConnector(array $options = []): CloudflareD1Connector
 function successBody(): array
 {
     return [
-        'success' => true,
-        'errors' => [],
+        'success'  => true,
+        'errors'   => [],
         'messages' => [],
-        'result' => [['results' => [['1' => 1]], 'success' => true]],
+        'result'   => [['results' => [['1' => 1]], 'success' => true]],
     ];
 }
 
 function failureBody(int|string $code = 1000, string $message = 'SQL error'): array
 {
     return [
-        'success' => false,
-        'errors' => [['code' => $code, 'message' => $message]],
+        'success'  => false,
+        'errors'   => [['code' => $code, 'message' => $message]],
         'messages' => [],
-        'result' => [],
+        'result'   => [],
     ];
 }
 

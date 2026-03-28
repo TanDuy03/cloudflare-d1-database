@@ -54,11 +54,11 @@ class D1ServiceProviderTest extends TestCase
         $packageDefaults = $this->app['config']->get('d1-database');
 
         $userOverrides = [
-            'driver' => 'd1',
+            'driver'   => 'd1',
             'database' => 'my-custom-database-id',
-            'api' => 'https://custom-api.example.com/v4',
-            'auth' => [
-                'token' => 'user-secret-token',
+            'api'      => 'https://custom-api.example.com/v4',
+            'auth'     => [
+                'token'      => 'user-secret-token',
                 'account_id' => 'user-account-id',
             ],
             'timeout' => 30,
@@ -111,7 +111,7 @@ class D1ServiceProviderTest extends TestCase
 
         // Both auth.token and flat token exist – auth.token wins
         $config = [
-            'auth' => ['token' => 'nested-token'],
+            'auth'  => ['token' => 'nested-token'],
             'token' => 'flat-token',
         ];
 
@@ -195,7 +195,7 @@ class D1ServiceProviderTest extends TestCase
 
         $method->invoke($provider, [
             'database' => 'test-db',
-            'auth' => ['token' => 'my-token'],
+            'auth'     => ['token' => 'my-token'],
         ]);
     }
 
@@ -207,8 +207,8 @@ class D1ServiceProviderTest extends TestCase
 
         $result = $method->invoke($provider, [
             'database' => 'test-db',
-            'auth' => [
-                'token' => 'nested-token',
+            'auth'     => [
+                'token'      => 'nested-token',
                 'account_id' => 'nested-account',
             ],
         ]);
@@ -225,8 +225,8 @@ class D1ServiceProviderTest extends TestCase
         $method = new ReflectionMethod($provider, 'getValidatedCredentials');
 
         $result = $method->invoke($provider, [
-            'database' => 'test-db',
-            'token' => 'flat-token',
+            'database'   => 'test-db',
+            'token'      => 'flat-token',
             'account_id' => 'flat-account',
         ]);
 
@@ -258,7 +258,7 @@ class D1ServiceProviderTest extends TestCase
 
         $method->invoke($provider, [
             'database' => 'test-db',
-            'auth' => ['token' => ''],
+            'auth'     => ['token' => ''],
         ]);
     }
 
@@ -273,7 +273,7 @@ class D1ServiceProviderTest extends TestCase
 
         $method->invoke($provider, [
             'database' => 'test-db',
-            'auth' => ['token' => 'my-token', 'account_id' => ''],
+            'auth'     => ['token' => 'my-token', 'account_id' => ''],
         ]);
     }
 
@@ -300,10 +300,10 @@ class D1ServiceProviderTest extends TestCase
         $method = new ReflectionMethod($provider, 'getPerformanceOptions');
 
         $result = $method->invoke($provider, [
-            'timeout' => 30,
+            'timeout'         => 30,
             'connect_timeout' => 15,
-            'retries' => 5,
-            'retry_delay' => 500,
+            'retries'         => 5,
+            'retry_delay'     => 500,
         ]);
 
         $this->assertSame(30, $result['timeout']);

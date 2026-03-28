@@ -15,8 +15,8 @@ function createD1Connection(array $config = []): D1Connection
 
     return new D1Connection($connector, array_merge([
         'database' => 'test-db',
-        'prefix' => '',
-        'name' => 'd1',
+        'prefix'   => '',
+        'name'     => 'd1',
     ], $config));
 }
 
@@ -26,8 +26,8 @@ test('d1 returns the connector instance', function () {
     $connector = Mockery::mock(CloudflareD1Connector::class);
     $connection = new D1Connection($connector, [
         'database' => 'test-db',
-        'prefix' => '',
-        'name' => 'd1',
+        'prefix'   => '',
+        'name'     => 'd1',
     ]);
 
     expect($connection->d1())->toBe($connector);

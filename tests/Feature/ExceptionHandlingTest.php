@@ -22,8 +22,8 @@ class ExceptionHandlingTest extends TestCase
     public function test_constraint_violation_throws_exception()
     {
         User::create([
-            'name' => 'User 1',
-            'email' => 'duplicate@example.com',
+            'name'     => 'User 1',
+            'email'    => 'duplicate@example.com',
             'password' => 'secret',
         ]);
 
@@ -31,8 +31,8 @@ class ExceptionHandlingTest extends TestCase
         $this->expectExceptionCode('23000');
 
         User::create([
-            'name' => 'User 2',
-            'email' => 'duplicate@example.com',
+            'name'     => 'User 2',
+            'email'    => 'duplicate@example.com',
             'password' => 'secret',
         ]);
     }

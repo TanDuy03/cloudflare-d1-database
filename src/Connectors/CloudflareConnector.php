@@ -49,26 +49,26 @@ abstract class CloudflareConnector extends Connector
     {
         return [
             'Content-Type' => 'application/json',
-            'Accept' => 'application/json',
+            'Accept'       => 'application/json',
         ];
     }
 
     protected function defaultConfig(): array
     {
         return [
-            'timeout' => $this->timeout,
+            'timeout'         => $this->timeout,
             'connect_timeout' => $this->connectTimeout,
         ];
     }
 
     /**
-     * Sleep with exponential backoff and jitter
+     * Sleep with exponential backoff and jitter.
      *
      * Implements exponential backoff strategy: delay * 2^(attempt-1)
      * Adds random jitter (0-100ms) to prevent thundering herd problem
      * when multiple clients retry simultaneously
      *
-     * @param  int  $attempt  Current retry attempt number (1-based)
+     * @param int $attempt Current retry attempt number (1-based)
      */
     protected function sleepWithBackoff(int $attempt): void
     {
@@ -88,7 +88,7 @@ abstract class CloudflareConnector extends Connector
     }
 
     /**
-     * Send request with automatic retry on failure
+     * Send request with automatic retry on failure.
      */
     public function sendWithRetry(mixed $request, ?int $retries = null): Response
     {
@@ -128,7 +128,8 @@ abstract class CloudflareConnector extends Connector
      * Set a query logger callback for this connector instance.
      * Useful for debugging and monitoring D1 queries.
      *
-     * @param  \Closure|null  $callback  function(string $query, array $params, float $time, bool $success, ?array $error): void
+     * @param \Closure|null $callback function(string $query, array $params, float $time, bool $success, ?array $error): void
+     *
      * @return $this
      */
     public function setQueryLogger(?\Closure $callback): static
@@ -154,9 +155,9 @@ abstract class CloudflareConnector extends Connector
         $error = null;
         if (!$success) {
             $error = [
-                'code' => $response->json('errors.0.code'),
+                'code'    => $response->json('errors.0.code'),
                 'message' => $response->json('errors.0.message', 'Unknown error'),
-                'status' => $response->status(),
+                'status'  => $response->status(),
             ];
         }
 
