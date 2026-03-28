@@ -1,0 +1,36 @@
+/**
+ * For more details on how to configure Wrangler, refer to:
+ * https://developers.cloudflare.com/workers/wrangler/configuration/
+ */
+{
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"name": "ntanduy-d1-worker",
+	"main": "src/index.ts",
+	"compatibility_date": "2026-03-10",
+	"observability": {
+		"enabled": true
+	},
+	"upload_source_maps": true,
+	"compatibility_flags": [
+		"nodejs_compat"
+	],
+	/**
+	 * D1 Database Binding
+	 * Replace `database_name` and `database_id` with your actual D1 database values.
+	 * You can find these in: Cloudflare Dashboard → Workers & Pages → D1
+	 */
+	"d1_databases": [
+		{
+			"binding": "DB",
+			"database_name": "ntanduy-d1-database",
+			"database_id": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+		}
+	]
+	/**
+	 * WORKER_SECRET
+	 * Do NOT put your secret here. Use Wrangler secrets instead:
+	 *   npx wrangler secret put WORKER_SECRET
+	 *
+	 * This secret must match your Laravel .env D1_WORKER_SECRET value.
+	 */
+}
