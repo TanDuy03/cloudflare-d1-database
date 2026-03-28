@@ -132,26 +132,7 @@ To use D1 as the default database, add to your `.env`:
 DB_CONNECTION=d1
 ```
 
-Or use it alongside other databases by specifying the connection explicitly:
-
-```php
-// Query Builder
-DB::connection('d1')->table('users')->get();
-
-// Eloquent Model
-class Post extends Model
-{
-    protected $connection = 'd1';
-}
-```
-
-### Step 4: Run Migrations
-
-```bash
-php artisan migrate --database=d1
-```
-
-### Step 5: Verify Connection
+### Step 4: Verify Connection
 
 Run the built-in health check to verify your setup:
 
@@ -174,6 +155,12 @@ php artisan d1:health
 +-------------------------+---------+------------------------------------------+
 
   Overall: HEALTHY ✓
+```
+
+### Step 5: Run Migrations
+
+```bash
+php artisan migrate --database=d1
 ```
 
 ## 📖 Examples
