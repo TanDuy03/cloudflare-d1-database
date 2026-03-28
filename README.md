@@ -21,6 +21,7 @@ Use [Cloudflare D1](https://developers.cloudflare.com/d1) as a native Laravel da
 - **Two Connection Drivers** — REST API (zero infrastructure) or Worker (low latency)
 - **Automatic Retries** — Exponential backoff with jitter for 5xx/429 errors
 - **Query Logging** — Optional callback for monitoring and debugging
+- **Health Check** — Built-in `php artisan d1:health` to verify connection and measure latency
 
 ## 🚀 Installation
 
@@ -148,6 +149,31 @@ class Post extends Model
 
 ```bash
 php artisan migrate --database=d1
+```
+
+### Step 5: Verify Connection
+
+Run the built-in health check to verify your setup:
+
+```bash
+php artisan d1:health
+```
+
+```
+  D1 Health Check
+  Connection : d1
+  Driver     : worker
+
++-------------------------+---------+------------------------------------------+
+| Check                   | Status  | Detail                                   |
++-------------------------+---------+------------------------------------------+
+| worker_url configured   | ✓ OK    | https://d1-proxy.name.workers.dev        |
+| worker_secret configured| ✓ OK    | ******cret                               |
+| Query test passed       | ✓ OK    | SELECT 1 as ok                           |
+| End-to-end latency      | ✓ OK    | 24 ms                                    |
++-------------------------+---------+------------------------------------------+
+
+  Overall: HEALTHY ✓
 ```
 
 ## 📖 Examples
@@ -350,7 +376,3 @@ If you discover any security related issues, please email <contact@ntanduy.com> 
 
 - [TanDuy03](https://github.com/TanDuy03)
 - [All Contributors](../../contributors)
-
-## 📄 License
-
-The MIT License (MIT). Please see [License File](LICENSE) for more information.
