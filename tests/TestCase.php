@@ -52,8 +52,8 @@ abstract class TestCase extends Orchestra
             'database' => 'DB1',
             'api' => 'http://127.0.0.1:8787/api/client/v4',
             'auth' => [
-                'token' => env('CLOUDFLARE_TOKEN', getenv('CLOUDFLARE_TOKEN')),
-                'account_id' => env('CLOUDFLARE_ACCOUNT_ID', getenv('CLOUDFLARE_ACCOUNT_ID')),
+                'token' => env('CF_D1_API_TOKEN', getenv('CF_D1_API_TOKEN') ?: ''),
+                'account_id' => env('CF_D1_ACCOUNT_ID', getenv('CF_D1_ACCOUNT_ID') ?: ''),
             ],
         ]);
 
