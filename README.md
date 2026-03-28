@@ -94,12 +94,12 @@ npx wrangler secret put WORKER_SECRET
 npm run deploy
 ```
 
-Before deploying, update `wrangler.toml` with your D1 database binding:
+Before deploying, update `wrangler.jsonc` with your D1 database binding:
 
-```toml
-name = "d1-worker"
-main = "src/worker.ts"
-compatibility_date = "2025-01-01"
+```jsonc
+name = "ntanduy-d1-worker"
+main = "src/index.ts"
+compatibility_date = "2026-03-10"
 
 [[d1_databases]]
 binding = "DB"
@@ -107,7 +107,7 @@ database_name = "your-database-name"
 database_id = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
 ```
 
-> **Important:** Set `WORKER_SECRET` using `npx wrangler secret put WORKER_SECRET` — never put secrets in `wrangler.toml`. This secret must match the `CF_D1_WORKER_SECRET` in your Laravel `.env`.
+> **Important:** Set `WORKER_SECRET` using `npx wrangler secret put WORKER_SECRET` — never put secrets in `wrangler.jsonc`. This secret must match the `CF_D1_WORKER_SECRET` in your Laravel `.env`.
 
 #### Worker Endpoints
 
@@ -323,7 +323,7 @@ vendor/bin/pest
 ### Worker Tests (Vitest)
 
 ```bash
-cd d1-worker
+cd Worker
 npm ci
 npm test
 ```
@@ -333,7 +333,7 @@ npm test
 Start the built-in Worker to test against a local D1 instance:
 
 ```bash
-cd d1-worker
+cd Worker
 npm ci
 npm run start
 ```
