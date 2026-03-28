@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-use Ntanduy\CFD1\CloudflareD1Connector;
+use Ntanduy\CFD1\Connectors\CloudflareD1Connector;
 use Ntanduy\CFD1\D1\Pdo\D1Pdo;
 use Ntanduy\CFD1\D1\Pdo\D1PdoStatement;
 use Saloon\Http\Response;

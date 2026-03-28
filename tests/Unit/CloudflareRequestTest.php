@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Ntanduy\CFD1\Test\Unit;
 
-use Ntanduy\CFD1\CloudflareConnector;
 use Ntanduy\CFD1\CloudflareRequest;
+use Ntanduy\CFD1\Connectors\CloudflareConnector;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Saloon\Http\Connector;

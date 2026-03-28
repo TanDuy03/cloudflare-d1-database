@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-use Ntanduy\CFD1\CloudflareD1Connector;
+use Ntanduy\CFD1\Connectors\CloudflareD1Connector;
 use Ntanduy\CFD1\D1\Requests\Rest\D1QueryRequest;
 use Saloon\Http\Faking\MockClient;
 use Saloon\Http\Faking\MockResponse;

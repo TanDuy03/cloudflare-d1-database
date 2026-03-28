@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-use Ntanduy\CFD1\CloudflareD1Connector;
+use Ntanduy\CFD1\Connectors\CloudflareD1Connector;
 use Ntanduy\CFD1\D1\Exceptions\D1QueryException;
 use Ntanduy\CFD1\D1\Exceptions\D1TransactionException;
 use Ntanduy\CFD1\D1\Pdo\D1Pdo;

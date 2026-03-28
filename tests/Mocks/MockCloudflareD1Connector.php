@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Ntanduy\CFD1\Test\Mocks;
 
-use Ntanduy\CFD1\CloudflareD1Connector;
+use Ntanduy\CFD1\Connectors\CloudflareD1Connector;
 use Ntanduy\CFD1\D1\Requests\Rest\D1QueryRequest;
 use PDO;
 use PDOException;

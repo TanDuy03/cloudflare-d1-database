@@ -5,7 +5,7 @@ declare(strict_types=1);
 use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Database\Events\TransactionBeginning;
 use Mockery\MockInterface;
-use Ntanduy\CFD1\CloudflareD1Connector;
+use Ntanduy\CFD1\Connectors\CloudflareD1Connector;
 use Ntanduy\CFD1\D1\D1Connection;
 use Ntanduy\CFD1\D1\Pdo\D1Pdo;
 
