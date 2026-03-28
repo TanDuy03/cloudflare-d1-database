@@ -35,7 +35,7 @@ abstract class CloudflareConnector extends Connector
 
     protected readonly int $connectTimeout;
 
-    protected function defaultAuth(): TokenAuthenticator
+    protected function defaultAuth(): ?TokenAuthenticator
     {
         return new TokenAuthenticator($this->token);
     }

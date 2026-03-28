@@ -107,4 +107,3 @@ class D1Connection extends SQLiteConnection
         return new D1Pdo('sqlite::memory:', $this->connector);
     }
 }
-

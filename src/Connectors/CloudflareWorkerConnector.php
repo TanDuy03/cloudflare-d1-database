@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Ntanduy\CFD1\Connectors;
 
 use Ntanduy\CFD1\D1\Requests\Worker\WorkerQueryRequest;
+use Saloon\Http\Auth\TokenAuthenticator;
 use Saloon\Http\Response;
 
 class CloudflareWorkerConnector extends CloudflareConnector
@@ -29,7 +30,7 @@ class CloudflareWorkerConnector extends CloudflareConnector
      * Worker uses a shared secret for authentication instead of Cloudflare API token.
      * Override defaultAuth to disable TokenAuthenticator (which would fail with null token).
      */
-    protected function defaultAuth(): null
+    protected function defaultAuth(): ?TokenAuthenticator
     {
         return null;
     }
