@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Ntanduy\CFD1;
+namespace Ntanduy\CFD1\Connectors;
 
 use Saloon\Http\Auth\TokenAuthenticator;
 use Saloon\Http\Connector;

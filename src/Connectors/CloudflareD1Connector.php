@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Ntanduy\CFD1;
+namespace Ntanduy\CFD1\Connectors;
 
 use Ntanduy\CFD1\D1\Requests\Rest\D1QueryRequest;
 use Saloon\Http\Response;

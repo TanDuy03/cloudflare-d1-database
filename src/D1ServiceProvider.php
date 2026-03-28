@@ -6,6 +6,7 @@ namespace Ntanduy\CFD1;
 
 use Illuminate\Support\ServiceProvider;
 use InvalidArgumentException;
+use Ntanduy\CFD1\Connectors\CloudflareD1Connector;
 use Ntanduy\CFD1\D1\D1Connection;
 
 class D1ServiceProvider extends ServiceProvider

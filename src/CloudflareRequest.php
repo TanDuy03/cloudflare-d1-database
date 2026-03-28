@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ntanduy\CFD1;
 
+use Ntanduy\CFD1\Connectors\CloudflareConnector;
 use Saloon\Http\Connector;
 use Saloon\Http\Request;
 

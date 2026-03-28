@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Ntanduy\CFD1\D1;
 
 use Illuminate\Database\SQLiteConnection;
-use Ntanduy\CFD1\CloudflareD1Connector;
+use Ntanduy\CFD1\Connectors\CloudflareD1Connector;
 use Ntanduy\CFD1\D1\Pdo\D1Pdo;
 
 class D1Connection extends SQLiteConnection
