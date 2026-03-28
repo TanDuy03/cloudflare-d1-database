@@ -7,6 +7,7 @@ namespace Ntanduy\CFD1;
 use Illuminate\Support\ServiceProvider;
 use InvalidArgumentException;
 use Ntanduy\CFD1\Connectors\CloudflareD1Connector;
+use Ntanduy\CFD1\Connectors\CloudflareWorkerConnector;
 use Ntanduy\CFD1\D1\D1Connection;
 
 class D1ServiceProvider extends ServiceProvider
@@ -50,26 +51,59 @@ class D1ServiceProvider extends ServiceProvider
             $db->extend('d1', function ($config, $name) {
                 $config['name'] = $name;
 
-                // Validate required configuration
-                $credentials = $this->getValidatedCredentials($config);
-
-                // Support both nested and flat config structure
-                $api = $config['api'] ?? 'https://api.cloudflare.com/client/v4';
+                $d1Driver = $config['d1_driver'] ?? 'rest';
 
                 // Performance options with sensible defaults
                 $options = $this->getPerformanceOptions($config);
 
-                $connector = new CloudflareD1Connector(
-                    $credentials['database'],
-                    $credentials['token'],
-                    $credentials['account_id'],
-                    $api,
-                    $options,
-                );
+                if ($d1Driver === 'worker') {
+                    $connector = $this->createWorkerConnector($config, $options);
+                } else {
+                    $connector = $this->createRestConnector($config, $options);
+                }
 
                 return new D1Connection($connector, $config);
             });
         });
+    }
+
+    /**
+     * Create a REST connector for the Cloudflare D1 API.
+     */
+    private function createRestConnector(array $config, array $options): CloudflareD1Connector
+    {
+        $credentials = $this->getValidatedCredentials($config);
+        $api = $config['api'] ?? 'https://api.cloudflare.com/client/v4';
+
+        return new CloudflareD1Connector(
+            $credentials['database'],
+            $credentials['token'],
+            $credentials['account_id'],
+            $api,
+            $options,
+        );
+    }
+
+    /**
+     * Create a Worker connector for the Cloudflare Worker endpoint.
+     */
+    private function createWorkerConnector(array $config, array $options): CloudflareWorkerConnector
+    {
+        $workerUrl = $config['worker_url'] ?? '';
+        if (empty($workerUrl)) {
+            throw new InvalidArgumentException('D1 Worker driver requires a "worker_url" option.');
+        }
+
+        $workerSecret = $config['worker_secret'] ?? '';
+        if (empty($workerSecret)) {
+            throw new InvalidArgumentException('D1 Worker driver requires a "worker_secret" option.');
+        }
+
+        return new CloudflareWorkerConnector(
+            $workerUrl,
+            $workerSecret,
+            $options,
+        );
     }
 
     private function getConfigValue(array $config, string $key, string $default = ''): string

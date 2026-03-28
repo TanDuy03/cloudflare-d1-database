@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Ntanduy\CFD1\D1\Pdo;
 
-use Ntanduy\CFD1\Connectors\CloudflareD1Connector;
+use Ntanduy\CFD1\Connectors\CloudflareConnector;
 use Ntanduy\CFD1\D1\Exceptions\D1QueryException;
 use Ntanduy\CFD1\D1\Exceptions\D1TransactionException;
 use Ntanduy\CFD1\D1\Pdo\Concerns\MapsSqlState;
@@ -25,7 +25,7 @@ class D1Pdo extends PDO
 
     public function __construct(
         protected readonly string $dsn,
-        protected readonly CloudflareD1Connector $connector,
+        protected readonly CloudflareConnector $connector,
     ) {
         // Trade-off: extending PDO requires calling parent::__construct(), which
         // opens an unused SQLite in-memory connection (~1MB overhead). This is
@@ -44,7 +44,7 @@ class D1Pdo extends PDO
         );
     }
 
-    public function d1(): CloudflareD1Connector
+    public function d1(): CloudflareConnector
     {
         return $this->connector;
     }

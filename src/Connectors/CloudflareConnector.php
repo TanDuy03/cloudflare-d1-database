@@ -11,6 +11,8 @@ use Throwable;
 
 abstract class CloudflareConnector extends Connector
 {
+    protected ?\Closure $queryLogger = null;
+
     public function __construct(
         #[\SensitiveParameter]
         protected readonly ?string $token = null,
@@ -114,5 +116,50 @@ abstract class CloudflareConnector extends Connector
                 $this->sleepWithBackoff($attempt);
             }
         }
+    }
+
+    /**
+     * Execute a database query through the connector.
+     * Each subclass routes to its own request class (REST or Worker).
+     */
+    abstract public function databaseQuery(string $query, array $params, bool $retry = true): Response;
+
+    /**
+     * Set a query logger callback for this connector instance.
+     * Useful for debugging and monitoring D1 queries.
+     *
+     * @param  \Closure|null  $callback  function(string $query, array $params, float $time, bool $success, ?array $error): void
+     * @return $this
+     */
+    public function setQueryLogger(?\Closure $callback): static
+    {
+        $this->queryLogger = $callback;
+
+        return $this;
+    }
+
+    /**
+     * Log a query execution if a logger is set.
+     * Shared by REST and Worker connectors.
+     */
+    protected function logQuery(string $query, array $params, float $startTime, Response $response): void
+    {
+        if (!$this->queryLogger) {
+            return;
+        }
+
+        $time = microtime(true) - $startTime;
+        $success = !$response->failed() && $response->json('success');
+
+        $error = null;
+        if (!$success) {
+            $error = [
+                'code' => $response->json('errors.0.code'),
+                'message' => $response->json('errors.0.message', 'Unknown error'),
+                'status' => $response->status(),
+            ];
+        }
+
+        ($this->queryLogger)($query, $params, $time, $success, $error);
     }
 }

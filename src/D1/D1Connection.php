@@ -5,13 +5,14 @@ declare(strict_types=1);
 namespace Ntanduy\CFD1\D1;
 
 use Illuminate\Database\SQLiteConnection;
-use Ntanduy\CFD1\Connectors\CloudflareD1Connector;
+use Ntanduy\CFD1\Connectors\CloudflareConnector;
+use Ntanduy\CFD1\Connectors\CloudflareWorkerConnector;
 use Ntanduy\CFD1\D1\Pdo\D1Pdo;
 
 class D1Connection extends SQLiteConnection
 {
     public function __construct(
-        protected CloudflareD1Connector $connector,
+        protected CloudflareConnector $connector,
         array $config = [],
     ) {
         parent::__construct(
@@ -42,9 +43,28 @@ class D1Connection extends SQLiteConnection
         $this->fireConnectionEvent('beganTransaction');
     }
 
-    public function d1(): CloudflareD1Connector
+    /**
+     * Get the underlying connector instance.
+     */
+    public function d1(): CloudflareConnector
     {
         return $this->connector;
+    }
+
+    /**
+     * Get the D1 driver type: 'worker' or 'rest'.
+     */
+    public function getDriver(): string
+    {
+        return $this->isWorkerDriver() ? 'worker' : 'rest';
+    }
+
+    /**
+     * Check if this connection uses the Worker driver.
+     */
+    public function isWorkerDriver(): bool
+    {
+        return $this->connector instanceof CloudflareWorkerConnector;
     }
 
     /**
@@ -87,3 +107,4 @@ class D1Connection extends SQLiteConnection
         return new D1Pdo('sqlite::memory:', $this->connector);
     }
 }
+
