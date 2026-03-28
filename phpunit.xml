@@ -19,7 +19,7 @@
     </source>
     <php>
         <server name="APP_ENV" value="testing" />
-        <server name="CLOUDFLARE_TOKEN" value="test" />
-        <server name="CLOUDFLARE_ACCOUNT_ID" value="1234" />
+        <server name="CF_D1_API_TOKEN" value="test" />
+        <server name="CF_D1_ACCOUNT_ID" value="1234" />
     </php>
 </phpunit>
