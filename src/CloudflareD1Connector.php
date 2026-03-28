@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ntanduy\CFD1;
 
+use Ntanduy\CFD1\D1\Requests\Rest\D1QueryRequest;
 use Saloon\Http\Response;
 
 class CloudflareD1Connector extends CloudflareConnector
@@ -40,7 +41,7 @@ class CloudflareD1Connector extends CloudflareConnector
     {
         $startTime = microtime(true);
 
-        $request = new D1\Requests\D1QueryRequest($this, $this->database, $query, $params);
+        $request = new D1QueryRequest($this, $this->database, $query, $params);
 
         $response = $retry
             ? $this->sendWithRetry($request)
