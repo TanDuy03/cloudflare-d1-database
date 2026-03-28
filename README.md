@@ -8,7 +8,7 @@
 [![Monthly Downloads](https://poser.pugx.org/ntanduy/cloudflare-d1-database/d/monthly)](https://packagist.org/packages/ntanduy/cloudflare-d1-database)
 [![License](https://poser.pugx.org/ntanduy/cloudflare-d1-database/license)](https://packagist.org/packages/ntanduy/cloudflare-d1-database)
 
-Integrate Cloudflare bindings into your PHP/Laravel application.
+Use [Cloudflare D1](https://developers.cloudflare.com/d1) as a native Laravel database driver — full Eloquent ORM, Query Builder, and Migration support.
 
 ## 🎯 Requirements
 
@@ -17,9 +17,10 @@ Integrate Cloudflare bindings into your PHP/Laravel application.
 
 ## ✨ Features
 
-This package offers support for:
-
-- [x] [Cloudflare D1](https://developers.cloudflare.com/d1)
+- **Full Laravel Integration** — Eloquent ORM, Query Builder, Migrations, Seeding
+- **Two Connection Drivers** — REST API (zero infrastructure) or Worker (low latency)
+- **Automatic Retries** — Exponential backoff with jitter for 5xx/429 errors
+- **Query Logging** — Optional callback for monitoring and debugging
 
 ## 🚀 Installation
 
@@ -29,90 +30,312 @@ composer require ntanduy/cloudflare-d1-database
 
 ## 👏 Usage
 
-### Integrate Cloudflare D1 with Laravel
+### Step 1: Publish Configuration
 
-Choose one of the two methods below to integrate Cloudflare D1 into your Laravel project:
-
-### Option 1: Automatic Setup (Recommended)
-
-This method is the quickest way to get started without manually editing your system configuration files.
-
-**Publish Configuration:** Run the following command to automatically generate the D1 configuration:
-
-```php
+```bash
 php artisan vendor:publish --tag="d1-config"
 ```
 
-### Option 2: Manual Setup
+This creates `config/d1-database.php` with all available options.
 
-If you prefer to manage the connection directly within Laravel's main configuration, add the following array to the `connections` section in your `config/database.php` file:
+### Step 2: Choose a Driver
+
+This package supports two drivers to connect Laravel with Cloudflare D1:
+
+| Driver | How it works | Latency | Setup |
+|--------|-------------|---------|-------|
+| **REST** (default) | Calls [Cloudflare D1 REST API](https://developers.cloudflare.com/api/resources/d1/subresources/database/methods/query/) directly | ~100-500ms/query | API Token only |
+| **Worker** | Routes queries through your own [Cloudflare Worker](https://developers.cloudflare.com/workers/) | ~10-50ms/query | Requires deploying a Worker |
+
+---
+
+### Driver 1: REST API (Default)
+
+The simplest setup — no extra infrastructure needed. Queries are sent to Cloudflare's REST API.
+
+**Add to your `.env`:**
+
+```env
+CF_D1_API_TOKEN=your_api_token
+CF_D1_ACCOUNT_ID=your_account_id
+CF_D1_DATABASE_ID=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+```
+
+**How to get these values:**
+
+1. **API Token** — Go to [Cloudflare Dashboard → API Tokens](https://dash.cloudflare.com/profile/api-tokens) → Create Token → use the "Edit Cloudflare D1" template
+2. **Account ID** — Found on your Cloudflare Dashboard overview page (right sidebar)
+3. **Database ID** — Go to [Workers & Pages → D1](https://dash.cloudflare.com/?to=/:account/workers/d1) → click your database → copy the Database ID
+
+That's it! Your Laravel app can now use D1.
+
+---
+
+### Driver 2: Worker (Low Latency)
+
+For production apps that need lower latency, deploy a Cloudflare Worker as a proxy between Laravel and D1.
+
+**Add to your `.env`:**
+
+```env
+CF_D1_DRIVER=worker
+CF_D1_WORKER_URL=https://your-d1-worker.your-subdomain.workers.dev
+CF_D1_WORKER_SECRET=a-strong-shared-secret
+```
+
+#### Deploy the Worker
+
+A ready-to-deploy Worker template is included in the [`Worker/`](Worker/) directory. To deploy:
+
+```bash
+cd Worker
+npm install
+npx wrangler secret put WORKER_SECRET
+npm run deploy
+```
+
+Before deploying, update `wrangler.toml` with your D1 database binding:
+
+```toml
+name = "d1-worker"
+main = "src/worker.ts"
+compatibility_date = "2025-01-01"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "your-database-name"
+database_id = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+```
+
+> **Important:** Set `WORKER_SECRET` using `npx wrangler secret put WORKER_SECRET` — never put secrets in `wrangler.toml`. This secret must match the `CF_D1_WORKER_SECRET` in your Laravel `.env`.
+
+#### Worker Endpoints
+
+The Worker exposes these endpoints:
+
+| Endpoint | Method | Auth | Description |
+|----------|--------|------|-------------|
+| `/health` | GET | ❌ | Health check |
+| `/query` | POST | ✅ Bearer | Execute a single SQL query |
+| `/batch` | POST | ✅ Bearer | Execute multiple statements atomically |
+| `/exec` | POST | ✅ Bearer | Execute raw DDL/migration SQL |
+| `/raw` | POST | ✅ Bearer | Execute a query and return raw array-of-arrays |
+
+---
+
+### Step 3: Set as Default Connection
+
+To use D1 as the default database, add to your `.env`:
+
+```env
+DB_CONNECTION=d1
+```
+
+Or use it alongside other databases by specifying the connection explicitly:
+
+```php
+// Query Builder
+DB::connection('d1')->table('users')->get();
+
+// Eloquent Model
+class Post extends Model
+{
+    protected $connection = 'd1';
+}
+```
+
+### Step 4: Run Migrations
+
+```bash
+php artisan migrate --database=d1
+```
+
+## 📖 Examples
+
+### Eloquent ORM
+
+```php
+use App\Models\Post;
+
+// Create
+$post = Post::create([
+    'title' => 'Hello from D1',
+    'body' => 'This is stored in Cloudflare D1!',
+]);
+
+// Read
+$posts = Post::where('published', true)->orderBy('created_at', 'desc')->get();
+
+// Update
+$post->update(['title' => 'Updated Title']);
+
+// Delete
+$post->delete();
+```
+
+### Query Builder
+
+```php
+use Illuminate\Support\Facades\DB;
+
+// Select
+$users = DB::connection('d1')->table('users')
+    ->where('active', true)
+    ->limit(10)
+    ->get();
+
+// Insert
+DB::connection('d1')->table('users')->insert([
+    'name' => 'John Doe',
+    'email' => 'john@example.com',
+]);
+
+// Raw queries
+$results = DB::connection('d1')->select('SELECT * FROM users WHERE id = ?', [1]);
+```
+
+### Query Logger
+
+Monitor queries for debugging or performance analysis:
+
+```php
+use Ntanduy\CFD1\D1\D1Connection;
+
+/** @var D1Connection $connection */
+$connection = DB::connection('d1');
+
+$connection->d1()->setQueryLogger(function (
+    string $query,
+    array $params,
+    float $timeMs,
+    bool $success,
+    ?array $error
+) {
+    if (! $success) {
+        Log::error("D1 query failed: {$query}", [
+            'params' => $params,
+            'error' => $error,
+            'time_ms' => $timeMs,
+        ]);
+    }
+});
+```
+
+### Runtime Driver Detection
+
+```php
+use Ntanduy\CFD1\D1\D1Connection;
+
+/** @var D1Connection $connection */
+$connection = DB::connection('d1');
+
+$connection->getDriver();      // 'rest' or 'worker'
+$connection->isWorkerDriver(); // true or false
+```
+
+## ⚙️ Configuration Reference
+
+### Manual Setup (Alternative)
+
+Instead of publishing the config, you can add the connection directly to `config/database.php`:
 
 ```php
 'connections' => [
     'd1' => [
         'driver' => 'd1',
+        'd1_driver' => env('CF_D1_DRIVER', 'rest'),         // 'rest' or 'worker'
         'prefix' => '',
-        'database' => env('CLOUDFLARE_D1_DATABASE_ID', ''),
+        'database' => env('CF_D1_DATABASE_ID', ''),
+
+        // REST driver credentials
         'api' => 'https://api.cloudflare.com/client/v4',
         'auth' => [
-            'token' => env('CLOUDFLARE_TOKEN', ''),
-            'account_id' => env('CLOUDFLARE_ACCOUNT_ID', ''),
+            'token' => env('CF_D1_API_TOKEN', ''),
+            'account_id' => env('CF_D1_ACCOUNT_ID', ''),
         ],
-        'timeout' => env('D1_TIMEOUT', 10),
-        'connect_timeout' => env('D1_CONNECT_TIMEOUT', 5),
-        'retries' => env('D1_RETRIES', 2),
-        'retry_delay' => env('D1_RETRY_DELAY', 100),
+
+        // Worker driver credentials
+        'worker_url' => env('CF_D1_WORKER_URL', ''),
+        'worker_secret' => env('CF_D1_WORKER_SECRET', ''),
+
+        // Performance tuning
+        'timeout' => env('CF_D1_TIMEOUT', 10),
+        'connect_timeout' => env('CF_D1_CONNECT_TIMEOUT', 5),
+        'retries' => env('CF_D1_RETRIES', 2),
+        'retry_delay' => env('CF_D1_RETRY_DELAY', 100),
     ],
-]
+],
 ```
 
-Next, configure your Cloudflare credentials in the `.env` file:
+### Options Reference
 
+| Option               | Default                                | Description                                                                 |
+|----------------------|----------------------------------------|-----------------------------------------------------------------------------|
+| `d1_driver`          | `rest`                                 | Connection driver: `rest` (Cloudflare REST API) or `worker` (custom Worker) |
+| `database`           | —                                      | Your Cloudflare D1 Database ID                                              |
+| `api`                | `https://api.cloudflare.com/client/v4` | Cloudflare API base URL (REST driver only)                                  |
+| `auth.token`         | —                                      | Cloudflare API Token (REST driver only)                                     |
+| `auth.account_id`    | —                                      | Cloudflare Account ID (REST driver only)                                    |
+| `worker_url`         | —                                      | Your Worker URL (Worker driver only)                                        |
+| `worker_secret`      | —                                      | Shared secret for Worker auth (Worker driver only)                          |
+| `timeout`            | `10`                                   | HTTP request timeout in seconds                                             |
+| `connect_timeout`    | `5`                                    | HTTP connection timeout in seconds                                          |
+| `retries`            | `2`                                    | Max retry attempts on 5xx/429 errors                                        |
+| `retry_delay`        | `100`                                  | Base delay between retries in milliseconds                                  |
+
+
+### Environment Variables
+
+```env
+# Driver selection
+CF_D1_DRIVER=rest                    # 'rest' or 'worker'
+
+# REST driver
+CF_D1_API_TOKEN=your_api_token
+CF_D1_ACCOUNT_ID=your_account_id
+CF_D1_DATABASE_ID=your_database_id
+
+# Worker driver
+CF_D1_WORKER_URL=https://your-worker.workers.dev
+CF_D1_WORKER_SECRET=your_shared_secret
+
+# Performance tuning (optional)
+CF_D1_TIMEOUT=10
+CF_D1_CONNECT_TIMEOUT=5
+CF_D1_RETRIES=2
+CF_D1_RETRY_DELAY=100
 ```
-CLOUDFLARE_TOKEN=your_api_token
-CLOUDFLARE_ACCOUNT_ID=your_account_id
-CLOUDFLARE_D1_DATABASE_ID=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
-```
-
-### Configuration Options
-
-| Option            | Default | Description                          |
-| ----------------- | ------- | ------------------------------------ |
-| `timeout`         | 10      | Request timeout in seconds           |
-| `connect_timeout` | 5       | Connection timeout in seconds        |
-| `retries`         | 2       | Max retry attempts on 5xx/429 errors |
-| `retry_delay`     | 100     | Base delay between retries (ms)      |
-
-For production, you can tune these via `.env`:
-
-```
-D1_TIMEOUT=10
-D1_CONNECT_TIMEOUT=5
-D1_RETRIES=2
-D1_RETRY_DELAY=100
-```
-
-The `d1` driver will forward PDO queries to the Cloudflare D1 API to execute them.
 
 ## ⚠️ Limitations
 
-- **No real transactions**: D1 doesn't support `BEGIN`/`COMMIT`/`ROLLBACK`. The driver simulates transaction state for Laravel compatibility, but queries are executed immediately.
-- **REST API latency**: Each query is an HTTP request (~100-500ms). For low-latency needs, consider using Cloudflare Workers with native D1 bindings.
+- **No real transactions** — D1 doesn't support `BEGIN`/`COMMIT`/`ROLLBACK`. The driver simulates transaction state for Laravel compatibility, but queries are executed immediately.
+- **REST API latency** — Each query is an HTTP request (~100-500ms). Use the Worker driver for lower latency (~10-50ms).
+- **No streaming** — Large result sets are loaded entirely into memory.
 
 ## 🌱 Testing
 
-Start the built-in Worker to simulate the Cloudflare API:
-
-```bash
-cd tests/worker
-npm ci
-npm run start
-```
-
-In a separate terminal, run the tests:
+### PHP Tests
 
 ```bash
 vendor/bin/pest
+```
+
+### Worker Tests (Vitest)
+
+```bash
+cd d1-worker
+npm ci
+npm test
+```
+
+### Local Development with Worker
+
+Start the built-in Worker to test against a local D1 instance:
+
+```bash
+cd d1-worker
+npm ci
+npm run start
 ```
 
 ## 🤝 Contributing
@@ -127,3 +350,7 @@ If you discover any security related issues, please email <contact@ntanduy.com> 
 
 - [TanDuy03](https://github.com/TanDuy03)
 - [All Contributors](../../contributors)
+
+## 📄 License
+
+The MIT License (MIT). Please see [License File](LICENSE) for more information.
