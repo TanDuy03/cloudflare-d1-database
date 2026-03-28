@@ -14,6 +14,8 @@ use PHPUnit\Framework\Attributes\Test;
 
 class D1ServiceProviderWorkerTest extends Orchestra
 {
+    public static $latestResponse = null;
+
     protected function getPackageProviders($app): array
     {
         return [D1ServiceProvider::class];
