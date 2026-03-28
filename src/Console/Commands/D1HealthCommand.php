@@ -34,7 +34,7 @@ class D1HealthCommand extends Command
         $driver = $config['d1_driver'] ?? 'rest';
 
         $this->newLine();
-        $this->line("<fg=cyan;options=bold>  D1 Health Check</>");
+        $this->line('<fg=cyan;options=bold>  D1 Health Check</>');
         $this->line("  <fg=gray>Connection :</> {$connectionName}");
         $this->line("  <fg=gray>Driver     :</> {$driver}");
         $this->newLine();
@@ -47,7 +47,7 @@ class D1HealthCommand extends Command
         }
 
         // ── Stop early if config is missing ───────────────────
-        if (! $this->healthy) {
+        if (!$this->healthy) {
             $this->renderTable();
 
             return self::FAILURE;
@@ -115,7 +115,7 @@ class D1HealthCommand extends Command
             $result = app('db')->connection($connectionName)->select('SELECT 1 as ok');
             $latencyMs = round((microtime(true) - $start) * 1000);
 
-            if (! empty($result) && ($result[0]->ok ?? null) == 1) {
+            if (!empty($result) && ($result[0]->ok ?? null) == 1) {
                 $this->addPass('Query test passed', 'SELECT 1 as ok');
                 $this->addPass('End-to-end latency', "{$latencyMs} ms");
             } else {
