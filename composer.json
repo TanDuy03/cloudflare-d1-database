@@ -1,12 +1,29 @@
 {
   "name": "ntanduy/cloudflare-d1-database",
-  "description": "Easy configuration and setup for D1 Database connections in Laravel.",
+  "description": "Cloudflare D1 database driver for Laravel — full Eloquent & Query Builder support.",
   "keywords": [
     "TanDuy03",
     "laravel",
-    "Cloudflare",
-    "D1",
-    "Database"
+    "cloudflare",
+    "d1",
+    "database",
+    "driver",
+    "sqlite",
+    "serverless",
+    "eloquent",
+    "pdo",
+    "cloudflare-d1",
+    "laravel-package",
+    "database-driver",
+    "php",
+    "query",
+    "kv",
+    "r2",
+    "workers",
+    "serverless",
+    "serverless functions",
+    "serverless framework",
+    "serverless architecture"
   ],
   "license": "MIT",
   "homepage": "https://github.com/TanDuy03/cloudflare-d1-database",
@@ -54,7 +71,7 @@
     "sort-packages": true
   },
   "suggest": {
-    "ext-pdo": "Extending the PDO driver for Cloudflare D1 is required."
+    "ext-pdo": "Required to extend the PDO driver for Cloudflare D1."
   },
   "extra": {
     "laravel": {

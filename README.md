@@ -1,8 +1,9 @@
-# D1 - Cloudflare bindings for Laravel
+# Cloudflare D1 Database Driver for Laravel
 
 [![codecov](https://codecov.io/gh/TanDuy03/cloudflare-d1-database/graph/badge.svg?token=9MSJ527ZMX)](https://codecov.io/gh/TanDuy03/cloudflare-d1-database)
 [![Tests](https://github.com/TanDuy03/cloudflare-d1-database/actions/workflows/tests.yml/badge.svg)](https://github.com/TanDuy03/cloudflare-d1-database/actions/workflows/tests.yml)
-![Packagist Dependency Version](https://img.shields.io/packagist/dependency-v/ntanduy/cloudflare-d1-database/php)
+![PHP](https://img.shields.io/badge/PHP-8.2+-777BB4?logo=php)
+![Laravel](https://img.shields.io/badge/Laravel-10--13.x-FF2D20?logo=laravel)
 [![Latest Stable Version](https://poser.pugx.org/ntanduy/cloudflare-d1-database/v/stable)](https://packagist.org/packages/ntanduy/cloudflare-d1-database)
 [![Total Downloads](https://poser.pugx.org/ntanduy/cloudflare-d1-database/downloads)](https://packagist.org/packages/ntanduy/cloudflare-d1-database)
 [![Monthly Downloads](https://poser.pugx.org/ntanduy/cloudflare-d1-database/d/monthly)](https://packagist.org/packages/ntanduy/cloudflare-d1-database)
