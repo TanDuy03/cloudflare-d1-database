@@ -19,6 +19,8 @@ class D1ServiceProvider extends ServiceProvider
     public function boot(): void
     {
         if ($this->app->runningInConsole()) {
+            $this->printStarReminder();
+
             $this->publishes([
                 __DIR__.'/../config/d1-database.php' => config_path('d1-database.php'),
             ], 'd1-config');
@@ -171,5 +173,34 @@ class D1ServiceProvider extends ServiceProvider
             'retries' => (int) ($config['retries'] ?? 2),
             'retry_delay' => (int) ($config['retry_delay'] ?? 100),
         ];
+    }
+
+    /**
+     * Print a one-time reminder to star the GitHub repository.
+     */
+    private function printStarReminder(): void
+    {
+        try {
+            $flagFile = storage_path('.d1_star_reminder');
+        } catch (\Throwable) {
+            return;
+        }
+
+        if (file_exists($flagFile)) {
+            return;
+        }
+
+        file_put_contents($flagFile, 'shown');
+
+        $y = "\033[33m";
+        $r = "\033[0m";
+
+        echo PHP_EOL;
+        echo "{$y}╔══════════════════════════════════════════════════════════╗{$r}".PHP_EOL;
+        echo "{$y}║  Thank you for installing cloudflare-d1-database!⭐     ║{$r}".PHP_EOL;
+        echo "{$y}║  Star us on GitHub:                                      ║{$r}".PHP_EOL;
+        echo "{$y}║  https://github.com/TanDuy03/cloudflare-d1-database      ║{$r}".PHP_EOL;
+        echo "{$y}╚══════════════════════════════════════════════════════════╝{$r}".PHP_EOL;
+        echo PHP_EOL;
     }
 }
