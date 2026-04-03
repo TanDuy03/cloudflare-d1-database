@@ -197,7 +197,7 @@ class D1ServiceProvider extends ServiceProvider
 
         echo PHP_EOL;
         echo "{$y}╔══════════════════════════════════════════════════════════╗{$r}".PHP_EOL;
-        echo "{$y}║  Thank you for installing cloudflare-d1-database!⭐     ║{$r}".PHP_EOL;
+        echo "{$y}║  Thank you for installing cloudflare-d1-database!        ║{$r}".PHP_EOL;
         echo "{$y}║  Star us on GitHub:                                      ║{$r}".PHP_EOL;
         echo "{$y}║  https://github.com/TanDuy03/cloudflare-d1-database      ║{$r}".PHP_EOL;
         echo "{$y}╚══════════════════════════════════════════════════════════╝{$r}".PHP_EOL;
