@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ntanduy\CFD1\Connectors;
 
+use Ntanduy\CFD1\D1\Exceptions\D1Exception;
 use Saloon\Http\Auth\TokenAuthenticator;
 use Saloon\Http\Connector;
 use Saloon\Http\Response;
@@ -100,11 +101,20 @@ abstract class CloudflareConnector extends Connector
                 $response = $this->send($request);
 
                 // Retry on 5xx server errors or rate limiting (429)
-                if (($response->status() >= 500 || $response->status() === 429) && $attempt < $retries) {
-                    $attempt++;
-                    $this->sleepWithBackoff($attempt);
+                if ($response->status() >= 500 || $response->status() === 429) {
+                    if ($attempt < $retries) {
+                        $attempt++;
+                        $this->sleepWithBackoff($attempt);
 
-                    continue;
+                        continue;
+                    }
+
+                    // All retries exhausted with server error — throw instead of returning bad response
+                    throw D1Exception::fromApiError(
+                        "Cloudflare API returned HTTP {$response->status()} after {$attempt} retries",
+                        $response->status(),
+                        'HY000'
+                    );
                 }
 
                 return $response;
