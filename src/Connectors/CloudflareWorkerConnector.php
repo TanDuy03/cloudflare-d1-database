@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ntanduy\CFD1\Connectors;
 
+use Ntanduy\CFD1\D1\Requests\Worker\WorkerBatchRequest;
 use Ntanduy\CFD1\D1\Requests\Worker\WorkerQueryRequest;
 use Saloon\Http\Auth\TokenAuthenticator;
 use Saloon\Http\Response;
@@ -57,5 +58,26 @@ class CloudflareWorkerConnector extends CloudflareConnector
         $this->logQuery($query, $params, $startTime, $response);
 
         return $response;
+    }
+
+    /**
+     * Execute a batch of SQL statements via the Worker /batch endpoint.
+     * The Worker router natively supports D1Database.batch() for atomic execution.
+     *
+     * @param  array<int, array{sql: string, params: array}>  $statements
+     */
+    public function databaseBatch(array $statements, bool $retry = true): Response
+    {
+        // Map 'params' key to 'bindings' to match Worker endpoint format
+        $workerStatements = array_map(fn (array $stmt) => [
+            'sql' => $stmt['sql'],
+            'bindings' => $stmt['params'] ?? [],
+        ], $statements);
+
+        $request = new WorkerBatchRequest($this, $workerStatements);
+
+        return $retry
+            ? $this->sendWithRetry($request)
+            : $this->send($request);
     }
 }

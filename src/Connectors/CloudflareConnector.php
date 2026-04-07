@@ -135,6 +135,14 @@ abstract class CloudflareConnector extends Connector
     abstract public function databaseQuery(string $query, array $params, bool $retry = true): Response;
 
     /**
+     * Execute a batch of SQL statements in a single request.
+     * Each subclass routes to its own batch request class.
+     *
+     * @param  array<int, array{sql: string, params: array}>  $statements
+     */
+    abstract public function databaseBatch(array $statements, bool $retry = true): Response;
+
+    /**
      * Set a query logger callback for this connector instance.
      * Useful for debugging and monitoring D1 queries.
      *
