@@ -20,6 +20,8 @@ Use [Cloudflare D1](https://developers.cloudflare.com/d1) as a native Laravel da
 
 - **Full Laravel Integration** — Eloquent ORM, Query Builder, Migrations, Seeding
 - **Two Connection Drivers** — REST API (zero infrastructure) or Worker (low latency)
+- **Batch Queries** — Execute multiple statements in a single HTTP round-trip
+- **Circuit Breaker** — Fail fast on sustained outages instead of blocking on retries
 - **Automatic Retries** — Exponential backoff with jitter for 5xx/429 errors
 - **Query Logging** — Optional callback for monitoring and debugging
 - **Health Check** — Built-in `php artisan d1:health` to verify connection and measure latency
@@ -247,6 +249,103 @@ $connection->getDriver();      // 'rest' or 'worker'
 $connection->isWorkerDriver(); // true or false
 ```
 
+### Batch Queries
+
+Execute multiple SQL statements in a single HTTP round-trip. On the Worker driver, this uses D1's native `batch()` for atomic execution.
+
+```php
+use Ntanduy\CFD1\D1\D1Connection;
+
+/** @var D1Connection $connection */
+$connection = DB::connection('d1');
+
+$results = $connection->batch([
+    ['sql' => 'SELECT * FROM users WHERE id = ?', 'params' => [1]],
+    ['sql' => 'UPDATE stats SET views = views + 1 WHERE id = ?', 'params' => [5]],
+    ['sql' => 'SELECT COUNT(*) as total FROM posts'],
+]);
+
+$user  = $results[0]; // Result set from first statement
+$stats = $results[1]; // Result set from second statement
+$count = $results[2]; // Result set from third statement
+```
+
+If any statement fails, a `D1BatchException` is thrown with the index of the failing statement:
+
+```php
+use Ntanduy\CFD1\D1\Exceptions\D1BatchException;
+
+try {
+    $results = $connection->batch($statements);
+} catch (D1BatchException $e) {
+    // $e->getMessage() includes the failing statement index
+}
+```
+
+### Circuit Breaker
+
+Prevents cascading failures when Cloudflare Workers experience cold starts or sustained outages. Instead of blocking for 30s+ on retries, the circuit breaker fails fast after consecutive failures.
+
+**States:**
+
+```
+CLOSED → requests pass through normally
+  ↓ (threshold consecutive failures)
+OPEN → requests rejected immediately, no HTTP call
+  ↓ (after cooldown seconds)
+HALF_OPEN → one probe request allowed through
+  ↓ success → CLOSED  |  failure → OPEN
+```
+
+**Enable in your config** (`config/database.php` or `config/d1-database.php`):
+
+```php
+'d1' => [
+    // ... other options ...
+    'circuit_breaker' => [
+        'enabled'      => env('CF_D1_CB_ENABLED', false),
+        'threshold'    => env('CF_D1_CB_THRESHOLD', 5),     // failures before opening
+        'cooldown'     => env('CF_D1_CB_COOLDOWN', 30),     // seconds before probe
+        'cache_driver' => env('CF_D1_CB_CACHE_DRIVER', 'file'),
+    ],
+],
+```
+
+**Handle the exception:**
+
+```php
+use Ntanduy\CFD1\D1\Exceptions\CircuitBreakerOpenException;
+
+try {
+    $users = DB::connection('d1')->table('users')->get();
+} catch (CircuitBreakerOpenException $e) {
+    // Circuit is open — fail fast, use fallback or return cached data
+}
+```
+
+> **Note:** Use `file` or `redis` as the `cache_driver`. Avoid `database` to prevent a dependency loop when D1 itself is down.
+
+### Retry & Backoff
+
+The driver automatically retries failed requests with exponential backoff and jitter:
+
+- **Retried:** 5xx server errors, 429 rate limiting, connection timeouts
+- **Not retried:** 4xx client errors (400, 401, 403, 404, etc.)
+
+```env
+CF_D1_RETRIES=2          # Max retry attempts (default: 2)
+CF_D1_RETRY_DELAY=100    # Base delay in ms (default: 100)
+CF_D1_TIMEOUT=10         # Request timeout in seconds (default: 10)
+CF_D1_CONNECT_TIMEOUT=5  # Connection timeout in seconds (default: 5)
+```
+
+Backoff formula: `delay × 2^(attempt-1) + random jitter (0-100ms)`
+
+| Attempt | Base Delay (100ms) |
+|---------|-------------------|
+| 1       | ~100-200ms        |
+| 2       | ~200-300ms        |
+
 ## ⚙️ Configuration Reference
 
 ### Manual Setup (Alternative)
@@ -277,6 +376,14 @@ Instead of publishing the config, you can add the connection directly to `config
         'connect_timeout' => env('CF_D1_CONNECT_TIMEOUT', 5),
         'retries' => env('CF_D1_RETRIES', 2),
         'retry_delay' => env('CF_D1_RETRY_DELAY', 100),
+
+        // Circuit breaker (optional)
+        'circuit_breaker' => [
+            'enabled'      => env('CF_D1_CB_ENABLED', false),
+            'threshold'    => env('CF_D1_CB_THRESHOLD', 5),
+            'cooldown'     => env('CF_D1_CB_COOLDOWN', 30),
+            'cache_driver' => env('CF_D1_CB_CACHE_DRIVER', 'file'),
+        ],
     ],
 ],
 ```
@@ -296,6 +403,10 @@ Instead of publishing the config, you can add the connection directly to `config
 | `connect_timeout`    | `5`                                    | HTTP connection timeout in seconds                                          |
 | `retries`            | `2`                                    | Max retry attempts on 5xx/429 errors                                        |
 | `retry_delay`        | `100`                                  | Base delay between retries in milliseconds                                  |
+| `circuit_breaker.enabled` | `false`                           | Enable circuit breaker for fail-fast behavior                               |
+| `circuit_breaker.threshold` | `5`                             | Consecutive failures before opening the circuit                             |
+| `circuit_breaker.cooldown` | `30`                              | Seconds before allowing a probe request                                     |
+| `circuit_breaker.cache_driver` | `file`                        | Laravel cache driver for circuit state (`file`, `redis`)                    |
 
 
 ### Environment Variables
@@ -318,6 +429,12 @@ CF_D1_TIMEOUT=10
 CF_D1_CONNECT_TIMEOUT=5
 CF_D1_RETRIES=2
 CF_D1_RETRY_DELAY=100
+
+# Circuit breaker (optional)
+CF_D1_CB_ENABLED=false
+CF_D1_CB_THRESHOLD=5
+CF_D1_CB_COOLDOWN=30
+CF_D1_CB_CACHE_DRIVER=file
 ```
 
 ## ⚠️ Limitations
