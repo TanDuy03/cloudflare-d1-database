@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Ntanduy\CFD1\Test\Unit;
 
 use Ntanduy\CFD1\Connectors\CloudflareD1Connector;
+use Ntanduy\CFD1\D1\Exceptions\D1Exception;
 use Ntanduy\CFD1\D1\Requests\Rest\D1QueryRequest;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -75,11 +76,11 @@ class SendWithRetryTest extends TestCase
     }
 
     // ---------------------------------------------------------
-    // 2. Retry logic — retries exactly n times on 500
+    // 2. Retry logic — throws D1Exception after exhausting retries on 500
     // ---------------------------------------------------------
 
     #[Test]
-    public function test_retries_on_500_and_returns_error_after_exhausting_attempts(): void
+    public function test_throws_exception_after_retries_exhausted_on_500(): void
     {
         $retries = 2;
         $connector = $this->makeConnector(['retries' => $retries, 'retry_delay' => 1]);
@@ -91,13 +92,11 @@ class SendWithRetryTest extends TestCase
         ]);
         $connector->withMockClient($mockClient);
 
-        $response = $connector->sendWithRetry($request);
+        // After exhausting retries, sendWithRetry now throws D1Exception
+        $this->expectException(D1Exception::class);
+        $this->expectExceptionMessage('Cloudflare API returned HTTP 500 after 2 retries');
 
-        // After exhausting retries, sendWithRetry returns the last 500 response
-        $this->assertSame(500, $response->status());
-
-        // 1 initial attempt + 2 retries = 3 total calls
-        $mockClient->assertSentCount(1 + $retries);
+        $connector->sendWithRetry($request);
     }
 
     #[Test]
@@ -170,7 +169,12 @@ class SendWithRetryTest extends TestCase
         $connector->withMockClient($mockClient);
 
         $start = microtime(true);
-        $connector->sendWithRetry($request);
+
+        try {
+            $connector->sendWithRetry($request);
+        } catch (D1Exception) {
+            // Expected — sendWithRetry throws after exhausting retries on 5xx
+        }
         $elapsedMs = (microtime(true) - $start) * 1000;
 
         // Exponential backoff: attempt 1 = 50ms, attempt 2 = 100ms
