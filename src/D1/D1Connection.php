@@ -7,6 +7,7 @@ namespace Ntanduy\CFD1\D1;
 use Illuminate\Database\SQLiteConnection;
 use Ntanduy\CFD1\Connectors\CloudflareConnector;
 use Ntanduy\CFD1\Connectors\CloudflareWorkerConnector;
+use Ntanduy\CFD1\D1\Exceptions\D1BatchException;
 use Ntanduy\CFD1\D1\Pdo\D1Pdo;
 
 class D1Connection extends SQLiteConnection
@@ -49,6 +50,54 @@ class D1Connection extends SQLiteConnection
     public function d1(): CloudflareConnector
     {
         return $this->connector;
+    }
+
+    /**
+     * Execute a batch of SQL statements in a single API call.
+     *
+     * All statements execute atomically on D1 — if any fails, none are applied.
+     *
+     * @param  array<int, array{sql: string, params?: array}>  $statements
+     * @return array<int, array> Array of result sets, one per statement
+     *
+     * @throws D1BatchException If any statement in the batch fails
+     */
+    public function batch(array $statements): array
+    {
+        if (empty($statements)) {
+            return [];
+        }
+
+        // Normalize: ensure every statement has a 'params' key
+        $normalized = array_map(fn (array $stmt) => [
+            'sql' => $stmt['sql'],
+            'params' => $stmt['params'] ?? [],
+        ], $statements);
+
+        $response = $this->connector->databaseBatch($normalized);
+
+        $body = $response->json();
+
+        // API-level failure (e.g. auth error, malformed request)
+        if (!($body['success'] ?? false)) {
+            $errorMsg = $body['errors'][0]['message'] ?? 'Batch request failed';
+            $errorCode = (int) ($body['errors'][0]['code'] ?? 0);
+
+            throw D1BatchException::fromStatementError(0, $errorMsg, $errorCode);
+        }
+
+        $results = $body['result'] ?? [];
+
+        // Check each individual statement result for errors
+        foreach ($results as $index => $result) {
+            if (isset($result['success']) && $result['success'] === false) {
+                $errorMsg = $result['error'] ?? 'Unknown error';
+
+                throw D1BatchException::fromStatementError($index, $errorMsg);
+            }
+        }
+
+        return $results;
     }
 
     /**
