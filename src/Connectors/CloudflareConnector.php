@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Ntanduy\CFD1\Connectors;
 
+use Ntanduy\CFD1\CircuitBreaker;
+use Ntanduy\CFD1\D1\Exceptions\CircuitBreakerOpenException;
 use Ntanduy\CFD1\D1\Exceptions\D1Exception;
 use Saloon\Http\Auth\TokenAuthenticator;
 use Saloon\Http\Connector;
@@ -12,6 +14,8 @@ use Throwable;
 
 abstract class CloudflareConnector extends Connector
 {
+    protected ?CircuitBreaker $circuitBreaker = null;
+
     protected ?\Closure $queryLogger = null;
 
     public function __construct(
@@ -35,6 +39,15 @@ abstract class CloudflareConnector extends Connector
     protected readonly int $timeout;
 
     protected readonly int $connectTimeout;
+
+    /**
+     * Attach a circuit breaker to this connector.
+     * When set, sendWithRetry() will fail fast if the circuit is open.
+     */
+    public function setCircuitBreaker(CircuitBreaker $circuitBreaker): void
+    {
+        $this->circuitBreaker = $circuitBreaker;
+    }
 
     protected function defaultAuth(): ?TokenAuthenticator
     {
@@ -89,10 +102,19 @@ abstract class CloudflareConnector extends Connector
     }
 
     /**
-     * Send request with automatic retry on failure
+     * Send request with automatic retry on failure.
+     * If a circuit breaker is attached, fails fast when the circuit is open.
      */
     public function sendWithRetry(mixed $request, ?int $retries = null): Response
     {
+        // Circuit breaker: reject immediately if circuit is open
+        if ($this->circuitBreaker && !$this->circuitBreaker->allowRequest()) {
+            throw CircuitBreakerOpenException::create(
+                $this->circuitBreaker->getFailureCount(),
+                $this->circuitBreaker->getRemainingCooldown(),
+            );
+        }
+
         $retries = $retries ?? $this->retries;
         $attempt = 0;
 
@@ -102,6 +124,9 @@ abstract class CloudflareConnector extends Connector
 
                 // Retry on 5xx server errors or rate limiting (429)
                 if ($response->status() >= 500 || $response->status() === 429) {
+                    // Record failure for circuit breaker
+                    $this->circuitBreaker?->recordFailure();
+
                     if ($attempt < $retries) {
                         $attempt++;
                         $this->sleepWithBackoff($attempt);
@@ -117,8 +142,18 @@ abstract class CloudflareConnector extends Connector
                     );
                 }
 
+                // Success — reset circuit breaker
+                $this->circuitBreaker?->recordSuccess();
+
                 return $response;
+            } catch (CircuitBreakerOpenException|D1Exception $e) {
+                // CircuitBreakerOpenException: don't retry, propagate immediately
+                // D1Exception: already handled by the 5xx block above (failure already recorded)
+                throw $e;
             } catch (Throwable $e) {
+                // Record failure for circuit breaker (connection errors, timeouts)
+                $this->circuitBreaker?->recordFailure();
+
                 if ($attempt >= $retries) {
                     throw $e;
                 }

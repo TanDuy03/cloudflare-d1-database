@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Ntanduy\CFD1;
 
+use Illuminate\Cache\Repository;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\ServiceProvider;
 use InvalidArgumentException;
 use Ntanduy\CFD1\Connectors\CloudflareD1Connector;
@@ -67,6 +69,21 @@ class D1ServiceProvider extends ServiceProvider
                     $connector = $this->createWorkerConnector($config, $options);
                 } else {
                     $connector = $this->createRestConnector($config, $options);
+                }
+
+                // Attach circuit breaker if enabled
+                $cbConfig = $config['circuit_breaker'] ?? [];
+                if (!empty($cbConfig['enabled'])) {
+                    /** @var Repository $cacheStore */
+                    $cacheStore = Cache::store(
+                        $cbConfig['cache_driver'] ?? 'file'
+                    );
+                    $connector->setCircuitBreaker(new CircuitBreaker(
+                        connectionName: $name,
+                        threshold: (int) ($cbConfig['threshold'] ?? 5),
+                        cooldown: (int) ($cbConfig['cooldown'] ?? 30),
+                        cache: $cacheStore,
+                    ));
                 }
 
                 return new D1Connection($connector, $config);
