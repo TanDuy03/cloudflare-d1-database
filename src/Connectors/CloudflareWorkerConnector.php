@@ -71,7 +71,7 @@ class CloudflareWorkerConnector extends CloudflareConnector
         // Map 'params' key to 'bindings' to match Worker endpoint format
         $workerStatements = array_map(fn (array $stmt) => [
             'sql' => $stmt['sql'],
-            'bindings' => $stmt['params'] ?? [],
+            'bindings' => $stmt['params'],
         ], $statements);
 
         $request = new WorkerBatchRequest($this, $workerStatements);
