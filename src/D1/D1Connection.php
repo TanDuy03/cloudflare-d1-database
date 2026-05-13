@@ -30,18 +30,28 @@ class D1Connection extends SQLiteConnection
     }
 
     /**
-     * Start a new database transaction.
-     * D1 supports nested transactions through transaction depth tracking.
+     * Create a save point within the database.
+     *
+     * D1 does not support savepoints — this is a no-op so that nested
+     * transactions tracked by Laravel's ManagesTransactions trait do not
+     * attempt to send unsupported SAVEPOINT SQL to D1.
      */
-    public function beginTransaction(): void
+    protected function createSavepoint(): void
     {
-        $this->transactions++;
+        // No-op: D1 does not support savepoints.
+    }
 
-        if ($this->transactions === 1) {
-            $this->getPdo()->beginTransaction();
-        }
-
-        $this->fireConnectionEvent('beganTransaction');
+    /**
+     * Perform a rollback within the database.
+     *
+     * D1 is stateless — queries execute immediately and cannot be rolled back.
+     * This no-op prevents ROLLBACK TO SAVEPOINT SQL from being sent to D1.
+     *
+     * @param  int  $toLevel
+     */
+    protected function performRollBack($toLevel): void
+    {
+        // No-op: D1 is stateless, nothing to roll back.
     }
 
     /**
