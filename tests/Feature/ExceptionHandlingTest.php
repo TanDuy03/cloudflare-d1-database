@@ -6,7 +6,6 @@ namespace Ntanduy\CFD1\Test\Feature;
 
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
-use Ntanduy\CFD1\D1\Exceptions\D1TransactionException;
 use Ntanduy\CFD1\Test\Models\User;
 use Ntanduy\CFD1\Test\TestCase;
 
@@ -44,11 +43,14 @@ class ExceptionHandlingTest extends TestCase
         DB::table('non_existent_table')->get();
     }
 
-    public function test_transactions_are_not_supported()
+    public function test_transactions_are_silently_ignored()
     {
-        $this->expectException(D1TransactionException::class);
-        $this->expectExceptionMessage('D1 does not support transactions over stateless HTTP.');
-
+        // D1 does not support real transactions, but beginTransaction/commit/rollBack
+        // are no-ops to allow Laravel internals (auth, sessions) to function.
         DB::beginTransaction();
+        DB::commit();
+
+        // No exception thrown — transactions are silently ignored
+        expect(true)->toBeTrue();
     }
 }
