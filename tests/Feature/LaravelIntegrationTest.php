@@ -101,11 +101,13 @@ class LaravelIntegrationTest extends TestCase
         expect($users[0]->name)->toBe('Raw User');
     }
 
-    public function test_transactions_throw_pdo_exception()
+    public function test_transactions_are_no_op()
     {
-        $this->expectException(\PDOException::class);
-        $this->expectExceptionMessage('D1 does not support transactions over stateless HTTP.');
-
+        // D1 transactions are no-ops — they don't throw, allowing Laravel
+        // internals (auth, sessions, etc.) to work without modification.
         DB::beginTransaction();
+        DB::commit();
+
+        expect(true)->toBeTrue();
     }
 }
