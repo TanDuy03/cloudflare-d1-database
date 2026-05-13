@@ -75,23 +75,16 @@ test('getReadPdo falls back to getPdo when readPdo is null', function () {
     expect($result)->toBe($connection->getPdo());
 });
 
-// ─── beginTransaction fires connection event ─────────────────────────
+// ─── Transactions are no-ops (D1 is stateless) ──────────────────────
 
 test('beginTransaction increments transaction count and fires event', function () {
     $connection = createD1Connection();
-
-    // Mock the PDO to not throw on beginTransaction
-    $mockPdo = Mockery::mock(D1Pdo::class);
-    $mockPdo->shouldReceive('beginTransaction')->once()->andReturn(true);
-
-    $ref = new ReflectionProperty($connection, 'pdo');
-    $ref->setValue($connection, $mockPdo);
 
     // Set up event dispatcher to capture the event
     $firedEvents = [];
     /** @var Dispatcher&MockInterface $dispatcher */
     $dispatcher = Mockery::mock(Dispatcher::class);
-    $dispatcher->shouldReceive('dispatch')->once()->withArgs(function ($event) use (&$firedEvents) {
+    $dispatcher->shouldReceive('dispatch')->withArgs(function ($event) use (&$firedEvents) {
         $firedEvents[] = $event;
 
         return true;
@@ -101,19 +94,12 @@ test('beginTransaction increments transaction count and fires event', function (
 
     $connection->beginTransaction();
 
-    expect($firedEvents)->toHaveCount(1);
+    expect($connection->transactionLevel())->toBe(1);
     expect($firedEvents[0])->toBeInstanceOf(TransactionBeginning::class);
 });
 
-test('beginTransaction does not call pdo beginTransaction on nested transactions', function () {
+test('nested beginTransaction increments counter', function () {
     $connection = createD1Connection();
-
-    $mockPdo = Mockery::mock(D1Pdo::class);
-    // Only called once for the first transaction
-    $mockPdo->shouldReceive('beginTransaction')->once()->andReturn(true);
-
-    $ref = new ReflectionProperty($connection, 'pdo');
-    $ref->setValue($connection, $mockPdo);
 
     /** @var Dispatcher&MockInterface $dispatcher */
     $dispatcher = Mockery::mock(Dispatcher::class);
@@ -121,10 +107,57 @@ test('beginTransaction does not call pdo beginTransaction on nested transactions
 
     $connection->setEventDispatcher($dispatcher);
 
-    // First call: transactions becomes 1, calls pdo->beginTransaction()
     $connection->beginTransaction();
-    // Second call: transactions becomes 2, skips pdo->beginTransaction()
     $connection->beginTransaction();
 
-    // Mockery verifies beginTransaction was called only once (from ->once() above)
+    expect($connection->transactionLevel())->toBe(2);
+});
+
+test('commit decrements transaction count', function () {
+    $connection = createD1Connection();
+
+    /** @var Dispatcher&MockInterface $dispatcher */
+    $dispatcher = Mockery::mock(Dispatcher::class);
+    $dispatcher->shouldReceive('dispatch');
+
+    $connection->setEventDispatcher($dispatcher);
+
+    $connection->beginTransaction();
+    expect($connection->transactionLevel())->toBe(1);
+
+    $connection->commit();
+    expect($connection->transactionLevel())->toBe(0);
+});
+
+test('rollBack decrements transaction count', function () {
+    $connection = createD1Connection();
+
+    /** @var Dispatcher&MockInterface $dispatcher */
+    $dispatcher = Mockery::mock(Dispatcher::class);
+    $dispatcher->shouldReceive('dispatch');
+
+    $connection->setEventDispatcher($dispatcher);
+
+    $connection->beginTransaction();
+    expect($connection->transactionLevel())->toBe(1);
+
+    $connection->rollBack();
+    expect($connection->transactionLevel())->toBe(0);
+});
+
+test('DB::transaction closure executes without throwing', function () {
+    $connection = createD1Connection();
+
+    /** @var Dispatcher&MockInterface $dispatcher */
+    $dispatcher = Mockery::mock(Dispatcher::class);
+    $dispatcher->shouldReceive('dispatch');
+
+    $connection->setEventDispatcher($dispatcher);
+
+    $result = $connection->transaction(function () {
+        return 'success';
+    });
+
+    expect($result)->toBe('success');
+    expect($connection->transactionLevel())->toBe(0);
 });
