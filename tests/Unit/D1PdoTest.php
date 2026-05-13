@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 use Ntanduy\CFD1\Connectors\CloudflareD1Connector;
 use Ntanduy\CFD1\D1\Exceptions\D1QueryException;
-use Ntanduy\CFD1\D1\Exceptions\D1TransactionException;
 use Ntanduy\CFD1\D1\Pdo\D1Pdo;
 use PHPUnit\Framework\Assert;
 use Saloon\Http\Response;
@@ -45,23 +44,23 @@ test('getAttribute returns correct client version', function () {
     expect($pdo->getAttribute(PDO::ATTR_CLIENT_VERSION))->toBe('D1');
 });
 
-test('beginTransaction throws D1TransactionException', function () {
+test('beginTransaction is a no-op and returns true', function () {
     $pdo = new D1Pdo('dsn', Mockery::mock(CloudflareD1Connector::class));
 
-    $pdo->beginTransaction();
-})->throws(D1TransactionException::class, 'D1 does not support transactions over stateless HTTP.');
+    expect($pdo->beginTransaction())->toBeTrue();
+});
 
-test('commit throws D1TransactionException', function () {
+test('commit is a no-op and returns true', function () {
     $pdo = new D1Pdo('dsn', Mockery::mock(CloudflareD1Connector::class));
 
-    $pdo->commit();
-})->throws(D1TransactionException::class, 'D1 does not support transactions over stateless HTTP.');
+    expect($pdo->commit())->toBeTrue();
+});
 
-test('rollBack throws D1TransactionException', function () {
+test('rollBack is a no-op and returns true', function () {
     $pdo = new D1Pdo('dsn', Mockery::mock(CloudflareD1Connector::class));
 
-    $pdo->rollBack();
-})->throws(D1TransactionException::class, 'D1 does not support transactions over stateless HTTP.');
+    expect($pdo->rollBack())->toBeTrue();
+});
 
 test('inTransaction always returns false', function () {
     $pdo = new D1Pdo('dsn', Mockery::mock(CloudflareD1Connector::class));
