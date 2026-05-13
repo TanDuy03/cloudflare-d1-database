@@ -27,13 +27,17 @@ class D1Test extends TestCase
         expect($foundUser->email)->toBe($user->email);
     }
 
-    public function test_d1_database_transaction_throws_exception()
+    public function test_d1_database_transaction_is_no_op()
     {
-        $this->expectException(\PDOException::class);
-        $this->expectExceptionMessage('D1 does not support transactions over stateless HTTP.');
-
-        DB::transaction(function () {
-            User::factory()->create();
+        $user = DB::transaction(function () {
+            return User::factory()->create();
         });
+
+        expect($user)->not->toBeNull();
+        expect($user->exists)->toBeTrue();
+
+        $found = User::find($user->id);
+        expect($found)->not->toBeNull();
+        expect($found->id)->toBe($user->id);
     }
 }
