@@ -36,13 +36,9 @@ test('getAttribute returns correct server version', function () {
 });
 
 test('getAttribute returns correct client version', function () {
-    if (!defined('PDO::ATTR_CLIENT_VERSION')) {
-        $this->markTestSkipped('PDO::ATTR_CLIENT_VERSION not available on this PHP build');
-    }
-
     $pdo = new D1Pdo('dsn', Mockery::mock(CloudflareD1Connector::class));
     expect($pdo->getAttribute(PDO::ATTR_CLIENT_VERSION))->toBe('D1');
-});
+})->skip(!defined('PDO::ATTR_CLIENT_VERSION'), 'PDO::ATTR_CLIENT_VERSION not available on this PHP build');
 
 test('beginTransaction is a no-op and returns true', function () {
     $pdo = new D1Pdo('dsn', Mockery::mock(CloudflareD1Connector::class));
