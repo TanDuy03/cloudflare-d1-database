@@ -30,6 +30,18 @@ class D1Connection extends SQLiteConnection
     }
 
     /**
+     * Execute the BEGIN transaction statement.
+     *
+     * D1 is stateless — this no-op prevents BEGIN SQL from being sent to D1.
+     * In some Laravel/PHP versions, the parent calls exec('BEGIN') instead of
+     * PDO::beginTransaction(), so we intercept at this level as well.
+     */
+    protected function executeBeginTransactionStatement(): void
+    {
+        // No-op: D1 is stateless, no real transaction to begin.
+    }
+
+    /**
      * Create a save point within the database.
      *
      * D1 does not support savepoints — this is a no-op so that nested
