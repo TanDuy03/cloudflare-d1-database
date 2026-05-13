@@ -6,7 +6,6 @@ namespace Ntanduy\CFD1\D1\Pdo;
 
 use Ntanduy\CFD1\Connectors\CloudflareConnector;
 use Ntanduy\CFD1\D1\Exceptions\D1QueryException;
-use Ntanduy\CFD1\D1\Exceptions\D1TransactionException;
 use Ntanduy\CFD1\D1\Pdo\Concerns\MapsSqlState;
 use PDO;
 use PDOStatement;
@@ -66,25 +65,22 @@ class D1Pdo extends PDO
     #[\ReturnTypeWillChange]
     public function beginTransaction(): bool
     {
-        throw new D1TransactionException(
-            'D1 does not support transactions over stateless HTTP.'
-        );
+        // No-op: D1 is stateless — real transaction state cannot be maintained.
+        // Laravel's ManagesTransactions trait handles depth tracking at the
+        // Connection level; this just satisfies the PDO interface contract.
+        return true;
     }
 
     #[\ReturnTypeWillChange]
     public function commit(): bool
     {
-        throw new D1TransactionException(
-            'D1 does not support transactions over stateless HTTP.'
-        );
+        return true;
     }
 
     #[\ReturnTypeWillChange]
     public function rollBack(): bool
     {
-        throw new D1TransactionException(
-            'D1 does not support transactions over stateless HTTP.'
-        );
+        return true;
     }
 
     #[\ReturnTypeWillChange]
