@@ -13,11 +13,10 @@ use Saloon\Traits\Body\HasJsonBody;
 /**
  * Batch query request for the Cloudflare D1 REST API.
  *
- * Sends an array of statements to:
+ * Sends a batch of statements to:
  * POST /accounts/{accountId}/d1/database/{databaseId}/query
  *
- * The batch endpoint uses the same path as single query but accepts
- * an array body instead of a single {sql, params} object.
+ * Body format: {"batch": [{"sql": "...", "params": [...]}, ...]}
  */
 class D1BatchQueryRequest extends CloudflareRequest implements HasBody
 {
@@ -46,10 +45,12 @@ class D1BatchQueryRequest extends CloudflareRequest implements HasBody
     }
 
     /**
-     * Body is an array of statement objects — D1 batch format.
+     * Body is a JSON object with a "batch" key containing the statement array.
+     *
+     * D1 REST API expects: {"batch": [{"sql": "...", "params": [...]}, ...]}
      */
     protected function defaultBody(): array
     {
-        return $this->statements;
+        return ['batch' => $this->statements];
     }
 }
