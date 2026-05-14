@@ -13,16 +13,25 @@ use Ntanduy\CFD1\D1\Pdo\D1Pdo;
 
 class D1Connection extends SQLiteConnection
 {
+    protected ?CloudflareConnector $readConnector = null;
+
     public function __construct(
         protected CloudflareConnector $connector,
         array $config = [],
+        ?CloudflareConnector $readConnector = null,
     ) {
+        $this->readConnector = $readConnector;
+
         parent::__construct(
             fn () => $this->createD1Pdo(),
             $config['database'] ?? '',
             $config['prefix'] ?? '',
             $config,
         );
+
+        if ($this->readConnector !== null) {
+            $this->setReadPdo(new D1Pdo('sqlite::memory:', $this->readConnector));
+        }
     }
 
     protected function getDefaultSchemaGrammar()
@@ -265,9 +274,18 @@ class D1Connection extends SQLiteConnection
 
     /**
      * Get the D1 PDO instance for reads.
+     *
+     * When sticky mode is active and a write has occurred, returns the write
+     * PDO so subsequent reads see the latest data. Otherwise returns the
+     * dedicated read PDO (if configured) or falls back to the write PDO.
      */
     public function getReadPdo(): D1Pdo
     {
+        // Sticky: after a write, use write PDO for reads to ensure consistency
+        if ($this->recordsModified && $this->getConfig('sticky')) {
+            return $this->getPdo();
+        }
+
         if ($this->readPdo instanceof \Closure) {
             $this->readPdo = ($this->readPdo)();
         }
@@ -277,6 +295,14 @@ class D1Connection extends SQLiteConnection
         }
 
         return $this->readPdo;
+    }
+
+    /**
+     * Check if read/write splitting is active.
+     */
+    public function hasReadWriteSplitting(): bool
+    {
+        return $this->readConnector !== null;
     }
 
     /**
