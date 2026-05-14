@@ -32,6 +32,25 @@ return [
     | cache_driver — Laravel cache driver for storing circuit state
     |
     */
+    /*
+    |--------------------------------------------------------------------------
+    | D1 Sessions / Read Replication (Worker driver only)
+    |--------------------------------------------------------------------------
+    |
+    | When enabled, the Worker driver uses D1's Sessions API to leverage
+    | global read replicas for lower-latency reads with sequential
+    | consistency. REST driver does NOT support sessions — all queries
+    | go to the primary database instance regardless of this setting.
+    |
+    | mode — 'first-primary': first query hits primary, then replicas
+    |        'first-unconstrained': first query hits any instance (default)
+    |
+    */
+    'session' => [
+        'enabled' => env('CF_D1_SESSION_ENABLED', false),
+        'mode' => env('CF_D1_SESSION_MODE', 'first-unconstrained'),
+    ],
+
     'circuit_breaker' => [
         'enabled' => env('CF_D1_CB_ENABLED', false),
         'threshold' => env('CF_D1_CB_THRESHOLD', 5),
