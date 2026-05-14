@@ -21,19 +21,6 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Circuit Breaker
-    |--------------------------------------------------------------------------
-    |
-    | Prevents cascading failures by failing fast when the remote service
-    | is experiencing sustained errors (e.g. Worker cold starts, outages).
-    |
-    | threshold   — consecutive failures before opening the circuit
-    | cooldown    — seconds before allowing a probe request
-    | cache_driver — Laravel cache driver for storing circuit state
-    |
-    */
-    /*
-    |--------------------------------------------------------------------------
     | D1 Sessions / Read Replication (Worker driver only)
     |--------------------------------------------------------------------------
     |
@@ -51,6 +38,19 @@ return [
         'mode' => env('CF_D1_SESSION_MODE', 'first-unconstrained'),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Circuit Breaker
+    |--------------------------------------------------------------------------
+    |
+    | Prevents cascading failures by failing fast when the remote service
+    | is experiencing sustained errors (e.g. Worker cold starts, outages).
+    |
+    | threshold   — consecutive failures before opening the circuit
+    | cooldown    — seconds before allowing a probe request
+    | cache_driver — Laravel cache driver for storing circuit state
+    |
+    */
     'circuit_breaker' => [
         'enabled' => env('CF_D1_CB_ENABLED', false),
         'threshold' => env('CF_D1_CB_THRESHOLD', 5),
