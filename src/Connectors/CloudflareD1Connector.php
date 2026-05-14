@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Ntanduy\CFD1\Connectors;
 
 use Ntanduy\CFD1\D1\Requests\Rest\D1BatchQueryRequest;
+use Ntanduy\CFD1\D1\Requests\Rest\D1DatabaseInfoRequest;
 use Ntanduy\CFD1\D1\Requests\Rest\D1ExportRequest;
 use Ntanduy\CFD1\D1\Requests\Rest\D1QueryRequest;
 use Saloon\Http\Response;
@@ -50,6 +51,20 @@ class CloudflareD1Connector extends CloudflareConnector
         return $retry
             ? $this->sendWithRetry($request)
             : $this->send($request);
+    }
+
+    /**
+     * Get D1 database metadata via the REST API.
+     *
+     * Returns name, UUID, file_size, num_tables, read_replication, created_at, version.
+     *
+     * @see https://developers.cloudflare.com/api/resources/d1/subresources/database/methods/get/
+     */
+    public function databaseInfo(): Response
+    {
+        $request = new D1DatabaseInfoRequest($this, $this->database);
+
+        return $this->send($request);
     }
 
     /**
