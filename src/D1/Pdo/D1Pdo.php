@@ -55,34 +55,62 @@ class D1Pdo extends PDO
     }
 
     #[\ReturnTypeWillChange]
-    public function lastInsertId(?string $name = null): bool|string
+    public function lastInsertId(?string $name = null): string
     {
         $name = $name ?? 'id';
 
-        return $this->lastInsertIds[$name] ?? false;
+        return $this->lastInsertIds[$name] ?? '0';
     }
 
+    /**
+     * Begin a transaction (no-op).
+     *
+     * WARNING: D1 is stateless over HTTP — this method does nothing.
+     * DB::transaction(Closure) provides NO actual atomicity: each query
+     * inside the closure executes immediately and cannot be rolled back
+     * on failure. For atomic multi-statement execution, use
+     * DB::connection('d1')->batch() which leverages D1's native batch API.
+     *
+     * DB::transaction(Closure, attempts: N) will retry the closure on any
+     * exception, but without real transaction semantics (no deadlock
+     * detection, no isolation).
+     */
     #[\ReturnTypeWillChange]
     public function beginTransaction(): bool
     {
-        // No-op: D1 is stateless — real transaction state cannot be maintained.
-        // Laravel's ManagesTransactions trait handles depth tracking at the
-        // Connection level; this just satisfies the PDO interface contract.
         return true;
     }
 
+    /**
+     * Commit a transaction (no-op).
+     *
+     * WARNING: D1 is stateless — there is nothing to commit.
+     * All queries execute immediately when issued.
+     */
     #[\ReturnTypeWillChange]
     public function commit(): bool
     {
         return true;
     }
 
+    /**
+     * Roll back a transaction (no-op).
+     *
+     * WARNING: D1 is stateless — previously executed queries cannot be
+     * undone. This no-op exists so Laravel's internal transaction tracking
+     * (auth, sessions, middleware) does not crash.
+     */
     #[\ReturnTypeWillChange]
     public function rollBack(): bool
     {
         return true;
     }
 
+    /**
+     * Check if currently inside a transaction.
+     *
+     * Always returns false — D1 has no real transaction state.
+     */
     #[\ReturnTypeWillChange]
     public function inTransaction(): bool
     {
