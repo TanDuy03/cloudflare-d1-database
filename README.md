@@ -21,6 +21,9 @@ Use [Cloudflare D1](https://developers.cloudflare.com/d1) as a native Laravel da
 - **Full Laravel Integration** — Eloquent ORM, Query Builder, Migrations, Seeding
 - **Two Connection Drivers** — REST API (zero infrastructure) or Worker (low latency)
 - **Batch Queries** — Execute multiple statements in a single HTTP round-trip
+- **Bulk Insert** — Insert hundreds of rows in a single atomic batch call
+- **Sessions / Read Replication** — Leverage D1 global read replicas for lower-latency reads (Worker driver)
+- **Schema Dump** — Export your D1 database via `php artisan d1:schema-dump`
 - **Circuit Breaker** — Fail fast on sustained outages instead of blocking on retries
 - **Automatic Retries** — Exponential backoff with jitter for 5xx/429 errors
 - **Query Logging** — Optional callback for monitoring and debugging
@@ -282,6 +285,136 @@ try {
 }
 ```
 
+### Driver Feature Matrix
+
+| Feature | REST | Worker |
+|---------|------|--------|
+| Bulk Insert | ✅ | ✅ |
+| Sessions / Read Replication | ❌ Not supported | ✅ Full support |
+| Schema Dump | ✅ | ✅ (via REST credentials) |
+| Batch Queries | ✅ | ✅ |
+| Circuit Breaker | ✅ | ✅ |
+| Automatic Retries | ✅ | ✅ |
+
+### Bulk Insert
+
+Insert multiple rows efficiently using D1 batch execution — one HTTP round-trip, atomic:
+
+```php
+use Ntanduy\CFD1\D1\D1Connection;
+
+/** @var D1Connection $connection */
+$connection = DB::connection('d1');
+
+$connection->bulkInsert('users', [
+    ['name' => 'Alice', 'email' => 'alice@example.com'],
+    ['name' => 'Bob', 'email' => 'bob@example.com'],
+    ['name' => 'Charlie', 'email' => 'charlie@example.com'],
+]);
+```
+
+- Each row becomes a parameterized INSERT (SQL injection safe)
+- All rows are sent as a D1 batch (atomic — if any fails, none are applied)
+- Rows exceeding D1's 100-statement batch limit are automatically chunked
+- Works with both REST and Worker drivers
+
+### Sessions / Read Replication (Worker Driver Only)
+
+D1 supports [global read replication](https://developers.cloudflare.com/d1/best-practices/read-replication/) — read queries can be served by nearby replicas for lower latency. The Sessions API ensures sequential consistency across queries.
+
+> **Important:** Sessions are only available with the **Worker driver**. The REST API does not support D1 Sessions — this is a [Cloudflare platform limitation](https://developers.cloudflare.com/d1/best-practices/read-replication/).
+
+#### Enable via Config
+
+Add to your `.env`:
+
+```env
+CF_D1_SESSION_ENABLED=true
+CF_D1_SESSION_MODE=first-unconstrained   # or 'first-primary'
+```
+
+This automatically enables sessions for all queries on the Worker driver.
+
+#### Enable Programmatically
+
+```php
+use Ntanduy\CFD1\D1\D1Connection;
+
+/** @var D1Connection $connection */
+$connection = DB::connection('d1');
+
+// Start a session — first query goes to any instance (fastest)
+$connection->withSession('first-unconstrained');
+
+// Or start with the latest data from primary
+$connection->withSession('first-primary');
+
+// Execute queries — bookmarks are tracked automatically
+$users = DB::table('users')->get();
+$posts = DB::table('posts')->get();
+
+// Get the current bookmark (for passing to another request/session)
+$bookmark = $connection->getBookmark();
+
+// Start a new session from a previous bookmark
+$connection->withSession($bookmark);
+
+// End the session when done
+$connection->endSession();
+```
+
+#### Session Modes
+
+| Mode | First Query | Use When |
+|------|------------|----------|
+| `first-unconstrained` | Any instance (primary or replica) | Lowest latency, eventual consistency OK |
+| `first-primary` | Primary database | Need the latest data for first query |
+| `<bookmark>` | At least as fresh as the bookmark | Continuing from a previous session |
+
+#### How It Works
+
+1. PHP sends a `session` parameter with each query to the Worker
+2. Worker calls `env.DB.withSession(param)` to create a D1 session
+3. Worker returns a `bookmark` in the response
+4. PHP stores the bookmark and uses it for the next query
+5. This ensures **sequential consistency** across HTTP calls
+
+#### Worker Template
+
+The Worker template in [`Worker/`](Worker/) already includes session support. If you're upgrading from a previous version, redeploy the Worker:
+
+```bash
+cd Worker && npm run deploy
+```
+
+### Schema Dump
+
+Export your D1 database schema (and optionally data) as a SQL file:
+
+```bash
+php artisan d1:schema-dump
+```
+
+This uses the [D1 export REST API](https://developers.cloudflare.com/api/resources/d1/subresources/database/methods/export/) with polling mode. The dump is saved to `database/schema/{connection}-schema.sql`.
+
+#### Options
+
+```bash
+# Schema only (no data)
+php artisan d1:schema-dump --no-data
+
+# Custom output path
+php artisan d1:schema-dump --path=./backup.sql
+
+# Delete migration files after dumping (same as native schema:dump --prune)
+php artisan d1:schema-dump --prune
+
+# Specify connection name
+php artisan d1:schema-dump --connection=d1
+```
+
+> **Note:** `d1:schema-dump` always uses the REST API for export, even when the Worker driver is your primary connection. Worker-only users must also set `CF_D1_API_TOKEN`, `CF_D1_ACCOUNT_ID`, and `CF_D1_DATABASE_ID` in their `.env` for the dump command to work.
+
 ### Circuit Breaker
 
 Prevents cascading failures when Cloudflare Workers experience cold starts or sustained outages. Instead of blocking for 30s+ on retries, the circuit breaker fails fast after consecutive failures.
@@ -377,6 +510,12 @@ Instead of publishing the config, you can add the connection directly to `config
         'retries' => env('CF_D1_RETRIES', 2),
         'retry_delay' => env('CF_D1_RETRY_DELAY', 100),
 
+        // Sessions / Read Replication (Worker driver only)
+        'session' => [
+            'enabled' => env('CF_D1_SESSION_ENABLED', false),
+            'mode'    => env('CF_D1_SESSION_MODE', 'first-unconstrained'),
+        ],
+
         // Circuit breaker (optional)
         'circuit_breaker' => [
             'enabled'      => env('CF_D1_CB_ENABLED', false),
@@ -403,6 +542,8 @@ Instead of publishing the config, you can add the connection directly to `config
 | `connect_timeout`    | `5`                                    | HTTP connection timeout in seconds                                          |
 | `retries`            | `2`                                    | Max retry attempts on 5xx/429 errors                                        |
 | `retry_delay`        | `100`                                  | Base delay between retries in milliseconds                                  |
+| `session.enabled`        | `false`                            | Enable D1 sessions for read replication (Worker driver only)                |
+| `session.mode`           | `first-unconstrained`              | Session mode: `first-primary` or `first-unconstrained`                      |
 | `circuit_breaker.enabled` | `false`                           | Enable circuit breaker for fail-fast behavior                               |
 | `circuit_breaker.threshold` | `5`                             | Consecutive failures before opening the circuit                             |
 | `circuit_breaker.cooldown` | `30`                              | Seconds before allowing a probe request                                     |
@@ -430,6 +571,10 @@ CF_D1_CONNECT_TIMEOUT=5
 CF_D1_RETRIES=2
 CF_D1_RETRY_DELAY=100
 
+# Sessions / Read Replication (Worker driver only)
+CF_D1_SESSION_ENABLED=false
+CF_D1_SESSION_MODE=first-unconstrained
+
 # Circuit breaker (optional)
 CF_D1_CB_ENABLED=false
 CF_D1_CB_THRESHOLD=5
@@ -453,6 +598,10 @@ CF_D1_CB_CACHE_DRIVER=file
     ```
 
 - **REST API latency** — Each query is an HTTP request (~100-500ms). Use the Worker driver for lower latency (~10-50ms).
+- **Sessions / Read Replication — Worker driver only** — The D1 Sessions API is only available via the Worker Binding. The REST API does not support sessions; all queries go to the primary database. This is a [Cloudflare platform limitation](https://developers.cloudflare.com/d1/best-practices/read-replication/).
+- **Schema dump requires REST credentials** — `d1:schema-dump` uses the D1 export REST API. Even Worker-only users must set `CF_D1_API_TOKEN`, `CF_D1_ACCOUNT_ID`, and `CF_D1_DATABASE_ID`.
+- **Export blocks queries** — During export, D1 may be unavailable for queries (Cloudflare limitation for large databases).
+- **Bulk insert batch limit** — D1 batch supports max 100 statements. `bulkInsert()` automatically chunks larger datasets but each chunk is a separate HTTP call.
 - **No streaming** — Large result sets are loaded entirely into memory.
 
 ## 🌱 Testing
