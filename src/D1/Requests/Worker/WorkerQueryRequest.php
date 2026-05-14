@@ -20,6 +20,7 @@ class WorkerQueryRequest extends CloudflareRequest implements HasBody
         CloudflareWorkerConnector $connector,
         protected readonly string $sql,
         protected readonly array $bindings,
+        protected readonly ?string $session = null,
     ) {
         parent::__construct($connector);
     }
@@ -31,9 +32,15 @@ class WorkerQueryRequest extends CloudflareRequest implements HasBody
 
     protected function defaultBody(): array
     {
-        return [
+        $body = [
             'sql' => $this->sql,
             'bindings' => $this->bindings,
         ];
+
+        if ($this->session !== null) {
+            $body['session'] = $this->session;
+        }
+
+        return $body;
     }
 }
