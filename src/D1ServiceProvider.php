@@ -11,6 +11,7 @@ use InvalidArgumentException;
 use Ntanduy\CFD1\Connectors\CloudflareD1Connector;
 use Ntanduy\CFD1\Connectors\CloudflareWorkerConnector;
 use Ntanduy\CFD1\Console\Commands\D1HealthCommand;
+use Ntanduy\CFD1\Console\Commands\D1SchemaDumpCommand;
 use Ntanduy\CFD1\D1\D1Connection;
 
 class D1ServiceProvider extends ServiceProvider
@@ -29,6 +30,7 @@ class D1ServiceProvider extends ServiceProvider
 
             $this->commands([
                 D1HealthCommand::class,
+                D1SchemaDumpCommand::class,
             ]);
         }
     }
@@ -84,6 +86,17 @@ class D1ServiceProvider extends ServiceProvider
                         cooldown: (int) ($cbConfig['cooldown'] ?? 30),
                         cache: $cacheStore,
                     ));
+                }
+
+                // Enable D1 session for Worker driver when configured
+                $sessionConfig = $config['session'] ?? [];
+                if (
+                    !empty($sessionConfig['enabled'])
+                    && $connector instanceof CloudflareWorkerConnector
+                ) {
+                    $connector->enableSession(
+                        $sessionConfig['mode'] ?? 'first-unconstrained'
+                    );
                 }
 
                 return new D1Connection($connector, $config);
