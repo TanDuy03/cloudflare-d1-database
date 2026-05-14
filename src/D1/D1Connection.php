@@ -8,6 +8,7 @@ use Illuminate\Database\SQLiteConnection;
 use Ntanduy\CFD1\Connectors\CloudflareConnector;
 use Ntanduy\CFD1\Connectors\CloudflareWorkerConnector;
 use Ntanduy\CFD1\D1\Exceptions\D1BatchException;
+use Ntanduy\CFD1\D1\Exceptions\D1UnsupportedFeatureException;
 use Ntanduy\CFD1\D1\Pdo\D1Pdo;
 
 class D1Connection extends SQLiteConnection
@@ -120,6 +121,118 @@ class D1Connection extends SQLiteConnection
         }
 
         return $results;
+    }
+
+    /**
+     * Insert multiple rows efficiently using D1 batch execution.
+     *
+     * Generates one parameterized INSERT per row and sends them all in a single
+     * D1 batch call (one HTTP round-trip, atomic). This is significantly faster
+     * than N individual insert calls for large datasets.
+     *
+     * D1 batch has a limit of 100 statements. For larger datasets, rows are
+     * automatically chunked into batches of 100.
+     *
+     * @param  string  $table  Table name (prefix is applied automatically)
+     * @param  array<int, array<string, mixed>>  $rows  Array of associative arrays
+     * @return array<int, array> Array of batch result sets
+     *
+     * @throws D1BatchException If any statement in the batch fails
+     */
+    public function bulkInsert(string $table, array $rows): array
+    {
+        if (empty($rows)) {
+            return [];
+        }
+
+        $prefix = $this->getTablePrefix();
+        $prefixedTable = $prefix.$table;
+
+        $allResults = [];
+
+        // D1 batch limit is 100 statements — chunk accordingly
+        foreach (array_chunk($rows, 100) as $chunk) {
+            $statements = [];
+
+            foreach ($chunk as $row) {
+                $columns = array_keys($row);
+                $columnList = implode(', ', array_map(fn (string $col) => '"'.$col.'"', $columns));
+                $placeholders = implode(', ', array_fill(0, count($columns), '?'));
+
+                $statements[] = [
+                    'sql' => "INSERT INTO \"{$prefixedTable}\" ({$columnList}) VALUES ({$placeholders})",
+                    'params' => array_values($row),
+                ];
+            }
+
+            $results = $this->batch($statements);
+            array_push($allResults, ...$results);
+        }
+
+        return $allResults;
+    }
+
+    /**
+     * Enable D1 session for read replication with sequential consistency.
+     *
+     * Sessions are only available with the Worker driver. The REST API does not
+     * support D1 Sessions — this is a Cloudflare platform limitation.
+     *
+     * @param  string  $mode  'first-primary', 'first-unconstrained', or a bookmark string
+     * @return $this
+     *
+     * @throws D1UnsupportedFeatureException If called on REST driver
+     *
+     * @see https://developers.cloudflare.com/d1/best-practices/read-replication/
+     */
+    public function withSession(string $mode = 'first-unconstrained'): static
+    {
+        if (!$this->isWorkerDriver()) {
+            throw new D1UnsupportedFeatureException(
+                'D1 Sessions are only available with the Worker driver. '
+                .'The REST API does not support the Sessions API. '
+                .'See: https://developers.cloudflare.com/d1/best-practices/read-replication/'
+            );
+        }
+
+        /** @var CloudflareWorkerConnector $connector */
+        $connector = $this->connector;
+        $connector->enableSession($mode);
+
+        return $this;
+    }
+
+    /**
+     * Get the current session bookmark.
+     *
+     * Returns null if no session is active or no query has been executed yet.
+     */
+    public function getBookmark(): ?string
+    {
+        if (!$this->isWorkerDriver()) {
+            return null;
+        }
+
+        /** @var CloudflareWorkerConnector $connector */
+        $connector = $this->connector;
+
+        return $connector->getBookmark();
+    }
+
+    /**
+     * End the current D1 session and clear bookmark state.
+     *
+     * @return $this
+     */
+    public function endSession(): static
+    {
+        if ($this->isWorkerDriver()) {
+            /** @var CloudflareWorkerConnector $connector */
+            $connector = $this->connector;
+            $connector->endSession();
+        }
+
+        return $this;
     }
 
     /**
