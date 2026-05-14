@@ -83,7 +83,7 @@ test('exec returns affected rows', function () {
 test('lastInsertId manages state', function () {
     $pdo = new D1Pdo('dsn', Mockery::mock(CloudflareD1Connector::class));
 
-    expect($pdo->lastInsertId())->toBeFalse();
+    expect($pdo->lastInsertId())->toBe('0');
 
     $pdo->setLastInsertId(null, '123');
     expect($pdo->lastInsertId())->toBe('123');
