@@ -28,3 +28,6 @@ parameters:
         # Cross-version compatibility: Grammar::__construct() only exists in Laravel 12+
         - '#Call to function method_exists\(\) .* will always evaluate to true#'
 
+        # Pest uses() binds TestCase dynamically — PHPStan can't resolve $this->artisan()
+        - '#Call to an undefined method PHPUnit\\Framework\\TestCase::artisan\(\)#'
+
