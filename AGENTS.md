@@ -58,7 +58,8 @@ Exception: PHP 8.2 is excluded from Laravel 13.
 - `D1SchemaGrammar` extends `SQLiteGrammar` and uses reflection to detect whether parent methods accept a `$schema` parameter (Laravel 12+). Replaces `sqlite_master` with `sqlite_schema` for D1 compatibility.
 - Circuit breaker state is stored via Laravel Cache — **never use `database` cache driver** (creates dependency loop when D1 is down). Use `file` or `redis`.
 - `Worker/` is a standalone npm project with its own `AGENTS.md` (Cloudflare Workers guidance). Keep it independent from the PHP package.
-- `AUDIT_REPORT.md` at repo root contains a detailed audit with known issues and findings.
+- `AUDIT_REPORT.md` at repo root contains the initial audit with known issues.
+- `RE_AUDIT_SUMMARY.md` at repo root contains the post-fix verification — all issues resolved, 190 tests pass.
 
 ## Environment variables (driver modes)
 
