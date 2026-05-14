@@ -225,8 +225,8 @@ class SendWithRetryTest extends TestCase
 
         $throwingRequest = $this->makeRequest($throwingConnector);
 
-        $this->expectException(\RuntimeException::class);
-        $this->expectExceptionMessage('Connection failed');
+        $this->expectException(D1Exception::class);
+        $this->expectExceptionMessage('Request failed after 2 retries: Connection failed');
 
         $throwingConnector->sendWithRetry($throwingRequest);
     }
