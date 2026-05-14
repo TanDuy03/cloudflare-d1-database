@@ -5,7 +5,6 @@ declare(strict_types=1);
 use Ntanduy\CFD1\D1\Exceptions\D1Exception;
 use Ntanduy\CFD1\D1\Exceptions\D1QueryException;
 use Ntanduy\CFD1\D1\Exceptions\D1StreamException;
-use Ntanduy\CFD1\D1\Exceptions\D1TransactionException;
 use Ntanduy\CFD1\D1\Exceptions\D1UnsupportedFeatureException;
 
 // ── Hierarchy ──────────────────────────────────────────────────────────
@@ -16,7 +15,6 @@ test('D1Exception extends PDOException', function () {
 
 test('all custom exceptions extend D1Exception', function () {
     expect(new D1QueryException('q'))->toBeInstanceOf(D1Exception::class)
-        ->and(new D1TransactionException('t'))->toBeInstanceOf(D1Exception::class)
         ->and(new D1UnsupportedFeatureException('u'))->toBeInstanceOf(D1Exception::class)
         ->and(new D1StreamException('s'))->toBeInstanceOf(D1Exception::class);
 });
