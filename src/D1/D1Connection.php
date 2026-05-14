@@ -145,25 +145,37 @@ class D1Connection extends SQLiteConnection
             return [];
         }
 
+        // Validate all rows have the same columns (use first row as reference)
+        $expectedColumns = array_keys($rows[0]);
+        foreach ($rows as $index => $row) {
+            $rowColumns = array_keys($row);
+            if ($rowColumns !== $expectedColumns) {
+                throw new \InvalidArgumentException(
+                    "Row [{$index}] has different columns than row [0]. "
+                    .'All rows must have the same column structure.'
+                );
+            }
+        }
+
         $prefix = $this->getTablePrefix();
-        $prefixedTable = $prefix.$table;
+        $prefixedTable = str_replace('"', '""', $prefix.$table);
+
+        // Build column list once (all rows share the same columns)
+        $columnList = implode(', ', array_map(
+            fn (string $col) => '"'.str_replace('"', '""', $col).'"',
+            $expectedColumns
+        ));
+        $placeholders = implode(', ', array_fill(0, count($expectedColumns), '?'));
+        $sqlTemplate = "INSERT INTO \"{$prefixedTable}\" ({$columnList}) VALUES ({$placeholders})";
 
         $allResults = [];
 
         // D1 batch limit is 100 statements — chunk accordingly
         foreach (array_chunk($rows, 100) as $chunk) {
-            $statements = [];
-
-            foreach ($chunk as $row) {
-                $columns = array_keys($row);
-                $columnList = implode(', ', array_map(fn (string $col) => '"'.$col.'"', $columns));
-                $placeholders = implode(', ', array_fill(0, count($columns), '?'));
-
-                $statements[] = [
-                    'sql' => "INSERT INTO \"{$prefixedTable}\" ({$columnList}) VALUES ({$placeholders})",
-                    'params' => array_values($row),
-                ];
-            }
+            $statements = array_map(fn (array $row) => [
+                'sql' => $sqlTemplate,
+                'params' => array_values($row),
+            ], $chunk);
 
             $results = $this->batch($statements);
             array_push($allResults, ...$results);
