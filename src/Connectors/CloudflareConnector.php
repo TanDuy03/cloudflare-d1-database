@@ -142,8 +142,12 @@ abstract class CloudflareConnector extends Connector
                     );
                 }
 
-                // Success — reset circuit breaker
-                $this->circuitBreaker?->recordSuccess();
+                // Only reset circuit breaker on actual 2xx success.
+                // 4xx client errors should not reset the failure counter —
+                // they don't prove the server is healthy.
+                if ($response->successful()) {
+                    $this->circuitBreaker?->recordSuccess();
+                }
 
                 return $response;
             } catch (CircuitBreakerOpenException|D1Exception $e) {
@@ -155,7 +159,12 @@ abstract class CloudflareConnector extends Connector
                 $this->circuitBreaker?->recordFailure();
 
                 if ($attempt >= $retries) {
-                    throw $e;
+                    throw D1Exception::fromApiError(
+                        "Request failed after {$attempt} retries: {$e->getMessage()}",
+                        0,
+                        'HY000',
+                        $e,
+                    );
                 }
                 $attempt++;
                 $this->sleepWithBackoff($attempt);
