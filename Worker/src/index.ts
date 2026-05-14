@@ -24,10 +24,12 @@
 interface QueryBody {
 	sql: string;
 	bindings?: unknown[];
+	session?: string;
 }
 
 interface BatchBody {
 	statements: QueryBody[];
+	session?: string;
 }
 
 interface ExecBody {
@@ -85,16 +87,27 @@ async function handleQuery(request: Request, env: Env): Promise<Response> {
 	const body = (await request.json()) as QueryBody;
 
 	try {
-		const result = await env.DB
+		// Use D1 Sessions API when session param is provided
+		const db = body.session
+			? env.DB.withSession(body.session)
+			: env.DB;
+
+		const result = await db
 			.prepare(body.sql)
 			.bind(...(body.bindings ?? []))
 			.all();
+
+		const bookmark =
+			body.session && "getBookmark" in db
+				? (db as D1DatabaseSession).getBookmark()
+				: undefined;
 
 		return json({
 			success: result.success,
 			errors: [],
 			messages: [],
 			result: [result],
+			...(bookmark !== undefined && { bookmark }),
 		});
 	} catch (e: unknown) {
 		const message = e instanceof Error ? e.message : String(e);
@@ -106,16 +119,27 @@ async function handleBatch(request: Request, env: Env): Promise<Response> {
 	const body = (await request.json()) as BatchBody;
 
 	try {
+		// Use D1 Sessions API when session param is provided
+		const db = body.session
+			? env.DB.withSession(body.session)
+			: env.DB;
+
 		const stmts = body.statements.map((s) =>
-			env.DB.prepare(s.sql).bind(...(s.bindings ?? [])),
+			db.prepare(s.sql).bind(...(s.bindings ?? [])),
 		);
-		const results = await env.DB.batch(stmts);
+		const results = await db.batch(stmts);
+
+		const bookmark =
+			body.session && "getBookmark" in db
+				? (db as D1DatabaseSession).getBookmark()
+				: undefined;
 
 		return json({
 			success: true,
 			errors: [],
 			messages: [],
 			result: results,
+			...(bookmark !== undefined && { bookmark }),
 		});
 	} catch (e: unknown) {
 		const message = e instanceof Error ? e.message : String(e);
