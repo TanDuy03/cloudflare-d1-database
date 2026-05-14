@@ -22,6 +22,7 @@ class WorkerBatchRequest extends CloudflareRequest implements HasBody
     public function __construct(
         CloudflareWorkerConnector $connector,
         protected readonly array $statements,
+        protected readonly ?string $session = null,
     ) {
         parent::__construct($connector);
     }
@@ -33,8 +34,14 @@ class WorkerBatchRequest extends CloudflareRequest implements HasBody
 
     protected function defaultBody(): array
     {
-        return [
+        $body = [
             'statements' => $this->statements,
         ];
+
+        if ($this->session !== null) {
+            $body['session'] = $this->session;
+        }
+
+        return $body;
     }
 }
