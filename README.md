@@ -23,7 +23,9 @@ Use [Cloudflare D1](https://developers.cloudflare.com/d1) as a native Laravel da
 - **Batch Queries** — Execute multiple statements in a single HTTP round-trip
 - **Bulk Insert** — Insert hundreds of rows in a single atomic batch call
 - **Sessions / Read Replication** — Leverage D1 global read replicas for lower-latency reads (Worker driver)
+- **Auto Read/Write Splitting** — Automatic routing of SELECTs to replicas and writes to primary (Worker driver)
 - **Schema Dump** — Export your D1 database via `php artisan d1:schema-dump`
+- **Database Info** — Inspect your D1 database with `php artisan d1:info`
 - **Circuit Breaker** — Fail fast on sustained outages instead of blocking on retries
 - **Automatic Retries** — Exponential backoff with jitter for 5xx/429 errors
 - **Query Logging** — Optional callback for monitoring and debugging
@@ -291,7 +293,9 @@ try {
 |---------|------|--------|
 | Bulk Insert | ✅ | ✅ |
 | Sessions / Read Replication | ❌ Not supported | ✅ Full support |
+| Auto Read/Write Splitting | ❌ Not supported | ✅ Full support |
 | Schema Dump | ✅ | ✅ (via REST credentials) |
+| Database Info (`d1:info`) | ✅ Full metadata | ✅ Query test + REST metadata |
 | Batch Queries | ✅ | ✅ |
 | Circuit Breaker | ✅ | ✅ |
 | Automatic Retries | ✅ | ✅ |
@@ -386,6 +390,62 @@ The Worker template in [`Worker/`](Worker/) already includes session support. If
 ```bash
 cd Worker && npm run deploy
 ```
+
+### Auto Read/Write Splitting (Worker Driver Only)
+
+Automatically route `SELECT` queries to D1 replicas and `INSERT`/`UPDATE`/`DELETE` to the primary — zero code changes required.
+
+```php
+// config/database.php
+'d1' => [
+    'driver' => 'd1',
+    'd1_driver' => 'worker',
+    'worker_url' => env('CF_D1_WORKER_URL'),
+    'worker_secret' => env('CF_D1_WORKER_SECRET'),
+
+    'read' => [
+        'session' => ['mode' => 'first-unconstrained'],
+    ],
+    'write' => [
+        'session' => ['mode' => 'first-primary'],
+    ],
+    'sticky' => true,  // After write, reads use primary for consistency
+],
+```
+
+Once configured, Laravel handles everything:
+
+```php
+// Automatically goes to replica (fast, nearby)
+$users = User::all();
+
+// Automatically goes to primary
+User::create(['name' => 'Alice', 'email' => 'alice@example.com']);
+
+// With sticky=true, this read goes to primary (sees the new user)
+$user = User::where('email', 'alice@example.com')->first();
+```
+
+- **`sticky` (default: `true`)** — after a write, subsequent reads in the same request use the write connector's bookmark for sequential consistency
+- Works alongside manual `withSession()` — R/W splitting handles the base routing, you can still use sessions for fine-grained control
+- **REST driver ignores** `read`/`write` config — no sessions support, all queries go to primary
+
+### Database Info
+
+Inspect your D1 database metadata and connection status:
+
+```bash
+php artisan d1:info
+```
+
+Displays database name, UUID, size, table count, read replication mode, R/W splitting status, circuit breaker state, and runs a query test.
+
+```bash
+# Specify a connection
+php artisan d1:info --connection=d1
+```
+
+> Uses the [D1 REST API](https://developers.cloudflare.com/api/resources/d1/subresources/database/methods/get/) for metadata. Worker-only users see table count and query test but need REST credentials for full metadata.
 
 ### Schema Dump
 
