@@ -11,6 +11,7 @@ use InvalidArgumentException;
 use Ntanduy\CFD1\Connectors\CloudflareD1Connector;
 use Ntanduy\CFD1\Connectors\CloudflareWorkerConnector;
 use Ntanduy\CFD1\Console\Commands\D1HealthCommand;
+use Ntanduy\CFD1\Console\Commands\D1InfoCommand;
 use Ntanduy\CFD1\Console\Commands\D1SchemaDumpCommand;
 use Ntanduy\CFD1\D1\D1Connection;
 
@@ -30,6 +31,7 @@ class D1ServiceProvider extends ServiceProvider
 
             $this->commands([
                 D1HealthCommand::class,
+                D1InfoCommand::class,
                 D1SchemaDumpCommand::class,
             ]);
         }
@@ -99,7 +101,36 @@ class D1ServiceProvider extends ServiceProvider
                     );
                 }
 
-                return new D1Connection($connector, $config);
+                // Read/Write splitting — create a separate read connector (Worker only)
+                $readConnector = null;
+                if (
+                    isset($config['read'])
+                    && $d1Driver === 'worker'
+                    && $connector instanceof CloudflareWorkerConnector
+                ) {
+                    $readConnector = $this->createWorkerConnector($config, $options);
+
+                    // Apply circuit breaker to read connector too
+                    if (!empty($cbConfig['enabled'])) {
+                        /** @var Repository $readCacheStore */
+                        $readCacheStore = Cache::store($cbConfig['cache_driver'] ?? 'file');
+                        $readConnector->setCircuitBreaker(new CircuitBreaker(
+                            connectionName: $name.'-read',
+                            threshold: (int) ($cbConfig['threshold'] ?? 5),
+                            cooldown: (int) ($cbConfig['cooldown'] ?? 30),
+                            cache: $readCacheStore,
+                        ));
+                    }
+
+                    $readSessionMode = $config['read']['session']['mode'] ?? 'first-unconstrained';
+                    $readConnector->enableSession($readSessionMode);
+
+                    // Enable session on write connector with write mode
+                    $writeSessionMode = $config['write']['session']['mode'] ?? 'first-primary';
+                    $connector->enableSession($writeSessionMode);
+                }
+
+                return new D1Connection($connector, $config, $readConnector);
             });
         });
     }
