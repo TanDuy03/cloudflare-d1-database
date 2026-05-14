@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Ntanduy\CFD1\Connectors;
 
 use Ntanduy\CFD1\D1\Requests\Rest\D1BatchQueryRequest;
+use Ntanduy\CFD1\D1\Requests\Rest\D1ExportRequest;
 use Ntanduy\CFD1\D1\Requests\Rest\D1QueryRequest;
 use Saloon\Http\Response;
 
@@ -49,5 +50,34 @@ class CloudflareD1Connector extends CloudflareConnector
         return $retry
             ? $this->sendWithRetry($request)
             : $this->send($request);
+    }
+
+    /**
+     * Export a D1 database as SQL via the REST API.
+     *
+     * Uses polling mode — call once to initiate, then again with currentBookmark to poll.
+     *
+     * @param  string|null  $currentBookmark  Bookmark from previous poll response
+     * @param  bool  $noData  Export only schema, not data
+     * @param  bool  $noSchema  Export only data, not schema
+     * @param  array<string>  $tables  Filter to specific tables
+     */
+    public function databaseExport(
+        ?string $currentBookmark = null,
+        bool $noData = false,
+        bool $noSchema = false,
+        array $tables = [],
+    ): Response {
+        $request = new D1ExportRequest(
+            $this,
+            $this->database,
+            $currentBookmark,
+            $noData,
+            $noSchema,
+            $tables,
+        );
+
+        // Export requests should not be retried — the export is stateful
+        return $this->send($request);
     }
 }
