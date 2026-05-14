@@ -19,8 +19,8 @@ class D1SchemaGrammar extends SQLiteGrammar
     public function __construct($connection = null)
     {
         // Call parent constructor when available (Laravel 12+ defines Grammar::__construct).
-        // Earlier versions (10/11) have no parent constructor, so we fall back to manual assignment.
-        if ($connection !== null) {
+        // Earlier versions (10/11) have no parent constructor — calling it would fatal.
+        if ($connection !== null && method_exists(parent::class, '__construct')) {
             parent::__construct($connection);
         }
 
