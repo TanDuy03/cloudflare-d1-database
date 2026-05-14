@@ -141,3 +141,30 @@ test('bulkInsert uses parameterized queries', function () {
 
     $mockClient->assertSentCount(1);
 });
+
+// ─── column consistency validation ───────────────────────────────────
+
+test('bulkInsert throws when rows have different columns', function () {
+    $connection = createBulkInsertConnection();
+
+    $connection->bulkInsert('users', [
+        ['name' => 'Alice', 'email' => 'alice@example.com'],
+        ['name' => 'Bob', 'age' => 30],
+    ]);
+})->throws(InvalidArgumentException::class, 'Row [1] has different columns than row [0]');
+
+// ─── column name escaping ────────────────────────────────────────────
+
+test('bulkInsert escapes double quotes in column names', function () {
+    $connection = createBulkInsertConnection();
+    /** @var CloudflareD1Connector $connector */
+    $connector = $connection->d1();
+    $mockClient = mockBatchSuccess($connector, 1);
+
+    // Column name with a double quote — must not break SQL
+    $connection->bulkInsert('users', [
+        ['col"name' => 'value'],
+    ]);
+
+    $mockClient->assertSentCount(1);
+});
