@@ -106,7 +106,6 @@ class D1ServiceProvider extends ServiceProvider
                 if (
                     isset($config['read'])
                     && $d1Driver === 'worker'
-                    && $connector instanceof CloudflareWorkerConnector
                 ) {
                     $readConnector = $this->createWorkerConnector($config, $options);
 
