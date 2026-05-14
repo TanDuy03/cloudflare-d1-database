@@ -9,14 +9,14 @@ parameters:
     excludePaths:
         - tests/Pest.php
         - tests/database/factories/UserFactory.php
-    
+
     ignoreErrors:
         # Mockery expectations - false positives from mocking
         - '#Call to an undefined method Mockery\\.*::(with|once|andReturn)#'
         - '#Parameter .* constructor expects .*, Mockery\\MockInterface given#'
         - '#Parameter .* expects .*, PDO given#'
         - '#Parameter .* expects string, (null|true|false) given#'
-        
+
         # Eloquent dynamic methods - Laravel magic methods
         - '#Call to an undefined static method .*User::(find|create|where|all)#'
         - '#Access to an undefined property .*::\$(id|name|email|created_at|updated_at)#'
@@ -24,4 +24,7 @@ parameters:
         # PDO::quote() accepts mixed but PHPStan infers string from internal stubs
         - '#Strict comparison using === between string and null will always evaluate to false#'
         - '#Call to function is_bool\(\) with string will always evaluate to false#'
+
+        # Cross-version compatibility: Grammar::__construct() only exists in Laravel 12+
+        - '#Call to function method_exists\(\) .* will always evaluate to true#'
 
