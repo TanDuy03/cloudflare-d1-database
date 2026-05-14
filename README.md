@@ -439,7 +439,19 @@ CF_D1_CB_CACHE_DRIVER=file
 
 ## ⚠️ Limitations
 
-- **No real transactions** — D1 doesn't support `BEGIN`/`COMMIT`/`ROLLBACK`. The driver simulates transaction state for Laravel compatibility, but queries are executed immediately.
+- **No real transactions** — D1 is stateless over HTTP and doesn't support `BEGIN`/`COMMIT`/`ROLLBACK`. The driver makes these methods no-ops so Laravel internals (auth, sessions, middleware) work without crashing.
+
+  - `DB::transaction(Closure)` **will execute the closure**, but provides **no atomicity** — each query runs immediately and cannot be rolled back on failure.
+  - `DB::transaction(Closure, attempts: N)` retries the closure on any exception, but without real deadlock detection or isolation.
+  - For atomic multi-statement execution, use **`batch()`** which leverages D1's native batch API:
+
+    ```php
+    $connection->batch([
+        ['sql' => 'INSERT INTO orders ...', 'params' => [...]],
+        ['sql' => 'UPDATE inventory ...', 'params' => [...]],
+    ]);
+    ```
+
 - **REST API latency** — Each query is an HTTP request (~100-500ms). Use the Worker driver for lower latency (~10-50ms).
 - **No streaming** — Large result sets are loaded entirely into memory.
 
