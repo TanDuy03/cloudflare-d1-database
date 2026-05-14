@@ -1,79 +1,44 @@
-# AGENTS.md — Cloudflare D1 Database Driver for Laravel
+# AGENTS.md - Cloudflare D1 Laravel Driver
 
-## What this is
-
-Laravel package (`ntanduy/cloudflare-d1-database`) providing a Cloudflare D1 database driver.
-Namespace: `Ntanduy\CFD1\`. Autoload root: `src/`.
-Two connection drivers: **REST** (default, via Saloon HTTP client) and **Worker** (proxy through a Cloudflare Worker).
+## Project Shape
+- Laravel package `ntanduy/cloudflare-d1-database`, namespace `Ntanduy\CFD1\`, autoload root `src/`.
+- Two runtime drivers: REST API via `CloudflareD1Connector` and Worker proxy via `CloudflareWorkerConnector`.
+- `Worker/` is a standalone Cloudflare Worker npm project with its own `AGENTS.md`; follow that file and fetch current Cloudflare docs before changing Worker APIs, bindings, limits, or deploy behavior.
+- `tests/worker/` is a separate mock Worker project for integration-style local testing, not the production Worker template.
 
 ## Commands
+- PHP verification: `vendor/bin/pint --test`, `vendor/bin/phpstan analyse`, `vendor/bin/pest`.
+- PHP single/focused tests: `vendor/bin/pest tests/Unit/BulkInsertTest.php` or `vendor/bin/pest --filter "test name"`.
+- Composer shortcut: `composer test` runs `vendor/bin/pest` only.
+- CI has separate style, static-analysis, and test jobs; run all three PHP checks before handing off code changes.
+- Worker setup/test: use `workdir="Worker"` with `npm ci`, then `npm test`; `npm run dev` starts Wrangler, `npm run deploy` deploys.
+- After changing `Worker/wrangler.jsonc` bindings, run `workdir="Worker"` `npx wrangler types`.
+- Mock Worker commands live under `tests/worker/`; its `npm test` script is `vitest run`.
 
-| Command | Purpose |
-|---|---|
-| `vendor/bin/pest` | Run PHP tests |
-| `vendor/bin/pint --test` | Check code style (Laravel Pint) — fails if not formatted |
-| `vendor/bin/phpstan analyse` | Static analysis (level 5) |
-| `composer test` | Alias for `vendor/bin/pest` |
+## CI Matrix
+- PHP tests run on PHP 8.2/8.3/8.4 against Laravel 10/11/12/13 with both `prefer-lowest` and `prefer-stable`.
+- Laravel 13 is excluded on PHP 8.2.
+- CI installs matrix versions with `composer require laravel/framework:<version> orchestra/testbench:<version> --dev --no-update` before `composer update`.
 
-CI runs **style → static analysis → tests** in separate jobs. Run all three locally before pushing.
+## Test Architecture
+- `tests/TestCase.php` uses Orchestra Testbench, sets `database.default=d1`, loads Laravel migrations into the `d1` connection, and replaces the `d1` driver with `MockCloudflareD1Connector`.
+- PHP tests should not make real Cloudflare calls; the mock connector intercepts Saloon requests and executes SQL against static in-memory SQLite.
+- `MockCloudflareD1Connector::$sqlite` intentionally persists across connection re-resolves within a test; `TestCase::setUp()` resets it before each test.
+- The mock simulates SQLite transactions, but production D1 transaction methods are no-ops.
 
-### Worker (TypeScript)
+## Driver Gotchas
+- `D1ServiceProvider` merges `config/d1-database.php` into `database.connections.d1`; user connection config overrides package defaults.
+- `D1Connection` extends Laravel `SQLiteConnection`; `D1Pdo` extends `PDO` and opens an unused `sqlite::memory:` connection to satisfy PDO inheritance.
+- Real transactions do not exist: `beginTransaction()`, `commit()`, `rollBack()`, Laravel savepoints, and rollback SQL are no-ops. Use `D1Connection::batch()` for atomic multi-statement D1 execution.
+- Retry safety is intentionally narrow: `D1Pdo::shouldRetryFor()` only retries `SELECT` and `WITH`; never broaden retries to mutations without an idempotency design.
+- D1 Sessions and automatic read/write splitting are Worker-only; REST ignores `session`, `read`, and `write` behavior because the REST API has no Sessions API.
+- `d1:schema-dump` always uses REST export. Worker-only users still need `CF_D1_API_TOKEN`, `CF_D1_ACCOUNT_ID`, and `CF_D1_DATABASE_ID` for dumps and full `d1:info` metadata.
+- D1 batch limit is 100 statements. `bulkInsert()` chunks larger inputs, so data sets over 100 rows are multiple D1 batch calls, not one global atomic batch.
+- Circuit breaker state uses Laravel Cache; do not use the `database` cache driver for D1 circuit state because it creates a dependency loop when D1 is down.
+- `D1SchemaGrammar` extends SQLite grammar and uses reflection for Laravel 12+ schema method signatures; preserve cross-version compatibility.
 
-| Command | Purpose |
-|---|---|
-| `cd Worker && npm ci && npm test` | Run Worker unit tests (Vitest) |
-| `cd Worker && npm run dev` | Local dev server via `wrangler dev` |
-| `cd Worker && npm run deploy` | Deploy Worker to Cloudflare |
-| `cd Worker && npx wrangler types` | Regenerate types after changing `wrangler.jsonc` bindings |
-
-A separate test-worker project exists at `tests/worker/` (also Vitest + wrangler). It's a mock server for integration testing, not the production Worker.
-
-## Testing architecture
-
-- **Framework**: Pest v2/v3/v4 over PHPUnit, with Orchestra Testbench for Laravel service container.
-- **Mocking**: Tests use `MockCloudflareD1Connector` which runs an **in-memory SQLite** database and intercepts Saloon HTTP calls via `MockClient`. No real Cloudflare API calls are made in tests.
-- **State**: `MockCloudflareD1Connector::$sqlite` is static — persists across connection re-resolves within a test. Call `MockCloudflareD1Connector::reset()` between tests (done automatically in `TestCase::setUp`).
-- **Test base class**: `tests/TestCase.php` extends Orchestra TestCase, loads Laravel migrations into the mock SQLite, and overrides the `d1` database connection with the mock connector.
-- **No real transactions**: D1 doesn't support `BEGIN`/`COMMIT`/`ROLLBACK`. The mock simulates them against SQLite for test fidelity, but production executes queries immediately.
-
-## PHPStan
-
-Level 5. Known ignores in `phpstan.neon`:
-- Mockery dynamic method calls (`with`, `once`, `andReturn`)
-- Eloquent magic methods and properties on test models
-- PDO type mismatches from D1-specific behavior
-
-## CI matrix
-
-Tests run across PHP 8.2/8.3/8.4 × Laravel 10/11/12/13 × prefer-lowest/prefer-stable.
-Exception: PHP 8.2 is excluded from Laravel 13.
-
-## Key architecture notes
-
-- `D1ServiceProvider` merges `config/d1-database.php` defaults into `database.connections.d1` at boot.
-- `D1Connection` extends `SQLiteConnection` and wraps either `CloudflareD1Connector` (REST) or `CloudflareWorkerConnector` (Worker). Both use Saloon HTTP client.
-- `D1Pdo` / `D1PdoStatement` implement PDO interfaces for Laravel's database layer. `D1Pdo` extends `PDO` which opens an unused `sqlite::memory:` connection — this is a documented trade-off of the inheritance approach.
-- **Transactions are no-ops**: `beginTransaction()`, `commit()`, `rollBack()` all do nothing. `DB::transaction(Closure)` runs queries immediately — no rollback on failure, no atomicity. `D1Connection` also overrides `executeBeginTransactionStatement()`, `createSavepoint()`, and `performRollBack()` as no-ops to prevent any SQL being sent.
-- **Retry safety**: `D1Pdo::shouldRetryFor()` only retries `SELECT` and `WITH` queries (idempotent reads). Mutations (`INSERT`, `UPDATE`, `DELETE`) are never retried to avoid duplicate data.
-- `D1SchemaGrammar` extends `SQLiteGrammar` and uses reflection to detect whether parent methods accept a `$schema` parameter (Laravel 12+). Replaces `sqlite_master` with `sqlite_schema` for D1 compatibility.
-- Circuit breaker state is stored via Laravel Cache — **never use `database` cache driver** (creates dependency loop when D1 is down). Use `file` or `redis`.
-- `Worker/` is a standalone npm project with its own `AGENTS.md` (Cloudflare Workers guidance). Keep it independent from the PHP package.
-
-## Environment variables (driver modes)
-
-| Variable | Default | Purpose |
-|---|---|---|
-| `CF_D1_DRIVER` | `rest` | `rest` or `worker` |
-| `CF_D1_DATABASE_ID` | — | D1 database UUID (REST) |
-| `CF_D1_API_TOKEN` | — | Cloudflare API token (REST) |
-| `CF_D1_ACCOUNT_ID` | — | Cloudflare account ID (REST) |
-| `CF_D1_WORKER_URL` | — | Worker endpoint URL (Worker) |
-| `CF_D1_WORKER_SECRET` | — | Worker auth secret (Worker) |
-
-## Conventions
-
-- `declare(strict_types=1)` at top of every PHP file.
-- PHP files: 4-space indent, LF line endings (`.editorconfig`).
-- YAML/JSON/JS: 2-space indent.
-- Style enforced by Laravel Pint (not PHP-CS-Fixer).
-- Tests use Pest `expect()` API, not PHPUnit `$this->assert*`.
+## Style
+- PHP files require `declare(strict_types=1)`; Pint enforces this with the Laravel preset plus repo rules in `pint.json`.
+- Root `.editorconfig`: PHP and most files use 4 spaces, YAML/JSON/JS use 2 spaces, LF endings.
+- `Worker/.editorconfig` overrides Worker files to tabs; do not reformat Worker TypeScript to root spacing.
+- Tests are Pest-style; prefer `expect()` assertions over PHPUnit assertions.
