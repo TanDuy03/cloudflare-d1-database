@@ -22,9 +22,9 @@ class D1Exception extends PDOException
      * @param  int|null  $code  Error code from the API
      * @param  string  $sqlState  Mapped SQLSTATE code
      */
-    public static function fromApiError(string $message, ?int $code, string $sqlState): static
+    public static function fromApiError(string $message, ?int $code, string $sqlState, ?\Throwable $previous = null): static
     {
-        $exception = new static($message, $code ?? 0);
+        $exception = new static($message, $code ?? 0, $previous);
         $exception->errorInfo = [$sqlState, $code, $message];
 
         return $exception;
