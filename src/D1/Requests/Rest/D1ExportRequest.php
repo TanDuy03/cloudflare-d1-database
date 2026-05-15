@@ -55,16 +55,22 @@ class D1ExportRequest extends CloudflareRequest implements HasBody
             $body['current_bookmark'] = $this->currentBookmark;
         }
 
+        $dumpOptions = [];
+
         if ($this->noData) {
-            $body['no_data'] = true;
+            $dumpOptions['no_data'] = true;
         }
 
         if ($this->noSchema) {
-            $body['no_schema'] = true;
+            $dumpOptions['no_schema'] = true;
         }
 
         if (!empty($this->tables)) {
-            $body['tables'] = $this->tables;
+            $dumpOptions['tables'] = $this->tables;
+        }
+
+        if (!empty($dumpOptions)) {
+            $body['dump_options'] = $dumpOptions;
         }
 
         return $body;
