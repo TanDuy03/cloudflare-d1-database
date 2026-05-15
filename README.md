@@ -26,6 +26,7 @@ Use [Cloudflare D1](https://developers.cloudflare.com/d1) as a native Laravel da
 - **Auto Read/Write Splitting** — Automatic routing of SELECTs to replicas and writes to primary (Worker driver)
 - **Import** — Import SQL files into D1 via `php artisan d1:import`
 - **Schema Dump** — Export your D1 database via `php artisan d1:schema-dump`
+- **Time Travel** — Point-in-time recovery via `php artisan d1:time-travel`
 - **Database Info** — Inspect your D1 database with `php artisan d1:info`
 - **Circuit Breaker** — Fail fast on sustained outages instead of blocking on retries
 - **Automatic Retries** — Exponential backoff with jitter for 5xx/429 errors
@@ -296,6 +297,7 @@ try {
 | Sessions / Read Replication | ❌ Not supported | ✅ Full support |
 | Auto Read/Write Splitting | ❌ Not supported | ✅ Full support |
 | Import (`d1:import`) | ✅ | ✅ (via REST credentials) |
+| Time Travel (`d1:time-travel`) | ✅ | ✅ (via REST credentials) |
 | Schema Dump | ✅ | ✅ (via REST credentials) |
 | Database Info (`d1:info`) | ✅ Full metadata | ✅ Query test + REST metadata |
 | Batch Queries | ✅ | ✅ |
@@ -469,6 +471,33 @@ php artisan d1:import database/seeds/data.sql --connection=d1
 ```
 
 > **Note:** Like `d1:schema-dump`, the import command always uses the REST API. Worker-only users must also set `CF_D1_API_TOKEN`, `CF_D1_ACCOUNT_ID`, and `CF_D1_DATABASE_ID` in their `.env`.
+
+### Time Travel
+
+D1 automatically creates restore points (bookmarks) for up to 30 days. Use `d1:time-travel` to get the current bookmark or restore your database to any point in time:
+
+```bash
+# Get the current bookmark
+php artisan d1:time-travel
+
+# Get the bookmark at a specific timestamp
+php artisan d1:time-travel --timestamp="2024-01-15T10:30:00+00:00"
+
+# Unix timestamps also work
+php artisan d1:time-travel --timestamp=1705312200
+```
+
+To restore the database to a previous state:
+
+```bash
+# Restore to a specific bookmark
+php artisan d1:time-travel --restore --bookmark="00000085-0000024c-00004c6d-abc123"
+
+# Restore to a timestamp
+php artisan d1:time-travel --restore --timestamp="2024-01-15T10:30:00+00:00"
+```
+
+> **Warning:** Restore is a destructive operation — it overwrites the database in place. In-flight queries will be cancelled. The command will prompt for confirmation before proceeding. The previous bookmark is shown after restore so you can undo if needed.
 
 ### Schema Dump
 
