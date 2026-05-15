@@ -7,10 +7,17 @@ namespace Ntanduy\CFD1\Console\Commands;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Http;
 use Ntanduy\CFD1\Connectors\CloudflareD1Connector;
+use Ntanduy\CFD1\Console\Concerns\FormatsBytes;
 use Throwable;
 
 class D1ImportCommand extends Command
 {
+    use FormatsBytes;
+
+    private ?string $filename = null;
+
+    private ?string $bookmark = null;
+
     protected $signature = 'd1:import
         {file : Path to the SQL file to import}
         {--connection=d1 : The D1 connection name}';
@@ -262,23 +269,4 @@ class D1ImportCommand extends Command
 
         return false;
     }
-
-    private function formatBytes(int $bytes): string
-    {
-        if ($bytes >= 1073741824) {
-            return round($bytes / 1073741824, 2).' GB';
-        }
-        if ($bytes >= 1048576) {
-            return round($bytes / 1048576, 1).' MB';
-        }
-        if ($bytes >= 1024) {
-            return round($bytes / 1024, 1).' KB';
-        }
-
-        return $bytes.' B';
-    }
-
-    private ?string $filename = null;
-
-    private ?string $bookmark = null;
 }
