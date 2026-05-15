@@ -9,6 +9,8 @@ use Ntanduy\CFD1\D1\Requests\Rest\D1DatabaseInfoRequest;
 use Ntanduy\CFD1\D1\Requests\Rest\D1ExportRequest;
 use Ntanduy\CFD1\D1\Requests\Rest\D1ImportRequest;
 use Ntanduy\CFD1\D1\Requests\Rest\D1QueryRequest;
+use Ntanduy\CFD1\D1\Requests\Rest\D1TimeTravelBookmarkRequest;
+use Ntanduy\CFD1\D1\Requests\Rest\D1TimeTravelRestoreRequest;
 use Saloon\Http\Response;
 
 class CloudflareD1Connector extends CloudflareConnector
@@ -125,6 +127,46 @@ class CloudflareD1Connector extends CloudflareConnector
         );
 
         // Import requests are stateful — do not retry
+        return $this->send($request);
+    }
+
+    /**
+     * Get the current bookmark, or the nearest bookmark at or before a timestamp.
+     *
+     * @param  string|null  $timestamp  Optional ISO 8601 timestamp
+     *
+     * @see https://developers.cloudflare.com/d1/reference/time-travel/
+     */
+    public function timeTravelBookmark(?string $timestamp = null): Response
+    {
+        $request = new D1TimeTravelBookmarkRequest(
+            $this,
+            $this->database,
+            $timestamp,
+        );
+
+        return $this->send($request);
+    }
+
+    /**
+     * Restore a D1 database to a previous point in time.
+     *
+     * Warning: This is a destructive operation.
+     *
+     * @param  string|null  $bookmark  Bookmark to restore to
+     * @param  string|null  $timestamp  ISO 8601 timestamp to restore to
+     *
+     * @see https://developers.cloudflare.com/d1/reference/time-travel/
+     */
+    public function timeTravelRestore(?string $bookmark = null, ?string $timestamp = null): Response
+    {
+        $request = new D1TimeTravelRestoreRequest(
+            $this,
+            $this->database,
+            $bookmark,
+            $timestamp,
+        );
+
         return $this->send($request);
     }
 }
