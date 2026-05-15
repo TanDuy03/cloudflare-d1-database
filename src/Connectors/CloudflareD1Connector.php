@@ -7,6 +7,7 @@ namespace Ntanduy\CFD1\Connectors;
 use Ntanduy\CFD1\D1\Requests\Rest\D1BatchQueryRequest;
 use Ntanduy\CFD1\D1\Requests\Rest\D1DatabaseInfoRequest;
 use Ntanduy\CFD1\D1\Requests\Rest\D1ExportRequest;
+use Ntanduy\CFD1\D1\Requests\Rest\D1ImportRequest;
 use Ntanduy\CFD1\D1\Requests\Rest\D1QueryRequest;
 use Saloon\Http\Response;
 
@@ -93,6 +94,37 @@ class CloudflareD1Connector extends CloudflareConnector
         );
 
         // Export requests should not be retried — the export is stateful
+        return $this->send($request);
+    }
+
+    /**
+     * Import SQL into a D1 database via the REST API.
+     *
+     * Phases: 'init' → upload → 'ingest' → 'poll' until complete.
+     *
+     * @param  string  $action  'init', 'ingest', or 'poll'
+     * @param  string|null  $etag  MD5 hash of the SQL file
+     * @param  string|null  $filename  Filename from init response
+     * @param  string|null  $currentBookmark  Bookmark for polling
+     *
+     * @see https://developers.cloudflare.com/api/resources/d1/subresources/database/methods/import/
+     */
+    public function databaseImport(
+        string $action = 'init',
+        ?string $etag = null,
+        ?string $filename = null,
+        ?string $currentBookmark = null,
+    ): Response {
+        $request = new D1ImportRequest(
+            $this,
+            $this->database,
+            $action,
+            $etag,
+            $filename,
+            $currentBookmark,
+        );
+
+        // Import requests are stateful — do not retry
         return $this->send($request);
     }
 }
