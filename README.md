@@ -24,6 +24,7 @@ Use [Cloudflare D1](https://developers.cloudflare.com/d1) as a native Laravel da
 - **Bulk Insert** — Insert hundreds of rows in a single atomic batch call
 - **Sessions / Read Replication** — Leverage D1 global read replicas for lower-latency reads (Worker driver)
 - **Auto Read/Write Splitting** — Automatic routing of SELECTs to replicas and writes to primary (Worker driver)
+- **Import** — Import SQL files into D1 via `php artisan d1:import`
 - **Schema Dump** — Export your D1 database via `php artisan d1:schema-dump`
 - **Database Info** — Inspect your D1 database with `php artisan d1:info`
 - **Circuit Breaker** — Fail fast on sustained outages instead of blocking on retries
@@ -294,6 +295,7 @@ try {
 | Bulk Insert | ✅ | ✅ |
 | Sessions / Read Replication | ❌ Not supported | ✅ Full support |
 | Auto Read/Write Splitting | ❌ Not supported | ✅ Full support |
+| Import (`d1:import`) | ✅ | ✅ (via REST credentials) |
 | Schema Dump | ✅ | ✅ (via REST credentials) |
 | Database Info (`d1:info`) | ✅ Full metadata | ✅ Query test + REST metadata |
 | Batch Queries | ✅ | ✅ |
@@ -446,6 +448,27 @@ php artisan d1:info --connection=d1
 ```
 
 > Uses the [D1 REST API](https://developers.cloudflare.com/api/resources/d1/subresources/database/methods/get/) for metadata. Worker-only users see table count and query test but need REST credentials for full metadata.
+
+### Import
+
+Import a SQL file into your D1 database:
+
+```bash
+php artisan d1:import path/to/file.sql
+```
+
+The command handles the full import flow automatically:
+1. Computes MD5 hash and sends `init` request to get a presigned upload URL
+2. Uploads the SQL file to R2
+3. Triggers ingestion
+4. Polls until import is complete
+
+```bash
+# Specify connection
+php artisan d1:import database/seeds/data.sql --connection=d1
+```
+
+> **Note:** Like `d1:schema-dump`, the import command always uses the REST API. Worker-only users must also set `CF_D1_API_TOKEN`, `CF_D1_ACCOUNT_ID`, and `CF_D1_DATABASE_ID` in their `.env`.
 
 ### Schema Dump
 
