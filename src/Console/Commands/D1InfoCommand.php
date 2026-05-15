@@ -6,11 +6,14 @@ namespace Ntanduy\CFD1\Console\Commands;
 
 use Illuminate\Console\Command;
 use Ntanduy\CFD1\Connectors\CloudflareD1Connector;
+use Ntanduy\CFD1\Console\Concerns\FormatsBytes;
 use Ntanduy\CFD1\D1\D1Connection;
 use Throwable;
 
 class D1InfoCommand extends Command
 {
+    use FormatsBytes;
+
     protected $signature = 'd1:info {--connection=d1 : The D1 connection name}';
 
     protected $description = 'Display Cloudflare D1 database information and connection status';
@@ -201,21 +204,6 @@ class D1InfoCommand extends Command
     private function addInfo(string $property, string $detail): void
     {
         $this->rows[] = [$property, '<fg=gray>—</>', $detail];
-    }
-
-    private function formatBytes(int $bytes): string
-    {
-        if ($bytes >= 1073741824) {
-            return round($bytes / 1073741824, 2).' GB';
-        }
-        if ($bytes >= 1048576) {
-            return round($bytes / 1048576, 2).' MB';
-        }
-        if ($bytes >= 1024) {
-            return round($bytes / 1024, 2).' KB';
-        }
-
-        return $bytes.' B';
     }
 
     private function renderTable(): void
