@@ -52,7 +52,7 @@ test('D1ExportRequest includes current_bookmark when polling', function () {
 
 // ─── no-data option ──────────────────────────────────────────────────
 
-test('D1ExportRequest includes no_data flag', function () {
+test('D1ExportRequest includes no_data flag in dump_options', function () {
     $connector = new CloudflareD1Connector(
         database: 'db-uuid-123',
         token: 'test-token',
@@ -62,12 +62,27 @@ test('D1ExportRequest includes no_data flag', function () {
     $request = new D1ExportRequest($connector, 'db-uuid-123', noData: true);
     $body = $request->body()->all();
 
-    expect($body)->toHaveKey('no_data', true);
+    expect($body)->toHaveKey('dump_options');
+    expect($body['dump_options'])->toHaveKey('no_data', true);
 });
 
 // ─── tables filter ───────────────────────────────────────────────────
 
-test('D1ExportRequest includes tables filter', function () {
+test('D1ExportRequest includes no_schema flag in dump_options', function () {
+    $connector = new CloudflareD1Connector(
+        database: 'db-uuid-123',
+        token: 'test-token',
+        accountId: 'acc-456',
+    );
+
+    $request = new D1ExportRequest($connector, 'db-uuid-123', noSchema: true);
+    $body = $request->body()->all();
+
+    expect($body)->toHaveKey('dump_options');
+    expect($body['dump_options'])->toHaveKey('no_schema', true);
+});
+
+test('D1ExportRequest includes tables filter in dump_options', function () {
     $connector = new CloudflareD1Connector(
         database: 'db-uuid-123',
         token: 'test-token',
@@ -77,7 +92,8 @@ test('D1ExportRequest includes tables filter', function () {
     $request = new D1ExportRequest($connector, 'db-uuid-123', tables: ['users', 'posts']);
     $body = $request->body()->all();
 
-    expect($body)->toHaveKey('tables', ['users', 'posts']);
+    expect($body)->toHaveKey('dump_options');
+    expect($body['dump_options'])->toHaveKey('tables', ['users', 'posts']);
 });
 
 // ─── no optional fields when not set ─────────────────────────────────
@@ -93,7 +109,5 @@ test('D1ExportRequest omits optional fields when not set', function () {
     $body = $request->body()->all();
 
     expect($body)->not->toHaveKey('current_bookmark');
-    expect($body)->not->toHaveKey('no_data');
-    expect($body)->not->toHaveKey('no_schema');
-    expect($body)->not->toHaveKey('tables');
+    expect($body)->not->toHaveKey('dump_options');
 });
