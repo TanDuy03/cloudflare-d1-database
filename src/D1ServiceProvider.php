@@ -14,6 +14,7 @@ use Ntanduy\CFD1\Console\Commands\D1HealthCommand;
 use Ntanduy\CFD1\Console\Commands\D1ImportCommand;
 use Ntanduy\CFD1\Console\Commands\D1InfoCommand;
 use Ntanduy\CFD1\Console\Commands\D1SchemaDumpCommand;
+use Ntanduy\CFD1\Console\Commands\D1TimeTravelCommand;
 use Ntanduy\CFD1\D1\D1Connection;
 
 class D1ServiceProvider extends ServiceProvider
@@ -35,6 +36,7 @@ class D1ServiceProvider extends ServiceProvider
                 D1ImportCommand::class,
                 D1InfoCommand::class,
                 D1SchemaDumpCommand::class,
+                D1TimeTravelCommand::class,
             ]);
         }
     }
