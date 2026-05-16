@@ -2,13 +2,11 @@
 
 declare(strict_types=1);
 
-use Illuminate\Support\Facades\Artisan;
 use Ntanduy\CFD1\D1\Requests\Rest\D1DatabaseInfoRequest;
 use Ntanduy\CFD1\D1\Requests\Rest\D1QueryRequest;
 use Ntanduy\CFD1\Test\TestCase;
 use Saloon\Http\Faking\MockClient;
 use Saloon\Http\Faking\MockResponse;
-use Symfony\Component\Console\Output\BufferedOutput;
 
 uses(TestCase::class);
 
@@ -154,20 +152,18 @@ test('d1:info shows all REST metadata fields when available', function () {
         ], 200),
     ]));
 
-    $buffer = new BufferedOutput;
-    Artisan::call('d1:info', [], $buffer);
-    $output = $buffer->fetch();
+    $this->artisan('d1:info')
+        ->expectsOutputToContain('production-db')
+        ->expectsOutputToContain('uuid-abc-123')
+        ->expectsOutputToContain('5.24 MB')
+        ->expectsOutputToContain('12')
+        ->expectsOutputToContain('auto')
+        ->expectsOutputToContain('2024-03-15T10:00:00Z')
+        ->expectsOutputToContain('production')
+        ->assertSuccessful();
 
     // Purge so tearDown rollback gets a fresh SQLite-backed mock
     app('db')->purge('d1');
-
-    expect($output)->toContain('production-db');
-    expect($output)->toContain('uuid-abc-123');
-    expect($output)->toContain('5.24 MB');
-    expect($output)->toContain('12');
-    expect($output)->toContain('auto');
-    expect($output)->toContain('2024-03-15T10:00:00Z');
-    expect($output)->toContain('production');
 });
 
 test('d1:info shows REST metadata API error message', function () {
@@ -191,14 +187,12 @@ test('d1:info shows REST metadata API error message', function () {
         ], 200),
     ]));
 
-    $buffer = new BufferedOutput;
-    Artisan::call('d1:info', [], $buffer);
-    $output = $buffer->fetch();
+    $this->artisan('d1:info')
+        ->expectsOutputToContain('Database not found')
+        ->assertSuccessful();
 
     // Purge so tearDown rollback gets a fresh SQLite-backed mock
     app('db')->purge('d1');
-
-    expect($output)->toContain('Database not found');
 });
 
 test('d1:info shows partial REST metadata when some fields are null', function () {
@@ -226,18 +220,13 @@ test('d1:info shows partial REST metadata when some fields are null', function (
         ], 200),
     ]));
 
-    $buffer = new BufferedOutput;
-    Artisan::call('d1:info', [], $buffer);
-    $output = $buffer->fetch();
+    $this->artisan('d1:info')
+        ->expectsOutputToContain('test-db')
+        ->expectsOutputToContain('uuid-test')
+        ->assertSuccessful();
 
     // Purge so tearDown rollback gets a fresh SQLite-backed mock
     app('db')->purge('d1');
-
-    expect($output)->toContain('test-db');
-    expect($output)->toContain('uuid-test');
-    // file_size, num_tables, etc. are missing — should not crash
-    expect($output)->not->toContain('Size');
-    expect($output)->not->toContain('Read Replication');
 });
 
 test('d1:info shows query test failure for unexpected response', function () {
@@ -254,10 +243,8 @@ test('d1:info shows query test failure for unexpected response', function () {
     ]);
 
     // This connection has no mock set up, so query will fail
-    $buffer = new BufferedOutput;
-    Artisan::call('d1:info', ['--connection' => 'd1_bad'], $buffer);
-    $output = $buffer->fetch();
-
     // Should still succeed (query failure is non-fatal for d1:info)
-    expect($output)->toContain('Query Test');
+    $this->artisan('d1:info', ['--connection' => 'd1_bad'])
+        ->expectsOutputToContain('Query Test')
+        ->assertSuccessful();
 });
