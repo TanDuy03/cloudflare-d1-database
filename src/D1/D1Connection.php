@@ -7,6 +7,7 @@ namespace Ntanduy\CFD1\D1;
 use Illuminate\Database\SQLiteConnection;
 use Ntanduy\CFD1\Connectors\CloudflareConnector;
 use Ntanduy\CFD1\Connectors\CloudflareWorkerConnector;
+use Ntanduy\CFD1\Contracts\D1ConnectorInterface;
 use Ntanduy\CFD1\D1\Exceptions\D1BatchException;
 use Ntanduy\CFD1\D1\Exceptions\D1UnsupportedFeatureException;
 use Ntanduy\CFD1\D1\Pdo\D1Pdo;
@@ -90,7 +91,7 @@ class D1Connection extends SQLiteConnection
     /**
      * Get the underlying connector instance.
      */
-    public function d1(): CloudflareConnector
+    public function d1(): D1ConnectorInterface
     {
         return $this->connector;
     }
