@@ -39,7 +39,7 @@ class D1BatchQueryRequest extends CloudflareRequest implements HasBody
     {
         return sprintf(
             '/accounts/%s/d1/database/%s/query',
-            $this->connector->accountId,
+            $this->connector->getAccountId(),
             $this->database,
         );
     }
