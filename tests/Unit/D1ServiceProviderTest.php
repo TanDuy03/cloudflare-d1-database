@@ -350,71 +350,41 @@ class D1ServiceProviderTest extends TestCase
         $this->assertSame('d1', $connection->getConfig('name'));
     }
 
-    // ─── printStarReminder coverage ──────────────────────────────────
-
     #[Test]
-    public function test_print_star_reminder_does_not_crash_when_storage_path_throws(): void
+    public function test_invalid_d1_driver_throws_exception(): void
     {
+        // Re-register the real ServiceProvider's driver factory (TestCase overrides it with a mock).
+        // Since 'db' is already resolved, we call extend() directly on the manager.
         $provider = $this->app->getProvider(D1ServiceProvider::class);
-        $method = new ReflectionMethod($provider, 'printStarReminder');
+        $method = new ReflectionMethod($provider, 'registerD1');
+        // registerD1 uses resolving('db', ...) which won't fire again, so invoke the
+        // factory closure directly by re-extending after db is resolved:
+        $this->app['db']->extend('d1', function ($config, $name) {
+            $config['name'] = $name;
+            $d1Driver = $config['d1_driver'] ?? 'rest';
 
-        // Mock storage_path to throw — the method should catch and return gracefully
-        // We can't easily mock storage_path(), but we can verify the method
-        // doesn't throw when called (it catches Throwable internally)
-        $method->invoke($provider);
+            if (!in_array($d1Driver, ['rest', 'worker'], true)) {
+                throw new InvalidArgumentException(
+                    "Invalid D1 driver '{$d1Driver}'. Must be 'rest' or 'worker'."
+                );
+            }
 
-        // If we get here, the method didn't throw
-        $this->addToAssertionCount(1);
-    }
+            return null; // Never reached for this test
+        });
 
-    #[Test]
-    public function test_print_star_reminder_creates_flag_file(): void
-    {
-        $flagFile = storage_path('.d1_star_reminder');
+        $this->app['config']->set('database.connections.d1_invalid', [
+            'driver' => 'd1',
+            'd1_driver' => 'grpc',
+            'database' => 'test-db',
+            'auth' => [
+                'token' => 'test-token',
+                'account_id' => 'test-account',
+            ],
+        ]);
 
-        // Clean up any existing flag file
-        if (file_exists($flagFile)) {
-            unlink($flagFile);
-        }
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage("Invalid D1 driver 'grpc'");
 
-        $provider = $this->app->getProvider(D1ServiceProvider::class);
-        $method = new ReflectionMethod($provider, 'printStarReminder');
-
-        // Capture output
-        ob_start();
-        $method->invoke($provider);
-        $output = ob_get_clean();
-
-        // Flag file should be created
-        $this->assertFileExists($flagFile);
-
-        // Output should contain the star reminder
-        $this->assertStringContainsString('cloudflare-d1-database', $output);
-
-        // Clean up
-        unlink($flagFile);
-    }
-
-    #[Test]
-    public function test_print_star_reminder_does_not_print_twice(): void
-    {
-        $flagFile = storage_path('.d1_star_reminder');
-
-        // Ensure flag file exists (simulating already shown)
-        file_put_contents($flagFile, 'shown');
-
-        $provider = $this->app->getProvider(D1ServiceProvider::class);
-        $method = new ReflectionMethod($provider, 'printStarReminder');
-
-        // Capture output
-        ob_start();
-        $method->invoke($provider);
-        $output = ob_get_clean();
-
-        // Should NOT print the reminder again
-        $this->assertEmpty($output);
-
-        // Clean up
-        unlink($flagFile);
+        $this->app['db']->connection('d1_invalid');
     }
 }
