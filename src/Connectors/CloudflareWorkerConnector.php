@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace Ntanduy\CFD1\Connectors;
 
 use Ntanduy\CFD1\D1\Requests\Worker\WorkerBatchRequest;
+use Ntanduy\CFD1\D1\Requests\Worker\WorkerExecRequest;
 use Ntanduy\CFD1\D1\Requests\Worker\WorkerQueryRequest;
+use Ntanduy\CFD1\D1\Requests\Worker\WorkerRawRequest;
 use Saloon\Http\Auth\TokenAuthenticator;
 use Saloon\Http\Response;
 
@@ -147,6 +149,31 @@ class CloudflareWorkerConnector extends CloudflareConnector
         $this->extractBookmark($response);
 
         return $response;
+    }
+
+    /**
+     * Execute raw DDL/migration SQL via the Worker /exec endpoint.
+     * Unlike databaseQuery(), this does not use parameterized bindings.
+     */
+    public function databaseExec(string $sql, bool $retry = true): Response
+    {
+        $request = new WorkerExecRequest($this, $sql);
+
+        return $retry
+            ? $this->sendWithRetry($request)
+            : $this->send($request);
+    }
+
+    /**
+     * Execute a query and return raw array-of-arrays via the Worker /raw endpoint.
+     */
+    public function databaseRaw(string $query, array $params = [], bool $retry = true): Response
+    {
+        $request = new WorkerRawRequest($this, $query, $params);
+
+        return $retry
+            ? $this->sendWithRetry($request)
+            : $this->send($request);
     }
 
     /**
