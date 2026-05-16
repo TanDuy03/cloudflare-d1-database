@@ -170,4 +170,186 @@ class D1ServiceProviderWorkerTest extends Orchestra
         $this->assertInstanceOf(D1Connection::class, $connection);
         $this->assertTrue($connection->isWorkerDriver());
     }
+
+    // ─── Read/Write splitting with Worker driver ─────────────────────
+
+    #[Test]
+    public function test_worker_driver_with_read_write_splitting(): void
+    {
+        $this->app['config']->set('database.connections.d1', [
+            'driver' => 'd1',
+            'd1_driver' => 'worker',
+            'database' => 'test-db',
+            'prefix' => '',
+            'worker_url' => 'https://test-worker.workers.dev',
+            'worker_secret' => 'test-secret',
+            'read' => [
+                'session' => ['mode' => 'first-unconstrained'],
+            ],
+            'write' => [
+                'session' => ['mode' => 'first-primary'],
+            ],
+            'sticky' => true,
+        ]);
+
+        /** @var D1Connection $connection */
+        $connection = $this->app['db']->connection('d1');
+
+        $this->assertInstanceOf(D1Connection::class, $connection);
+        $this->assertTrue($connection->isWorkerDriver());
+    }
+
+    #[Test]
+    public function test_worker_driver_rw_splitting_with_circuit_breaker(): void
+    {
+        $this->app['config']->set('database.connections.d1', [
+            'driver' => 'd1',
+            'd1_driver' => 'worker',
+            'database' => 'test-db',
+            'prefix' => '',
+            'worker_url' => 'https://test-worker.workers.dev',
+            'worker_secret' => 'test-secret',
+            'read' => [
+                'session' => ['mode' => 'first-unconstrained'],
+            ],
+            'write' => [
+                'session' => ['mode' => 'first-primary'],
+            ],
+            'circuit_breaker' => [
+                'enabled' => true,
+                'threshold' => 3,
+                'cooldown' => 60,
+                'cache_driver' => 'array',
+            ],
+        ]);
+
+        /** @var D1Connection $connection */
+        $connection = $this->app['db']->connection('d1');
+
+        $this->assertInstanceOf(D1Connection::class, $connection);
+        $this->assertTrue($connection->isWorkerDriver());
+    }
+
+    #[Test]
+    public function test_worker_driver_rw_splitting_uses_default_session_modes(): void
+    {
+        $this->app['config']->set('database.connections.d1', [
+            'driver' => 'd1',
+            'd1_driver' => 'worker',
+            'database' => 'test-db',
+            'prefix' => '',
+            'worker_url' => 'https://test-worker.workers.dev',
+            'worker_secret' => 'test-secret',
+            'read' => [],
+            'write' => [],
+        ]);
+
+        /** @var D1Connection $connection */
+        $connection = $this->app['db']->connection('d1');
+
+        $this->assertInstanceOf(D1Connection::class, $connection);
+        $this->assertTrue($connection->isWorkerDriver());
+    }
+
+    #[Test]
+    public function test_worker_driver_session_enabled_without_rw_splitting(): void
+    {
+        $this->app['config']->set('database.connections.d1', [
+            'driver' => 'd1',
+            'd1_driver' => 'worker',
+            'database' => 'test-db',
+            'prefix' => '',
+            'worker_url' => 'https://test-worker.workers.dev',
+            'worker_secret' => 'test-secret',
+            'session' => [
+                'enabled' => true,
+                'mode' => 'first-primary',
+            ],
+        ]);
+
+        /** @var D1Connection $connection */
+        $connection = $this->app['db']->connection('d1');
+
+        $this->assertInstanceOf(D1Connection::class, $connection);
+        $this->assertTrue($connection->isWorkerDriver());
+    }
+
+    #[Test]
+    public function test_worker_driver_circuit_breaker_without_rw_splitting(): void
+    {
+        $this->app['config']->set('database.connections.d1', [
+            'driver' => 'd1',
+            'd1_driver' => 'worker',
+            'database' => 'test-db',
+            'prefix' => '',
+            'worker_url' => 'https://test-worker.workers.dev',
+            'worker_secret' => 'test-secret',
+            'circuit_breaker' => [
+                'enabled' => true,
+                'threshold' => 5,
+                'cooldown' => 30,
+                'cache_driver' => 'array',
+            ],
+        ]);
+
+        /** @var D1Connection $connection */
+        $connection = $this->app['db']->connection('d1');
+
+        $this->assertInstanceOf(D1Connection::class, $connection);
+        $this->assertTrue($connection->isWorkerDriver());
+    }
+
+    #[Test]
+    public function test_rest_driver_ignores_read_write_splitting(): void
+    {
+        // R/W splitting is Worker-only; REST driver should ignore 'read' config
+        $this->app['config']->set('database.connections.d1', [
+            'driver' => 'd1',
+            'd1_driver' => 'rest',
+            'database' => 'test-db',
+            'prefix' => '',
+            'auth' => [
+                'token' => 'test-token',
+                'account_id' => 'test-account',
+            ],
+            'read' => [
+                'session' => ['mode' => 'first-unconstrained'],
+            ],
+            'write' => [
+                'session' => ['mode' => 'first-primary'],
+            ],
+        ]);
+
+        /** @var D1Connection $connection */
+        $connection = $this->app['db']->connection('d1');
+
+        $this->assertInstanceOf(D1Connection::class, $connection);
+        $this->assertFalse($connection->isWorkerDriver());
+    }
+
+    #[Test]
+    public function test_rest_driver_ignores_session_config(): void
+    {
+        // Session is Worker-only; REST driver should ignore it
+        $this->app['config']->set('database.connections.d1', [
+            'driver' => 'd1',
+            'd1_driver' => 'rest',
+            'database' => 'test-db',
+            'prefix' => '',
+            'auth' => [
+                'token' => 'test-token',
+                'account_id' => 'test-account',
+            ],
+            'session' => [
+                'enabled' => true,
+                'mode' => 'first-primary',
+            ],
+        ]);
+
+        /** @var D1Connection $connection */
+        $connection = $this->app['db']->connection('d1');
+
+        $this->assertInstanceOf(D1Connection::class, $connection);
+        $this->assertFalse($connection->isWorkerDriver());
+    }
 }
