@@ -32,7 +32,7 @@ class D1TimeTravelRestoreRequest extends CloudflareRequest
     {
         return sprintf(
             '/accounts/%s/d1/database/%s/time_travel/restore',
-            $this->connector->accountId,
+            $this->connector->getAccountId(),
             $this->database,
         );
     }
