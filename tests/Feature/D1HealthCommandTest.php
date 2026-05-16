@@ -2,9 +2,6 @@
 
 declare(strict_types=1);
 
-use Illuminate\Support\Facades\Artisan;
-use Ntanduy\CFD1\D1\D1Connection;
-use Ntanduy\CFD1\Test\Mocks\MockCloudflareD1Connector;
 use Ntanduy\CFD1\Test\TestCase;
 
 uses(TestCase::class);
@@ -148,33 +145,15 @@ test('d1:health shows UNHEALTHY on failure', function () {
 });
 
 test('d1:health fails query test with unexpected response', function () {
-    // This covers the "Unexpected response from D1" branch in checkQueryTest
+    // This covers the query test path in checkQueryTest.
+    // The mock SQLite handles SELECT 1 correctly, so the query test passes.
     config()->set('database.connections.d1.d1_driver', 'rest');
     config()->set('database.connections.d1.auth.token', 'test-token');
     config()->set('database.connections.d1.auth.account_id', 'test-account');
 
-    // Override the connection to return unexpected query result
-    app()->resolving('db', function ($db) {
-        $db->extend('d1', function ($config, $name) {
-            $config['name'] = $name;
-            $mockConnector = new MockCloudflareD1Connector(
-                $config['database'] ?? 'DB1',
-                $config['auth']['token'] ?? '',
-                $config['auth']['account_id'] ?? '',
-                $config['api'] ?? 'https://api.cloudflare.com/client/v4',
-            );
-
-            return new D1Connection($mockConnector, $config);
-        });
-    });
-
-    // We need to make SELECT 1 return something unexpected
-    // The mock SQLite will return ok=1, so let's test the exception path instead
-    Artisan::call('d1:health');
-    $output = Artisan::output();
-
-    // The mock returns correct result, so this test just ensures the path runs
-    expect($output)->toContain('Query test passed');
+    $this->artisan('d1:health')
+        ->expectsOutputToContain('Query test passed')
+        ->assertSuccessful();
 });
 
 test('d1:health masks short values (4 chars or less)', function () {
@@ -183,11 +162,10 @@ test('d1:health masks short values (4 chars or less)', function () {
     config()->set('database.connections.d1.auth.account_id', 'test-account');
     config()->set('database.connections.d1.database', 'test-db');
 
-    Artisan::call('d1:health');
-    $output = Artisan::output();
-
     // Short token (2 chars) should be fully masked as '**'
-    expect($output)->toContain('**');
+    $this->artisan('d1:health')
+        ->expectsOutputToContain('**')
+        ->assertSuccessful();
 });
 
 test('d1:health query test catches exception', function () {
@@ -205,9 +183,6 @@ test('d1:health query test catches exception', function () {
 
     // The d1_broken connection will use MockCloudflareD1Connector but
     // the query test should still pass since mock SQLite works.
-    // Instead, test that the output contains the expected sections.
-    Artisan::call('d1:health', ['--connection' => 'd1_broken']);
-    $output = Artisan::output();
-
-    expect($output)->toContain('D1 Health Check');
+    $this->artisan('d1:health', ['--connection' => 'd1_broken'])
+        ->expectsOutputToContain('D1 Health Check');
 });
