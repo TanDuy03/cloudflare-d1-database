@@ -120,6 +120,25 @@ database_id = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
 
 > **Important:** Set `WORKER_SECRET` using `npx wrangler secret put WORKER_SECRET` — never put secrets in `wrangler.jsonc`. This secret must match the `CF_D1_WORKER_SECRET` in your Laravel `.env`.
 
+#### HMAC Request Signing (Optional)
+
+For additional security, enable HMAC request signing. Each request gets a unique signature that prevents replay attacks and body tampering.
+
+**Laravel `.env`:**
+
+```env
+CF_D1_HMAC=true
+```
+
+**Worker (optional enforcement):**
+
+```bash
+npx wrangler secret put HMAC_REQUIRED        # Set to "true" to reject unsigned requests
+npx wrangler secret put HMAC_WINDOW_SECONDS  # Replay window (default: 300 = 5 minutes)
+```
+
+When enabled, the PHP driver adds `X-D1-Timestamp` and `X-D1-Signature` headers (HMAC-SHA256 of timestamp + body). The Worker verifies these when present. Without `HMAC_REQUIRED=true`, unsigned requests still work (backward compatible).
+
 #### Worker Endpoints
 
 The Worker exposes these endpoints:
@@ -615,6 +634,7 @@ Instead of publishing the config, you can add the connection directly to `config
         // Worker driver credentials
         'worker_url' => env('CF_D1_WORKER_URL', ''),
         'worker_secret' => env('CF_D1_WORKER_SECRET', ''),
+        'hmac' => env('CF_D1_HMAC', false),
 
         // Performance tuning
         'timeout' => env('CF_D1_TIMEOUT', 10),
@@ -650,6 +670,7 @@ Instead of publishing the config, you can add the connection directly to `config
 | `auth.account_id`    | —                                      | Cloudflare Account ID (REST driver only)                                    |
 | `worker_url`         | —                                      | Your Worker URL (Worker driver only)                                        |
 | `worker_secret`      | —                                      | Shared secret for Worker auth (Worker driver only)                          |
+| `hmac`               | `false`                                | Enable HMAC request signing for replay protection (Worker driver only)      |
 | `timeout`            | `10`                                   | HTTP request timeout in seconds                                             |
 | `connect_timeout`    | `5`                                    | HTTP connection timeout in seconds                                          |
 | `retries`            | `2`                                    | Max retry attempts on 5xx/429 errors                                        |
@@ -676,6 +697,7 @@ CF_D1_DATABASE_ID=your_database_id
 # Worker driver
 CF_D1_WORKER_URL=https://your-worker.workers.dev
 CF_D1_WORKER_SECRET=your_shared_secret
+CF_D1_HMAC=false                     # Enable HMAC request signing
 
 # Performance tuning (optional)
 CF_D1_TIMEOUT=10
