@@ -11,6 +11,17 @@ use Ntanduy\CFD1\D1\Exceptions\D1BatchException;
 use Ntanduy\CFD1\D1\Exceptions\D1UnsupportedFeatureException;
 use Ntanduy\CFD1\D1\Pdo\D1Pdo;
 
+/**
+ * Laravel database connection for Cloudflare D1.
+ *
+ * Extends SQLiteConnection to reuse Laravel's SQLite grammar and schema builder
+ * while routing all queries through the Cloudflare D1 API (REST or Worker).
+ *
+ * Key design decisions:
+ * - Transactions are no-ops because D1 is stateless (use batch() for atomicity)
+ * - Read/write splitting is Worker-only, using D1 Sessions for consistency
+ * - bulkInsert() chunks rows into D1's 100-statement batch limit
+ */
 class D1Connection extends SQLiteConnection
 {
     protected ?CloudflareConnector $readConnector = null;
