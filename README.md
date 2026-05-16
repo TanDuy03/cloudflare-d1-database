@@ -55,8 +55,8 @@ This package supports two drivers to connect Laravel with Cloudflare D1:
 
 | Driver | How it works | Latency | Setup |
 |--------|-------------|---------|-------|
-| **REST** (default) | Calls [Cloudflare D1 REST API](https://developers.cloudflare.com/api/resources/d1/subresources/database/methods/query/) directly | ~100-500ms/query | API Token only |
-| **Worker** | Routes queries through your own [Cloudflare Worker](https://developers.cloudflare.com/workers/) | ~10-50ms/query | Requires deploying a Worker |
+| **REST** (default) | Calls [Cloudflare D1 REST API](https://developers.cloudflare.com/api/resources/d1/subresources/database/methods/query/) directly | Higher (extra HTTP hop) | API Token only |
+| **Worker** | Routes queries through your own [Cloudflare Worker](https://developers.cloudflare.com/workers/) | Lower (co-located with D1) | Requires deploying a Worker |
 
 ---
 
@@ -709,7 +709,7 @@ CF_D1_CB_CACHE_DRIVER=file
     ]);
     ```
 
-- **REST API latency** — Each query is an HTTP request (~100-500ms). Use the Worker driver for lower latency (~10-50ms).
+- **REST API latency** — Each query is an HTTP request routed through the Cloudflare API. The Worker driver offers significantly lower latency because the Worker is co-located with your D1 database. Latency varies by region, database size, and query complexity.
 - **Sessions / Read Replication — Worker driver only** — The D1 Sessions API is only available via the Worker Binding. The REST API does not support sessions; all queries go to the primary database. This is a [Cloudflare platform limitation](https://developers.cloudflare.com/d1/best-practices/read-replication/).
 - **Schema dump requires REST credentials** — `d1:schema-dump` uses the D1 export REST API. Even Worker-only users must set `CF_D1_API_TOKEN`, `CF_D1_ACCOUNT_ID`, and `CF_D1_DATABASE_ID`.
 - **Export blocks queries** — During export, D1 may be unavailable for queries (Cloudflare limitation for large databases).
@@ -739,12 +739,12 @@ Start the built-in Worker to test against a local D1 instance:
 ```bash
 cd Worker
 npm ci
-npm run start
+npm run dev
 ```
 
 ## 🤝 Contributing
 
-Please see [CONTRIBUTING](CONTRIBUTING.md) for details.
+Contributions are welcome! Please open an issue or pull request on [GitHub](https://github.com/TanDuy03/cloudflare-d1-database).
 
 ## 🔒 Security
 
