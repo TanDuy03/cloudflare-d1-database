@@ -45,6 +45,12 @@ function json(data: unknown, status = 200): Response {
 	});
 }
 
+/**
+ * Build a JSON error response matching the Cloudflare D1 REST API error shape.
+ * @param code  - Application-level error code (e.g. 401, 7500)
+ * @param message - Human-readable error description
+ * @param status  - HTTP status code (default 200 for backwards compat with older clients)
+ */
 function errorResponse(
 	code: number,
 	message: string,
@@ -61,6 +67,17 @@ function errorResponse(
 }
 
 /**
+ * Constant-time string comparison to prevent timing attacks.
+ */
+function timingSafeEqual(a: string, b: string): boolean {
+	const encoder = new TextEncoder();
+	const aBuf = encoder.encode(a);
+	const bBuf = encoder.encode(b);
+	if (aBuf.byteLength !== bBuf.byteLength) return false;
+	return crypto.subtle.timingSafeEqual(aBuf, bBuf);
+}
+
+/**
  * Verify Bearer token matches WORKER_SECRET.
  * Returns an error Response if invalid, or null if OK.
  */
@@ -68,7 +85,7 @@ function authenticate(request: Request, env: Env): Response | null {
 	const header = request.headers.get("Authorization") ?? "";
 	const token = header.startsWith("Bearer ") ? header.slice(7) : "";
 
-	if (!env.WORKER_SECRET || token !== env.WORKER_SECRET) {
+	if (!env.WORKER_SECRET || !token || !timingSafeEqual(token, env.WORKER_SECRET)) {
 		return json(
 			{
 				success: false,
@@ -85,6 +102,13 @@ function authenticate(request: Request, env: Env): Response | null {
 
 async function handleQuery(request: Request, env: Env): Promise<Response> {
 	const body = (await request.json()) as QueryBody;
+
+	if (typeof body.sql !== "string" || body.sql.length === 0) {
+		return errorResponse(400, 'Missing or invalid "sql" field', 400);
+	}
+	if (body.bindings !== undefined && !Array.isArray(body.bindings)) {
+		return errorResponse(400, '"bindings" must be an array', 400);
+	}
 
 	try {
 		// Use D1 Sessions API when session param is provided
@@ -111,12 +135,16 @@ async function handleQuery(request: Request, env: Env): Promise<Response> {
 		});
 	} catch (e: unknown) {
 		const message = e instanceof Error ? e.message : String(e);
-		return errorResponse(7500, message);
+		return errorResponse(7500, message, 500);
 	}
 }
 
 async function handleBatch(request: Request, env: Env): Promise<Response> {
 	const body = (await request.json()) as BatchBody;
+
+	if (!Array.isArray(body.statements) || body.statements.length === 0) {
+		return errorResponse(400, 'Missing or invalid "statements" field', 400);
+	}
 
 	try {
 		// Use D1 Sessions API when session param is provided
@@ -143,12 +171,16 @@ async function handleBatch(request: Request, env: Env): Promise<Response> {
 		});
 	} catch (e: unknown) {
 		const message = e instanceof Error ? e.message : String(e);
-		return errorResponse(7500, message);
+		return errorResponse(7500, message, 500);
 	}
 }
 
 async function handleExec(request: Request, env: Env): Promise<Response> {
 	const body = (await request.json()) as ExecBody;
+
+	if (typeof body.sql !== "string" || body.sql.length === 0) {
+		return errorResponse(400, 'Missing or invalid "sql" field', 400);
+	}
 
 	try {
 		const result = await env.DB.exec(body.sql);
@@ -161,12 +193,19 @@ async function handleExec(request: Request, env: Env): Promise<Response> {
 		});
 	} catch (e: unknown) {
 		const message = e instanceof Error ? e.message : String(e);
-		return errorResponse(7500, message);
+		return errorResponse(7500, message, 500);
 	}
 }
 
 async function handleRaw(request: Request, env: Env): Promise<Response> {
 	const body = (await request.json()) as QueryBody;
+
+	if (typeof body.sql !== "string" || body.sql.length === 0) {
+		return errorResponse(400, 'Missing or invalid "sql" field', 400);
+	}
+	if (body.bindings !== undefined && !Array.isArray(body.bindings)) {
+		return errorResponse(400, '"bindings" must be an array', 400);
+	}
 
 	try {
 		const result = await env.DB
@@ -182,7 +221,7 @@ async function handleRaw(request: Request, env: Env): Promise<Response> {
 		});
 	} catch (e: unknown) {
 		const message = e instanceof Error ? e.message : String(e);
-		return errorResponse(7500, message);
+		return errorResponse(7500, message, 500);
 	}
 }
 
