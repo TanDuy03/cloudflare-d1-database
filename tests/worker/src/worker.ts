@@ -8,6 +8,8 @@
 export type Env = {
 	DB1: D1Database;
 	WORKER_SECRET: string;
+	HMAC_REQUIRED?: string;
+	HMAC_WINDOW_SECONDS?: string;
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────
@@ -31,15 +33,54 @@ function timingSafeEqual(a: string, b: string): boolean {
 	return crypto.subtle.timingSafeEqual(aBuf, bBuf);
 }
 
-function authenticate(request: Request, env: Env): Response | null {
+async function computeHmac(message: string, secret: string): Promise<string> {
+	const enc = new TextEncoder();
+	const key = await crypto.subtle.importKey(
+		"raw",
+		enc.encode(secret),
+		{ name: "HMAC", hash: "SHA-256" },
+		false,
+		["sign"],
+	);
+	const sig = await crypto.subtle.sign("HMAC", key, enc.encode(message));
+	return Array.from(new Uint8Array(sig))
+		.map((b) => b.toString(16).padStart(2, "0"))
+		.join("");
+}
+
+async function authenticate(request: Request, env: Env): Promise<Response | null> {
 	const header = request.headers.get("Authorization") ?? "";
 	const token = header.startsWith("Bearer ") ? header.slice(7) : "";
 
 	if (!env.WORKER_SECRET || !token || !timingSafeEqual(token, env.WORKER_SECRET)) {
-		return json(
-			{ success: false, errors: [{ code: 401, message: "Unauthorized" }] },
-			401,
-		);
+		return errorResponse(401, "Unauthorized", 401);
+	}
+
+	const signature = request.headers.get("X-D1-Signature");
+	const timestamp = request.headers.get("X-D1-Timestamp");
+
+	if (!signature && !timestamp) {
+		if (env.HMAC_REQUIRED === "true") {
+			return errorResponse(401, "HMAC signature required", 401);
+		}
+		return null;
+	}
+
+	if (!signature || !timestamp) {
+		return errorResponse(401, "Incomplete HMAC headers", 401);
+	}
+
+	const now = Math.floor(Date.now() / 1000);
+	const ts = parseInt(timestamp, 10);
+	const window = parseInt(env.HMAC_WINDOW_SECONDS ?? "300", 10);
+	if (isNaN(ts) || Math.abs(now - ts) > window) {
+		return errorResponse(401, "HMAC timestamp expired", 401);
+	}
+
+	const body = await request.clone().text();
+	const expected = await computeHmac(`${timestamp}.${body}`, env.WORKER_SECRET);
+	if (!timingSafeEqual(signature, expected)) {
+		return errorResponse(401, "Invalid HMAC signature", 401);
 	}
 
 	return null;
@@ -138,7 +179,7 @@ export default {
 			return json({ error: "Not found" }, 404);
 		}
 
-		const authError = authenticate(request, env);
+		const authError = await authenticate(request, env);
 		if (authError) return authError;
 
 		switch (pathname) {
