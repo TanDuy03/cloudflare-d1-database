@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use Carbon\Carbon;
 use Illuminate\Cache\ArrayStore;
 use Illuminate\Cache\Repository;
 use Ntanduy\CFD1\CircuitBreaker;
@@ -74,38 +75,44 @@ test('rejects request immediately when circuit is open', function () {
 // ─── 3. Transitions to HALF_OPEN after cooldown ─────────────────────
 
 test('transitions to half_open after cooldown elapses', function () {
-    $cb = new CircuitBreaker('test', threshold: 2, cooldown: 1, cache: makeArrayCache());
+    Carbon::setTestNow($now = Carbon::now());
+    $cb = new CircuitBreaker('test', threshold: 2, cooldown: 60, cache: makeArrayCache());
 
     // Trip the circuit
     $cb->recordFailure();
     $cb->recordFailure();
     expect($cb->getState())->toBe('open');
 
-    // Wait for cooldown to elapse
-    sleep(2);
+    // Advance past cooldown
+    Carbon::setTestNow($now->copy()->addSeconds(61));
 
     expect($cb->getState())->toBe('half_open');
     expect($cb->allowRequest())->toBeTrue(); // Should allow probe request
+
+    Carbon::setTestNow();
 });
 
 // ─── 4. Closes again after successful probe ─────────────────────────
 
 test('closes circuit after successful probe in half_open state', function () {
-    $cb = new CircuitBreaker('test', threshold: 2, cooldown: 1, cache: makeArrayCache());
+    Carbon::setTestNow($now = Carbon::now());
+    $cb = new CircuitBreaker('test', threshold: 2, cooldown: 60, cache: makeArrayCache());
 
     // Trip the circuit
     $cb->recordFailure();
     $cb->recordFailure();
     expect($cb->getState())->toBe('open');
 
-    // Wait for cooldown
-    sleep(2);
+    // Advance past cooldown
+    Carbon::setTestNow($now->copy()->addSeconds(61));
     expect($cb->getState())->toBe('half_open');
 
     // Successful probe resets the circuit
     $cb->recordSuccess();
     expect($cb->getState())->toBe('closed');
     expect($cb->getFailureCount())->toBe(0);
+
+    Carbon::setTestNow();
 });
 
 // ─── 5. Does NOT trigger on 4xx errors ──────────────────────────────
@@ -171,36 +178,40 @@ test('resets failure count on success before reaching threshold', function () {
 // ─── 7. Re-opens from HALF_OPEN on probe failure ────────────────────
 
 test('re-opens circuit from half_open when probe fails', function () {
-    $cb = new CircuitBreaker('test', threshold: 2, cooldown: 1, cache: makeArrayCache());
+    Carbon::setTestNow($now = Carbon::now());
+    $cb = new CircuitBreaker('test', threshold: 2, cooldown: 60, cache: makeArrayCache());
 
     // Trip the circuit
     $cb->recordFailure();
     $cb->recordFailure();
     expect($cb->getState())->toBe('open');
 
-    // Wait for cooldown
-    sleep(2);
+    // Advance past cooldown
+    Carbon::setTestNow($now->copy()->addSeconds(61));
     expect($cb->getState())->toBe('half_open');
 
     // Probe fails — circuit re-opens
     $cb->recordFailure();
     expect($cb->getState())->toBe('open');
     expect($cb->getFailureCount())->toBe(3);
+
+    Carbon::setTestNow();
 });
 
 // ─── 8. Only one concurrent probe in HALF_OPEN (atomic gate) ────────
 
 test('only one concurrent probe is allowed in half_open state', function () {
+    Carbon::setTestNow($now = Carbon::now());
     $cache = makeArrayCache();
-    $cb = new CircuitBreaker('test', threshold: 2, cooldown: 1, cache: $cache);
+    $cb = new CircuitBreaker('test', threshold: 2, cooldown: 60, cache: $cache);
 
     // Trip the circuit
     $cb->recordFailure();
     $cb->recordFailure();
     expect($cb->getState())->toBe('open');
 
-    // Wait for cooldown → HALF_OPEN
-    sleep(2);
+    // Advance past cooldown → HALF_OPEN
+    Carbon::setTestNow($now->copy()->addSeconds(61));
     expect($cb->getState())->toBe('half_open');
 
     // First allowRequest() → acquires the probe lock via cache->add()
@@ -213,4 +224,6 @@ test('only one concurrent probe is allowed in half_open state', function () {
 
     // Verify probe key is set in cache
     expect($cache->has('d1:cb:test:probing'))->toBeTrue();
+
+    Carbon::setTestNow();
 });
