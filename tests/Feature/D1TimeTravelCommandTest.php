@@ -38,7 +38,7 @@ test('d1:time-travel fetches current bookmark', function () {
     config()->set('database.connections.d1.auth.token', 'test-token');
     config()->set('database.connections.d1.auth.account_id', 'test-account');
 
-    MockClient::global([
+    app('db')->connection('d1')->d1()->withMockClient(new MockClient([
         D1TimeTravelBookmarkRequest::class => MockResponse::make([
             'success' => true,
             'errors' => [],
@@ -46,20 +46,21 @@ test('d1:time-travel fetches current bookmark', function () {
                 'bookmark' => 'bkmk_2024_01_15_abc123',
             ],
         ], 200),
-    ]);
+    ]));
 
     $this->artisan('d1:time-travel')
         ->expectsOutputToContain('bkmk_2024_01_15_abc123')
         ->assertSuccessful();
 
-    MockClient::destroyGlobal();
+    // Purge so tearDown rollback gets a fresh SQLite-backed mock
+    app('db')->purge('d1');
 });
 
 test('d1:time-travel with timestamp normalizes unix timestamp', function () {
     config()->set('database.connections.d1.auth.token', 'test-token');
     config()->set('database.connections.d1.auth.account_id', 'test-account');
 
-    MockClient::global([
+    app('db')->connection('d1')->d1()->withMockClient(new MockClient([
         D1TimeTravelBookmarkRequest::class => MockResponse::make([
             'success' => true,
             'errors' => [],
@@ -67,20 +68,20 @@ test('d1:time-travel with timestamp normalizes unix timestamp', function () {
                 'bookmark' => 'bkmk_at_timestamp',
             ],
         ], 200),
-    ]);
+    ]));
 
     $this->artisan('d1:time-travel', ['--timestamp' => '1705312800'])
         ->expectsOutputToContain('bkmk_at_timestamp')
         ->assertSuccessful();
 
-    MockClient::destroyGlobal();
+    app('db')->purge('d1');
 });
 
 test('d1:time-travel with ISO timestamp passes through', function () {
     config()->set('database.connections.d1.auth.token', 'test-token');
     config()->set('database.connections.d1.auth.account_id', 'test-account');
 
-    MockClient::global([
+    app('db')->connection('d1')->d1()->withMockClient(new MockClient([
         D1TimeTravelBookmarkRequest::class => MockResponse::make([
             'success' => true,
             'errors' => [],
@@ -88,57 +89,57 @@ test('d1:time-travel with ISO timestamp passes through', function () {
                 'bookmark' => 'bkmk_iso_timestamp',
             ],
         ], 200),
-    ]);
+    ]));
 
     $this->artisan('d1:time-travel', ['--timestamp' => '2024-01-15T10:00:00Z'])
         ->expectsOutputToContain('bkmk_iso_timestamp')
         ->assertSuccessful();
 
-    MockClient::destroyGlobal();
+    app('db')->purge('d1');
 });
 
 test('d1:time-travel fails when API returns error', function () {
     config()->set('database.connections.d1.auth.token', 'test-token');
     config()->set('database.connections.d1.auth.account_id', 'test-account');
 
-    MockClient::global([
+    app('db')->connection('d1')->d1()->withMockClient(new MockClient([
         D1TimeTravelBookmarkRequest::class => MockResponse::make([
             'success' => false,
             'errors' => [['code' => 7500, 'message' => 'Database not found']],
         ], 200),
-    ]);
+    ]));
 
     $this->artisan('d1:time-travel')
         ->expectsOutputToContain('Database not found')
         ->assertFailed();
 
-    MockClient::destroyGlobal();
+    app('db')->purge('d1');
 });
 
 test('d1:time-travel fails when no bookmark returned', function () {
     config()->set('database.connections.d1.auth.token', 'test-token');
     config()->set('database.connections.d1.auth.account_id', 'test-account');
 
-    MockClient::global([
+    app('db')->connection('d1')->d1()->withMockClient(new MockClient([
         D1TimeTravelBookmarkRequest::class => MockResponse::make([
             'success' => true,
             'errors' => [],
             'result' => [],
         ], 200),
-    ]);
+    ]));
 
     $this->artisan('d1:time-travel')
         ->expectsOutputToContain('No bookmark returned')
         ->assertFailed();
 
-    MockClient::destroyGlobal();
+    app('db')->purge('d1');
 });
 
 test('d1:time-travel restore succeeds with bookmark', function () {
     config()->set('database.connections.d1.auth.token', 'test-token');
     config()->set('database.connections.d1.auth.account_id', 'test-account');
 
-    MockClient::global([
+    app('db')->connection('d1')->d1()->withMockClient(new MockClient([
         D1TimeTravelRestoreRequest::class => MockResponse::make([
             'success' => true,
             'errors' => [],
@@ -148,7 +149,7 @@ test('d1:time-travel restore succeeds with bookmark', function () {
                 'message' => 'Database restored successfully',
             ],
         ], 200),
-    ]);
+    ]));
 
     $this->artisan('d1:time-travel', [
         '--restore' => true,
@@ -160,7 +161,7 @@ test('d1:time-travel restore succeeds with bookmark', function () {
         ->expectsOutputToContain('bkmk_before_restore')
         ->assertSuccessful();
 
-    MockClient::destroyGlobal();
+    app('db')->purge('d1');
 });
 
 test('d1:time-travel restore cancelled by user', function () {
@@ -180,12 +181,12 @@ test('d1:time-travel restore fails on API error', function () {
     config()->set('database.connections.d1.auth.token', 'test-token');
     config()->set('database.connections.d1.auth.account_id', 'test-account');
 
-    MockClient::global([
+    app('db')->connection('d1')->d1()->withMockClient(new MockClient([
         D1TimeTravelRestoreRequest::class => MockResponse::make([
             'success' => false,
             'errors' => [['code' => 7500, 'message' => 'Invalid bookmark']],
         ], 200),
-    ]);
+    ]));
 
     $this->artisan('d1:time-travel', [
         '--restore' => true,
@@ -195,14 +196,14 @@ test('d1:time-travel restore fails on API error', function () {
         ->expectsOutputToContain('Restore failed')
         ->assertFailed();
 
-    MockClient::destroyGlobal();
+    app('db')->purge('d1');
 });
 
 test('d1:time-travel restore with timestamp', function () {
     config()->set('database.connections.d1.auth.token', 'test-token');
     config()->set('database.connections.d1.auth.account_id', 'test-account');
 
-    MockClient::global([
+    app('db')->connection('d1')->d1()->withMockClient(new MockClient([
         D1TimeTravelRestoreRequest::class => MockResponse::make([
             'success' => true,
             'errors' => [],
@@ -211,7 +212,7 @@ test('d1:time-travel restore with timestamp', function () {
                 'message' => 'Database restored successfully',
             ],
         ], 200),
-    ]);
+    ]));
 
     $this->artisan('d1:time-travel', [
         '--restore' => true,
@@ -221,7 +222,7 @@ test('d1:time-travel restore with timestamp', function () {
         ->expectsOutputToContain('restored')
         ->assertSuccessful();
 
-    MockClient::destroyGlobal();
+    app('db')->purge('d1');
 });
 
 test('d1:time-travel handles exception gracefully', function () {
@@ -231,16 +232,16 @@ test('d1:time-travel handles exception gracefully', function () {
     // A 500 response with no body will cause json() to return empty array,
     // which triggers the API error path (not exception path).
     // Test the API error path instead.
-    MockClient::global([
+    app('db')->connection('d1')->d1()->withMockClient(new MockClient([
         D1TimeTravelBookmarkRequest::class => MockResponse::make([
             'success' => false,
             'errors' => [['code' => 500, 'message' => 'Internal server error']],
         ], 200),
-    ]);
+    ]));
 
     $this->artisan('d1:time-travel')
         ->expectsOutputToContain('Internal server error')
         ->assertFailed();
 
-    MockClient::destroyGlobal();
+    app('db')->purge('d1');
 });
