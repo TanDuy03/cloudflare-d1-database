@@ -5,13 +5,15 @@ All notable changes to `cloudflare-d1-database` will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.10.0] - 2026-05-16
 
 ### Added
 - `D1ConnectorInterface` contract for type-hinting connectors without coupling to Saloon (#2)
 - `databaseExec()` and `databaseRaw()` methods on `CloudflareWorkerConnector` (#12)
 - Input validation on all Worker endpoints — returns HTTP 400 for malformed requests (#14)
 - `d1_driver` config validation — throws `InvalidArgumentException` for invalid values (#19)
+- **HMAC request signing** — optional `CF_D1_HMAC=true` config adds per-request HMAC-SHA256 signatures for replay protection (#30)
+- Worker supports `HMAC_REQUIRED` and `HMAC_WINDOW_SECONDS` env vars for enforcement
 - `CHANGELOG.md` following Keep a Changelog format (#42)
 
 ### Changed
@@ -20,6 +22,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `$accountId` and `$apiUrl` on `CloudflareConnector` changed from `public` to `protected` — use `getAccountId()` accessor (#9)
 - `D1PdoStatement::execute($params)` now merges params with previously bound values (matching real PDO behavior) instead of replacing (#23)
 - Replaced `Cache` facade with `$this->app['cache']` in ServiceProvider for safer resolution (#21)
+- Config merge simplified — only operational defaults are merged; credentials missing from user config now trigger validation errors (#4)
+- `CircuitBreaker` uses `now()->timestamp` instead of `time()` for testability
+- Test Worker rewritten to use switch-based routing matching production Worker; removed `itty-router` dependency (#15)
 - README latency claims replaced with relative descriptions instead of specific ms ranges (#36)
 - Cleaned up `composer.json` keywords — removed unrelated `kv`, `r2`, `workers` terms (#20)
 
@@ -29,6 +34,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Dead code in `tests/Pest.php` (`toBeOne` expectation, `something()` function) (#8)
 
 ### Fixed
+- Laravel 10 test compatibility — all command tests use `$this->artisan()` instead of `BufferedOutput`
+- Circuit breaker test flakiness on slow CI runners — replaced `sleep()` with `Carbon::setTestNow()`
 - README `npm run start` → `npm run dev` to match Worker `package.json` scripts (#37)
 - README `CONTRIBUTING.md` link replaced with inline contribution note (#38)
 
