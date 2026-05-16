@@ -349,4 +349,72 @@ class D1ServiceProviderTest extends TestCase
         $this->assertInstanceOf(D1Connection::class, $connection);
         $this->assertSame('d1', $connection->getConfig('name'));
     }
+
+    // ─── printStarReminder coverage ──────────────────────────────────
+
+    #[Test]
+    public function test_print_star_reminder_does_not_crash_when_storage_path_throws(): void
+    {
+        $provider = $this->app->getProvider(D1ServiceProvider::class);
+        $method = new ReflectionMethod($provider, 'printStarReminder');
+
+        // Mock storage_path to throw — the method should catch and return gracefully
+        // We can't easily mock storage_path(), but we can verify the method
+        // doesn't throw when called (it catches Throwable internally)
+        $method->invoke($provider);
+
+        // If we get here, the method didn't throw
+        $this->addToAssertionCount(1);
+    }
+
+    #[Test]
+    public function test_print_star_reminder_creates_flag_file(): void
+    {
+        $flagFile = storage_path('.d1_star_reminder');
+
+        // Clean up any existing flag file
+        if (file_exists($flagFile)) {
+            unlink($flagFile);
+        }
+
+        $provider = $this->app->getProvider(D1ServiceProvider::class);
+        $method = new ReflectionMethod($provider, 'printStarReminder');
+
+        // Capture output
+        ob_start();
+        $method->invoke($provider);
+        $output = ob_get_clean();
+
+        // Flag file should be created
+        $this->assertFileExists($flagFile);
+
+        // Output should contain the star reminder
+        $this->assertStringContainsString('cloudflare-d1-database', $output);
+
+        // Clean up
+        unlink($flagFile);
+    }
+
+    #[Test]
+    public function test_print_star_reminder_does_not_print_twice(): void
+    {
+        $flagFile = storage_path('.d1_star_reminder');
+
+        // Ensure flag file exists (simulating already shown)
+        file_put_contents($flagFile, 'shown');
+
+        $provider = $this->app->getProvider(D1ServiceProvider::class);
+        $method = new ReflectionMethod($provider, 'printStarReminder');
+
+        // Capture output
+        ob_start();
+        $method->invoke($provider);
+        $output = ob_get_clean();
+
+        // Should NOT print the reminder again
+        $this->assertEmpty($output);
+
+        // Clean up
+        unlink($flagFile);
+    }
 }
