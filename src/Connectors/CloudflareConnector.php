@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Ntanduy\CFD1\Connectors;
 
 use Ntanduy\CFD1\CircuitBreaker;
+use Ntanduy\CFD1\Contracts\D1ConnectorInterface;
 use Ntanduy\CFD1\D1\Exceptions\CircuitBreakerOpenException;
 use Ntanduy\CFD1\D1\Exceptions\D1Exception;
 use Saloon\Http\Auth\TokenAuthenticator;
@@ -12,7 +13,7 @@ use Saloon\Http\Connector;
 use Saloon\Http\Response;
 use Throwable;
 
-abstract class CloudflareConnector extends Connector
+abstract class CloudflareConnector extends Connector implements D1ConnectorInterface
 {
     protected ?CircuitBreaker $circuitBreaker = null;
 
@@ -22,14 +23,19 @@ abstract class CloudflareConnector extends Connector
         #[\SensitiveParameter]
         protected readonly ?string $token = null,
         #[\SensitiveParameter]
-        public readonly ?string $accountId = null,
-        public readonly string $apiUrl = 'https://api.cloudflare.com/client/v4',
+        protected readonly ?string $accountId = null,
+        protected readonly string $apiUrl = 'https://api.cloudflare.com/client/v4',
         array $options = [],
     ) {
         $this->retries = (int) ($options['retries'] ?? 2);
         $this->retryDelay = (int) ($options['retry_delay'] ?? 100);
         $this->timeout = (int) ($options['timeout'] ?? 10);
         $this->connectTimeout = (int) ($options['connect_timeout'] ?? 5);
+    }
+
+    public function getAccountId(): ?string
+    {
+        return $this->accountId;
     }
 
     protected readonly int $retries;
@@ -104,6 +110,10 @@ abstract class CloudflareConnector extends Connector
     /**
      * Send request with automatic retry on failure.
      * If a circuit breaker is attached, fails fast when the circuit is open.
+     *
+     * Note: Retries are HTTP-level only — triggered by 5xx server errors,
+     * 429 rate-limiting, or network failures. D1 query errors (e.g. bad SQL)
+     * returned as 200 with success=false are NOT retried.
      */
     public function sendWithRetry(mixed $request, ?int $retries = null): Response
     {
