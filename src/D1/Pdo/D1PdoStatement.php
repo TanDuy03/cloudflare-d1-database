@@ -76,7 +76,7 @@ class D1PdoStatement extends PDOStatement
     public function execute(?array $params = null): bool
     {
         if ($params !== null) {
-            $this->bindings = $params;
+            $this->bindings = array_replace($this->bindings, $params);
         }
 
         // NEVER reorder — keep PDO behavior
