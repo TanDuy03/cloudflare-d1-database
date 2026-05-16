@@ -75,7 +75,7 @@ class CircuitBreaker
         // Store failure count with TTL = cooldown * 10 to auto-cleanup stale state
         $ttl = $this->cooldown * 10;
         $this->cache->put($this->failureCountKey(), $failures, $ttl);
-        $this->cache->put($this->lastFailureKey(), time(), $ttl);
+        $this->cache->put($this->lastFailureKey(), now()->timestamp, $ttl);
     }
 
     /**
@@ -92,7 +92,7 @@ class CircuitBreaker
 
         // Threshold reached — check if cooldown has elapsed
         $lastFailure = (int) $this->cache->get($this->lastFailureKey(), 0);
-        $elapsed = time() - $lastFailure;
+        $elapsed = now()->timestamp - $lastFailure;
 
         if ($elapsed >= $this->cooldown) {
             // Cooldown elapsed → allow one probe request
@@ -122,7 +122,7 @@ class CircuitBreaker
         }
 
         $lastFailure = (int) $this->cache->get($this->lastFailureKey(), 0);
-        $remaining = $this->cooldown - (time() - $lastFailure);
+        $remaining = $this->cooldown - (now()->timestamp - $lastFailure);
 
         return max(0, $remaining);
     }
