@@ -14,6 +14,7 @@ return [
     ],
     'worker_url' => env('CF_D1_WORKER_URL', ''),
     'worker_secret' => env('CF_D1_WORKER_SECRET', ''),
+    'hmac' => env('CF_D1_HMAC', false),
     'timeout' => env('CF_D1_TIMEOUT', 10),
     'connect_timeout' => env('CF_D1_CONNECT_TIMEOUT', 5),
     'retries' => env('CF_D1_RETRIES', 2),
