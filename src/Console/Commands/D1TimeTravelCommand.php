@@ -6,6 +6,7 @@ namespace Ntanduy\CFD1\Console\Commands;
 
 use Illuminate\Console\Command;
 use Ntanduy\CFD1\Connectors\CloudflareD1Connector;
+use Ntanduy\CFD1\D1\D1Connection;
 use Throwable;
 
 class D1TimeTravelCommand extends Command
@@ -44,12 +45,20 @@ class D1TimeTravelCommand extends Command
         }
 
         try {
-            $connector = new CloudflareD1Connector(
-                database: $database,
-                token: $token,
-                accountId: $accountId,
-                apiUrl: $apiUrl,
-            );
+            // Reuse the existing connection's connector if it's a REST connector
+            $connection = app('db')->connection($connectionName);
+            $existingConnector = $connection instanceof D1Connection ? $connection->d1() : null;
+
+            if ($existingConnector instanceof CloudflareD1Connector) {
+                $connector = $existingConnector;
+            } else {
+                $connector = new CloudflareD1Connector(
+                    database: $database,
+                    token: $token,
+                    accountId: $accountId,
+                    apiUrl: $apiUrl,
+                );
+            }
 
             if ($this->option('restore')) {
                 return $this->handleRestore($connector);
