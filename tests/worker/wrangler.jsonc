@@ -1,12 +1,16 @@
-name = "d1-server"
-main = "src/worker.ts"
-compatibility_date = "2026-03-10"
-compatibility_flags = ["nodejs_compat"]
-
-[vars]
-WORKER_SECRET = "test-secret-for-vitest"
-
-[[d1_databases]]
-binding = "DB1"
-database_name = "db1"
-database_id = "DB1"
+{
+  "name": "d1-server",
+  "main": "src/worker.ts",
+  "compatibility_date": "2026-03-10",
+  "compatibility_flags": ["nodejs_compat"],
+  "vars": {
+    "WORKER_SECRET": "test-secret-for-vitest"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB1",
+      "database_name": "db1",
+      "database_id": "DB1"
+    }
+  ]
+}
