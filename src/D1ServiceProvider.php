@@ -51,7 +51,7 @@ class D1ServiceProvider extends ServiceProvider
         // Ensure database.connections.d1 exists so other packages that reference
         // this connection during boot (e.g. spatie/permission) don't crash.
         // User-defined config in database.connections.d1 takes priority.
-        if (! $this->app['config']->has('database.connections.d1')) {
+        if (!$this->app['config']->has('database.connections.d1')) {
             $this->app['config']->set(
                 'database.connections.d1',
                 $this->app['config']->get('d1-database', [])
