@@ -169,7 +169,13 @@ class D1SchemaDumpCommand extends Command
     {
         $this->line('  <fg=cyan>Downloading SQL dump...</>');
 
-        $response = Http::timeout(120)->retry(3, 2000)->get($signedUrl);
+        try {
+            $response = Http::timeout(120)->retry(3, 2000)->get($signedUrl);
+        } catch (Throwable $e) {
+            $this->error("Failed to download dump: {$e->getMessage()}");
+
+            return null;
+        }
 
         if (!$response->successful()) {
             $this->error("Failed to download dump: HTTP {$response->status()}");
