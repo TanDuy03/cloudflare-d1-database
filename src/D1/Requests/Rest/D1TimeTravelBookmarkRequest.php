@@ -29,7 +29,7 @@ class D1TimeTravelBookmarkRequest extends CloudflareRequest
     {
         return sprintf(
             '/accounts/%s/d1/database/%s/time_travel/bookmark',
-            $this->connector->accountId,
+            $this->connector->getAccountId(),
             $this->database,
         );
     }
