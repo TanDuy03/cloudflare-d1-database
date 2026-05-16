@@ -70,7 +70,7 @@ test('constructor stores database, token, accountId, and apiUrl', function () {
     );
 
     expect($connector->database)->toBe('my-db');
-    expect($connector->accountId)->toBe('my-account');
+    expect($connector->getAccountId())->toBe('my-account');
     expect($connector->resolveBaseUrl())->toBe('https://custom-api.example.com/v4');
 });
 
