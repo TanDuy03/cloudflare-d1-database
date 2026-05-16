@@ -6,6 +6,13 @@ namespace Ntanduy\CFD1\D1;
 
 use Illuminate\Database\Schema\Grammars\SQLiteGrammar;
 
+/**
+ * Schema grammar for Cloudflare D1.
+ *
+ * Extends SQLite grammar with cross-version compatibility for Laravel 10/11/12+.
+ * Uses reflection to detect method signature changes in newer Laravel versions
+ * (e.g. the $schema parameter added in Laravel 12).
+ */
 class D1SchemaGrammar extends SQLiteGrammar
 {
     /**
