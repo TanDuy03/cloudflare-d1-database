@@ -48,14 +48,6 @@ class D1ServiceProvider extends ServiceProvider
             'd1-database'
         );
 
-        // Merge package defaults into the d1 connection config.
-        // Users configure via database.connections.d1 in config/database.php (canonical path).
-        // The published d1-database.php provides env-aware defaults only.
-        $config = $this->app['config'];
-        $packageDefaults = $config->get('d1-database', []);
-        $userOverrides = $config->get('database.connections.d1', []);
-        $config->set('database.connections.d1', array_merge($packageDefaults, $userOverrides));
-
         $this->registerD1();
     }
 
@@ -66,6 +58,12 @@ class D1ServiceProvider extends ServiceProvider
     {
         $this->app->resolving('db', function ($db) {
             $db->extend('d1', function ($config, $name) {
+                // Merge operational defaults (d1-database.php) under user's connection config.
+                // Credentials (auth, database, worker_secret) are excluded — missing
+                // credentials should trigger validation errors, not be silently filled.
+                $defaults = $this->app['config']->get('d1-database', []);
+                unset($defaults['auth'], $defaults['database'], $defaults['worker_secret'], $defaults['worker_url']);
+                $config = array_replace_recursive($defaults, $config);
                 $config['name'] = $name;
 
                 $d1Driver = $config['d1_driver'] ?? 'rest';
