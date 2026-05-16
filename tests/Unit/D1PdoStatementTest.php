@@ -441,3 +441,39 @@ test('fetch with FETCH_BOTH returns merged associative and numeric arrays', func
 
     expect($row)->toBe(['id' => 1, 'name' => 'Alice', 0 => 1, 1 => 'Alice']);
 });
+
+// ─── binding merge behavior ──────────────────────────────────────────
+
+test('execute merges params with previously bound values', function () {
+    $connector = Mockery::mock(CloudflareD1Connector::class);
+    $pdo = new D1Pdo('dsn', $connector);
+
+    $response = Mockery::mock(Response::class);
+    $response->shouldReceive('failed')->andReturn(false);
+    $response->shouldReceive('json')->with('success')->andReturn(true);
+    $response->shouldReceive('json')->with('result')->andReturn([
+        [
+            'results' => [['id' => 1]],
+            'meta' => ['changes' => 0, 'last_row_id' => null],
+        ],
+    ]);
+
+    // Capture the actual bindings sent to databaseQuery
+    $capturedBindings = null;
+    $connector->shouldReceive('databaseQuery')
+        ->once()
+        ->withArgs(function ($query, $bindings) use (&$capturedBindings) {
+            $capturedBindings = $bindings;
+
+            return true;
+        })
+        ->andReturn($response);
+
+    $stmt = new D1PdoStatement($pdo, 'SELECT * FROM users WHERE id = ? AND name = ?');
+    // Bind param 1 via bindValue, then call execute with param 2 only
+    $stmt->bindValue(1, 42);
+    $stmt->execute([2 => 'Alice']);
+
+    // The merged result should contain both: bound param 1 (42) and execute param 2 ('Alice')
+    expect($capturedBindings)->toBe(['42', 'Alice']);
+});
