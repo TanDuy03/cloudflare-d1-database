@@ -48,7 +48,7 @@ class D1ImportRequest extends CloudflareRequest implements HasBody
     {
         return sprintf(
             '/accounts/%s/d1/database/%s/import',
-            $this->connector->accountId,
+            $this->connector->getAccountId(),
             $this->database,
         );
     }
