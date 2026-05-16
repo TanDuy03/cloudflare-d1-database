@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Ntanduy\CFD1\D1\Pdo;
 
 use Ntanduy\CFD1\Connectors\CloudflareConnector;
+use Ntanduy\CFD1\Contracts\D1ConnectorInterface;
 use Ntanduy\CFD1\D1\Exceptions\D1QueryException;
 use Ntanduy\CFD1\D1\Pdo\Concerns\MapsSqlState;
 use PDO;
@@ -43,7 +44,7 @@ class D1Pdo extends PDO
         );
     }
 
-    public function d1(): CloudflareConnector
+    public function d1(): D1ConnectorInterface
     {
         return $this->connector;
     }
