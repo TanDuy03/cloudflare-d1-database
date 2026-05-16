@@ -20,3 +20,5 @@ d1-old
 Walkthrough.md
 VERIFICATION_REPORT.md
 note.md
+tests/worker/.wrangler/
+*:Zone.Identifier
