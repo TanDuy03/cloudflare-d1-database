@@ -178,6 +178,7 @@ class D1ServiceProvider extends ServiceProvider
             $workerUrl,
             $workerSecret,
             $options,
+            hmac: !empty($config['hmac']),
         );
     }
 
