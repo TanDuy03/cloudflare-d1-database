@@ -120,6 +120,13 @@ class D1ServiceProvider extends ServiceProvider
                 }
 
                 // Read/Write splitting — create a separate read connector (Worker only)
+                $rwConfig = $config['read_write_splitting'] ?? [];
+                if (!empty($rwConfig['enabled']) && $d1Driver === 'worker' && !isset($config['read'])) {
+                    $config['read'] = ['session' => ['mode' => $rwConfig['read_mode'] ?? 'first-unconstrained']];
+                    $config['write'] = ['session' => ['mode' => $rwConfig['write_mode'] ?? 'first-primary']];
+                    $config['sticky'] = $rwConfig['sticky'] ?? true;
+                }
+
                 $readConnector = null;
                 if (
                     isset($config['read'])
