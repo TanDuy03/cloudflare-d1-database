@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Ntanduy\CFD1;
 
 use Illuminate\Cache\Repository;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\ServiceProvider;
 use InvalidArgumentException;
 use Ntanduy\CFD1\Connectors\CloudflareD1Connector;
@@ -25,8 +24,6 @@ class D1ServiceProvider extends ServiceProvider
     public function boot(): void
     {
         if ($this->app->runningInConsole()) {
-            $this->printStarReminder();
-
             $this->publishes([
                 __DIR__.'/../config/d1-database.php' => config_path('d1-database.php'),
             ], 'd1-config');
@@ -51,6 +48,9 @@ class D1ServiceProvider extends ServiceProvider
             'd1-database'
         );
 
+        // Merge package defaults into the d1 connection config.
+        // Users configure via database.connections.d1 in config/database.php (canonical path).
+        // The published d1-database.php provides env-aware defaults only.
         $config = $this->app['config'];
         $packageDefaults = $config->get('d1-database', []);
         $userOverrides = $config->get('database.connections.d1', []);
@@ -70,6 +70,12 @@ class D1ServiceProvider extends ServiceProvider
 
                 $d1Driver = $config['d1_driver'] ?? 'rest';
 
+                if (!in_array($d1Driver, ['rest', 'worker'], true)) {
+                    throw new InvalidArgumentException(
+                        "Invalid D1 driver '{$d1Driver}'. Must be 'rest' or 'worker'."
+                    );
+                }
+
                 // Performance options with sensible defaults
                 $options = $this->getPerformanceOptions($config);
 
@@ -83,7 +89,7 @@ class D1ServiceProvider extends ServiceProvider
                 $cbConfig = $config['circuit_breaker'] ?? [];
                 if (!empty($cbConfig['enabled'])) {
                     /** @var Repository $cacheStore */
-                    $cacheStore = Cache::store(
+                    $cacheStore = $this->app['cache']->store(
                         $cbConfig['cache_driver'] ?? 'file'
                     );
                     $connector->setCircuitBreaker(new CircuitBreaker(
@@ -116,7 +122,7 @@ class D1ServiceProvider extends ServiceProvider
                     // Apply circuit breaker to read connector too
                     if (!empty($cbConfig['enabled'])) {
                         /** @var Repository $readCacheStore */
-                        $readCacheStore = Cache::store($cbConfig['cache_driver'] ?? 'file');
+                        $readCacheStore = $this->app['cache']->store($cbConfig['cache_driver'] ?? 'file');
                         $readConnector->setCircuitBreaker(new CircuitBreaker(
                             connectionName: $name.'-read',
                             threshold: (int) ($cbConfig['threshold'] ?? 5),
@@ -237,34 +243,5 @@ class D1ServiceProvider extends ServiceProvider
             'retries' => (int) ($config['retries'] ?? 2),
             'retry_delay' => (int) ($config['retry_delay'] ?? 100),
         ];
-    }
-
-    /**
-     * Print a one-time reminder to star the GitHub repository.
-     */
-    private function printStarReminder(): void
-    {
-        try {
-            $flagFile = storage_path('.d1_star_reminder');
-        } catch (\Throwable) {
-            return;
-        }
-
-        if (file_exists($flagFile)) {
-            return;
-        }
-
-        file_put_contents($flagFile, 'shown');
-
-        $y = "\033[33m";
-        $r = "\033[0m";
-
-        echo PHP_EOL;
-        echo "{$y}╔══════════════════════════════════════════════════════════╗{$r}".PHP_EOL;
-        echo "{$y}║  Thank you for installing cloudflare-d1-database!        ║{$r}".PHP_EOL;
-        echo "{$y}║  Star us on GitHub:                                      ║{$r}".PHP_EOL;
-        echo "{$y}║  https://github.com/TanDuy03/cloudflare-d1-database      ║{$r}".PHP_EOL;
-        echo "{$y}╚══════════════════════════════════════════════════════════╝{$r}".PHP_EOL;
-        echo PHP_EOL;
     }
 }
