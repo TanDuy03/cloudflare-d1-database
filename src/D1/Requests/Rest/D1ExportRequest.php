@@ -40,7 +40,7 @@ class D1ExportRequest extends CloudflareRequest implements HasBody
     {
         return sprintf(
             '/accounts/%s/d1/database/%s/export',
-            $this->connector->accountId,
+            $this->connector->getAccountId(),
             $this->database,
         );
     }
