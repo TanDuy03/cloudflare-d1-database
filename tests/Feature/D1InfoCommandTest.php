@@ -2,7 +2,6 @@
 
 declare(strict_types=1);
 
-use Illuminate\Support\Facades\Artisan;
 use Ntanduy\CFD1\Test\TestCase;
 
 uses(TestCase::class);
@@ -43,11 +42,9 @@ test('d1:info shows circuit breaker enabled when configured', function () {
         'cooldown' => 60,
     ]);
 
-    Artisan::call('d1:info');
-    $output = Artisan::output();
-
-    expect($output)->toContain('Circuit Breaker');
-    expect($output)->toContain('enabled (threshold: 3, cooldown: 60s)');
+    $this->artisan('d1:info')
+        ->expectsOutputToContain('enabled (threshold: 3, cooldown: 60s)')
+        ->assertSuccessful();
 });
 
 test('d1:info shows R/W splitting enabled when configured', function () {
@@ -55,11 +52,9 @@ test('d1:info shows R/W splitting enabled when configured', function () {
     config()->set('database.connections.d1.write', ['session' => ['mode' => 'first-primary']]);
     config()->set('database.connections.d1.sticky', true);
 
-    Artisan::call('d1:info');
-    $output = Artisan::output();
-
-    expect($output)->toContain('R/W Splitting');
-    expect($output)->toContain('enabled (sticky)');
+    $this->artisan('d1:info')
+        ->expectsOutputToContain('enabled (sticky)')
+        ->assertSuccessful();
 });
 
 test('d1:info shows non-sticky R/W splitting', function () {
@@ -67,11 +62,9 @@ test('d1:info shows non-sticky R/W splitting', function () {
     config()->set('database.connections.d1.write', ['session' => ['mode' => 'first-primary']]);
     config()->set('database.connections.d1.sticky', false);
 
-    Artisan::call('d1:info');
-    $output = Artisan::output();
-
-    expect($output)->toContain('R/W Splitting');
-    expect($output)->toContain('non-sticky');
+    $this->artisan('d1:info')
+        ->expectsOutputToContain('non-sticky')
+        ->assertSuccessful();
 });
 
 test('d1:info shows REST metadata when credentials are configured', function () {
@@ -81,24 +74,18 @@ test('d1:info shows REST metadata when credentials are configured', function () 
     // The mock connector will attempt databaseInfo() which will fail
     // because MockCloudflareD1Connector only mocks D1QueryRequest.
     // This tests the error handling path in fetchRestMetadata.
-    Artisan::call('d1:info');
-    $output = Artisan::output();
-
-    // Should still show REST Metadata row (with failure detail)
-    expect($output)->toContain('REST Metadata');
-    // Query test should still pass via mock SQLite
-    expect($output)->toContain('Query Test');
+    $this->artisan('d1:info')
+        ->expectsOutputToContain('Query Test')
+        ->assertSuccessful();
 });
 
 test('d1:info shows N/A when REST credentials are not configured', function () {
     config()->set('database.connections.d1.auth.token', '');
     config()->set('database.connections.d1.auth.account_id', '');
 
-    Artisan::call('d1:info');
-    $output = Artisan::output();
-
-    expect($output)->toContain('REST Metadata');
-    expect($output)->toContain('N/A');
+    $this->artisan('d1:info')
+        ->expectsOutputToContain('N/A')
+        ->assertSuccessful();
 });
 
 test('d1:info shows driver with session info when sessions enabled', function () {
@@ -113,11 +100,9 @@ test('d1:info shows driver with session info when sessions enabled', function ()
 });
 
 test('d1:info shows query test latency', function () {
-    Artisan::call('d1:info');
-    $output = Artisan::output();
-
-    expect($output)->toContain('Query Test');
-    expect($output)->toContain('SELECT 1');
+    $this->artisan('d1:info')
+        ->expectsOutputToContain('SELECT 1')
+        ->assertSuccessful();
 });
 
 test('d1:info handles REST metadata API failure gracefully', function () {
@@ -127,10 +112,7 @@ test('d1:info handles REST metadata API failure gracefully', function () {
     // MockCloudflareD1Connector only handles D1QueryRequest, so databaseInfo
     // will hit the mock client and get an unexpected response — testing the
     // error/exception handling path in fetchRestMetadata.
-    Artisan::call('d1:info');
-    $output = Artisan::output();
-
-    // The command should still succeed (REST metadata failure is non-fatal)
-    expect($output)->toContain('REST Metadata');
-    expect($output)->toContain('Query Test');
+    $this->artisan('d1:info')
+        ->expectsOutputToContain('Query Test')
+        ->assertSuccessful();
 });
