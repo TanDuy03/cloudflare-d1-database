@@ -2,13 +2,11 @@
 
 declare(strict_types=1);
 
-use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Http;
 use Ntanduy\CFD1\D1\Requests\Rest\D1ExportRequest;
 use Ntanduy\CFD1\Test\TestCase;
 use Saloon\Http\Faking\MockClient;
 use Saloon\Http\Faking\MockResponse;
-use Symfony\Component\Console\Output\BufferedOutput;
 
 uses(TestCase::class);
 
@@ -242,11 +240,9 @@ test('d1:schema-dump download failure returns error', function () {
         'fake-r2.cloudflare.com/*' => Http::response('', 500),
     ]);
 
-    $buffer = new BufferedOutput;
-    Artisan::call('d1:schema-dump', [], $buffer);
-    $output = $buffer->fetch();
-
-    expect($output)->toContain('Failed to download dump');
+    $this->artisan('d1:schema-dump')
+        ->expectsOutputToContain('Failed to download dump')
+        ->assertFailed();
 
     MockClient::destroyGlobal();
 });
@@ -324,14 +320,13 @@ test('d1:schema-dump with --prune deletes migration files', function () {
         'fake-r2.cloudflare.com/*' => Http::response($sqlDump, 200),
     ]);
 
-    $buffer = new BufferedOutput;
-    Artisan::call('d1:schema-dump', [
+    $this->artisan('d1:schema-dump', [
         '--path' => $outputPath,
         '--prune' => true,
-    ], $buffer);
-    $output = $buffer->fetch();
+    ])
+        ->expectsOutputToContain('Pruned')
+        ->assertSuccessful();
 
-    expect($output)->toContain('Pruned');
     expect(file_exists($fakeMigration))->toBeFalse();
 
     // Cleanup
@@ -375,14 +370,12 @@ test('d1:schema-dump with --prune and no migrations shows message', function () 
         'fake-r2.cloudflare.com/*' => Http::response($sqlDump, 200),
     ]);
 
-    $buffer = new BufferedOutput;
-    Artisan::call('d1:schema-dump', [
+    $this->artisan('d1:schema-dump', [
         '--path' => $outputPath,
         '--prune' => true,
-    ], $buffer);
-    $output = $buffer->fetch();
-
-    expect($output)->toContain('No migration files to prune');
+    ])
+        ->expectsOutputToContain('No migration files to prune')
+        ->assertSuccessful();
 
     // Cleanup
     @unlink($outputPath);
@@ -431,12 +424,10 @@ test('d1:schema-dump polling shows progress messages', function () {
         'fake-r2.cloudflare.com/*' => Http::response($sqlDump, 200),
     ]);
 
-    $buffer = new BufferedOutput;
-    Artisan::call('d1:schema-dump', ['--path' => $outputPath], $buffer);
-    $output = $buffer->fetch();
-
-    expect($output)->toContain('Polling');
-    expect($output)->toContain('Schema dump saved to');
+    $this->artisan('d1:schema-dump', ['--path' => $outputPath])
+        ->expectsOutputToContain('Polling')
+        ->expectsOutputToContain('Schema dump saved to')
+        ->assertSuccessful();
 
     @unlink($outputPath);
     MockClient::destroyGlobal();
