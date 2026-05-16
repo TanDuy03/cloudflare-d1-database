@@ -40,7 +40,7 @@
   },
   "autoload-dev": {
     "psr-4": {
-      "Ntanduy\\CFD1\\Test\\": "tests"
+      "Ntanduy\\CFD1\\Test\\": "tests/"
     }
   },
   "scripts": {
