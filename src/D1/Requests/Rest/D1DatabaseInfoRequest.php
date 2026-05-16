@@ -31,7 +31,7 @@ class D1DatabaseInfoRequest extends CloudflareRequest
     {
         return sprintf(
             '/accounts/%s/d1/database/%s',
-            $this->connector->accountId,
+            $this->connector->getAccountId(),
             $this->database,
         );
     }
