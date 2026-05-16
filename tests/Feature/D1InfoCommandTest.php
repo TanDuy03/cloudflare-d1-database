@@ -61,6 +61,19 @@ test('d1:info shows R/W splitting enabled when configured', function () {
         ->assertSuccessful();
 });
 
+test('d1:info shows R/W splitting enabled via read_write_splitting config', function () {
+    config()->set('database.connections.d1.read_write_splitting', [
+        'enabled' => true,
+        'sticky' => true,
+        'read_mode' => 'first-unconstrained',
+        'write_mode' => 'first-primary',
+    ]);
+
+    $this->artisan('d1:info')
+        ->expectsOutputToContain('enabled (sticky)')
+        ->assertSuccessful();
+});
+
 test('d1:info shows non-sticky R/W splitting', function () {
     config()->set('database.connections.d1.read', ['session' => ['mode' => 'first-unconstrained']]);
     config()->set('database.connections.d1.write', ['session' => ['mode' => 'first-primary']]);

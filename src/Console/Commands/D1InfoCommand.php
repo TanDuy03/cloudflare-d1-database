@@ -34,6 +34,11 @@ class D1InfoCommand extends Command
             return self::FAILURE;
         }
 
+        // Merge package defaults so d1:info sees all config keys
+        $defaults = config('d1-database', []);
+        unset($defaults['auth'], $defaults['database'], $defaults['worker_secret'], $defaults['worker_url']);
+        $config = array_replace_recursive($defaults, $config);
+
         $driver = $config['d1_driver'] ?? 'rest';
 
         $this->newLine();
@@ -151,8 +156,9 @@ class D1InfoCommand extends Command
     private function showConnectionState(array $config): void
     {
         // Read/Write splitting
-        if (isset($config['read']) || isset($config['write'])) {
-            $sticky = !empty($config['sticky']) ? 'sticky' : 'non-sticky';
+        $rwConfig = $config['read_write_splitting'] ?? [];
+        if (isset($config['read']) || isset($config['write']) || !empty($rwConfig['enabled'])) {
+            $sticky = !empty($config['sticky'] ?? $rwConfig['sticky'] ?? true) ? 'sticky' : 'non-sticky';
             $this->addPass('R/W Splitting', "enabled ({$sticky})");
         } else {
             $this->addInfo('R/W Splitting', 'disabled');
