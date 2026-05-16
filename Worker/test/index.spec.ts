@@ -124,7 +124,7 @@ describe("D1 Worker", () => {
 			const { status, data } = await fetchWorker("/query", {
 				sql: "SELECT * FROM nonexistent_table_xyz",
 			});
-			expect(status).toBe(200);
+			expect(status).toBe(500);
 			expect(data.success).toBe(false);
 		});
 
@@ -170,7 +170,7 @@ describe("D1 Worker", () => {
 			const { status, data } = await fetchWorker("/batch", {
 				statements: [{ sql: "INVALID SQL STATEMENT" }],
 			});
-			expect(status).toBe(200);
+			expect(status).toBe(500);
 			expect(data.success).toBe(false);
 		});
 	});
@@ -203,6 +203,37 @@ describe("D1 Worker", () => {
 			}>;
 			// raw() returns arrays, not objects
 			expect(Array.isArray(result[0].results[0])).toBe(true);
+		});
+	});
+
+	// ─── Input Validation ─────────────────────────────────────────────
+
+	describe("Input validation", () => {
+		it("returns 400 when sql is missing from /query", async () => {
+			const { status, data } = await fetchWorker("/query", {});
+			expect(status).toBe(400);
+			expect(data.success).toBe(false);
+		});
+
+		it("returns 400 when bindings is not an array", async () => {
+			const { status, data } = await fetchWorker("/query", {
+				sql: "SELECT 1",
+				bindings: "invalid",
+			});
+			expect(status).toBe(400);
+			expect(data.success).toBe(false);
+		});
+
+		it("returns 400 when statements is missing from /batch", async () => {
+			const { status, data } = await fetchWorker("/batch", {});
+			expect(status).toBe(400);
+			expect(data.success).toBe(false);
+		});
+
+		it("returns 400 when sql is missing from /exec", async () => {
+			const { status, data } = await fetchWorker("/exec", {});
+			expect(status).toBe(400);
+			expect(data.success).toBe(false);
 		});
 	});
 
