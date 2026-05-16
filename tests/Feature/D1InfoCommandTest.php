@@ -8,6 +8,7 @@ use Ntanduy\CFD1\D1\Requests\Rest\D1QueryRequest;
 use Ntanduy\CFD1\Test\TestCase;
 use Saloon\Http\Faking\MockClient;
 use Saloon\Http\Faking\MockResponse;
+use Symfony\Component\Console\Output\BufferedOutput;
 
 uses(TestCase::class);
 
@@ -153,8 +154,9 @@ test('d1:info shows all REST metadata fields when available', function () {
         ], 200),
     ]));
 
-    Artisan::call('d1:info');
-    $output = Artisan::output();
+    $buffer = new BufferedOutput;
+    Artisan::call('d1:info', [], $buffer);
+    $output = $buffer->fetch();
 
     // Purge so tearDown rollback gets a fresh SQLite-backed mock
     app('db')->purge('d1');
@@ -189,8 +191,9 @@ test('d1:info shows REST metadata API error message', function () {
         ], 200),
     ]));
 
-    Artisan::call('d1:info');
-    $output = Artisan::output();
+    $buffer = new BufferedOutput;
+    Artisan::call('d1:info', [], $buffer);
+    $output = $buffer->fetch();
 
     // Purge so tearDown rollback gets a fresh SQLite-backed mock
     app('db')->purge('d1');
@@ -223,8 +226,9 @@ test('d1:info shows partial REST metadata when some fields are null', function (
         ], 200),
     ]));
 
-    Artisan::call('d1:info');
-    $output = Artisan::output();
+    $buffer = new BufferedOutput;
+    Artisan::call('d1:info', [], $buffer);
+    $output = $buffer->fetch();
 
     // Purge so tearDown rollback gets a fresh SQLite-backed mock
     app('db')->purge('d1');
@@ -250,8 +254,9 @@ test('d1:info shows query test failure for unexpected response', function () {
     ]);
 
     // This connection has no mock set up, so query will fail
-    Artisan::call('d1:info', ['--connection' => 'd1_bad']);
-    $output = Artisan::output();
+    $buffer = new BufferedOutput;
+    Artisan::call('d1:info', ['--connection' => 'd1_bad'], $buffer);
+    $output = $buffer->fetch();
 
     // Should still succeed (query failure is non-fatal for d1:info)
     expect($output)->toContain('Query Test');
