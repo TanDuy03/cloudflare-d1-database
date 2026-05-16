@@ -2,8 +2,6 @@
 
 declare(strict_types=1);
 
-use Illuminate\Support\Facades\Artisan;
-use Illuminate\Support\Facades\Http;
 use Ntanduy\CFD1\D1\Requests\Rest\D1ImportRequest;
 use Ntanduy\CFD1\Test\TestCase;
 use Saloon\Http\Faking\MockClient;
@@ -347,11 +345,10 @@ test('d1:import handles exception during import', function () {
         D1ImportRequest::class => MockResponse::make([], 500),
     ]);
 
-    Artisan::call('d1:import', ['file' => $tmpFile]);
-    $output = Artisan::output();
-
     // Should catch the exception
-    expect($output)->toContain('failed');
+    $this->artisan('d1:import', ['file' => $tmpFile])
+        ->expectsOutputToContain('failed')
+        ->assertFailed();
 
     unlink($tmpFile);
     MockClient::destroyGlobal();
