@@ -153,6 +153,34 @@ test('bulkInsert throws when rows have different columns', function () {
     ]);
 })->throws(InvalidArgumentException::class, 'Row [1] has different columns than row [0]');
 
+// ─── chunking over 100 rows ──────────────────────────────────────────
+
+test('bulkInsert chunks rows exceeding D1 100-statement limit', function () {
+    $connection = createBulkInsertConnection();
+    /** @var CloudflareD1Connector $connector */
+    $connector = $connection->d1();
+
+    // 150 rows → first chunk = 100 rows (100 INSERT statements), second chunk = 50 rows
+    $mockClient = new MockClient([
+        D1BatchQueryRequest::class => MockResponse::make([
+            'success' => true,
+            'errors' => [],
+            'result' => array_map(fn () => [
+                'results' => [],
+                'meta' => ['changes' => 1, 'last_row_id' => 0],
+            ], range(1, 100)),
+        ], 200),
+    ]);
+    $connector->withMockClient($mockClient);
+
+    $rows = array_map(fn ($i) => ['name' => "User {$i}"], range(1, 150));
+    $results = $connection->bulkInsert('users', $rows);
+
+    // Should send 2 batch requests (100 + 50)
+    $mockClient->assertSentCount(2);
+    expect($results)->toBeArray();
+});
+
 // ─── column name escaping ────────────────────────────────────────────
 
 test('bulkInsert escapes double quotes in column names', function () {
