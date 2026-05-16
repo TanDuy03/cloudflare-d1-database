@@ -44,24 +44,22 @@ return [
     | Automatic Read/Write Splitting (Worker driver only)
     |--------------------------------------------------------------------------
     |
-    | When 'read' and 'write' keys are present, the package automatically
-    | routes SELECT queries to a read connector (using D1 replicas) and
-    | INSERT/UPDATE/DELETE to a write connector (using D1 primary).
+    | When enabled, the package automatically routes SELECT queries to a
+    | read connector (using D1 replicas) and INSERT/UPDATE/DELETE to a
+    | write connector (using D1 primary).
     |
     | 'sticky' (default: true) — after a write, subsequent reads in the
     | same request use the write bookmark for sequential consistency.
     |
-    | To enable, uncomment the 'read' and 'write' blocks below.
     | REST driver ignores this setting (no session support).
     |
     */
-    // 'read' => [
-    //     'session' => ['mode' => 'first-unconstrained'],
-    // ],
-    // 'write' => [
-    //     'session' => ['mode' => 'first-primary'],
-    // ],
-    // 'sticky' => true,
+    'read_write_splitting' => [
+        'enabled' => env('CF_D1_RW_SPLITTING', false),
+        'sticky' => env('CF_D1_RW_STICKY', true),
+        'read_mode' => env('CF_D1_RW_READ_MODE', 'first-unconstrained'),
+        'write_mode' => env('CF_D1_RW_WRITE_MODE', 'first-primary'),
+    ],
 
     /*
     |--------------------------------------------------------------------------
