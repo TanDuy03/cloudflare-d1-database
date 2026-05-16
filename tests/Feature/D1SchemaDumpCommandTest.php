@@ -216,3 +216,221 @@ test('d1:schema-dump handles exception gracefully', function () {
 
     MockClient::destroyGlobal();
 });
+
+test('d1:schema-dump download failure returns error', function () {
+    config()->set('database.connections.d1.auth.token', 'test-token');
+    config()->set('database.connections.d1.auth.account_id', 'test-account');
+
+    Saloon\Http\Faking\MockClient::global([
+        Ntanduy\CFD1\D1\Requests\Rest\D1ExportRequest::class => Saloon\Http\Faking\MockResponse::make([
+            'success' => true,
+            'errors' => [],
+            'result' => [
+                'status' => 'complete',
+                'at_bookmark' => 'bkmk_123',
+                'result' => [
+                    'signed_url' => 'https://fake-r2.cloudflare.com/dump.sql',
+                ],
+            ],
+        ], 200),
+    ]);
+
+    // Mock the HTTP download to fail
+    Illuminate\Support\Facades\Http::fake([
+        'fake-r2.cloudflare.com/*' => Illuminate\Support\Facades\Http::response('', 500),
+    ]);
+
+    $this->artisan('d1:schema-dump')
+        ->expectsOutputToContain('Failed to download dump')
+        ->assertFailed();
+
+    Saloon\Http\Faking\MockClient::destroyGlobal();
+});
+
+test('d1:schema-dump uses default output path when no --path given', function () {
+    config()->set('database.connections.d1.auth.token', 'test-token');
+    config()->set('database.connections.d1.auth.account_id', 'test-account');
+
+    $sqlDump = "CREATE TABLE users (id INTEGER PRIMARY KEY);\n";
+
+    Saloon\Http\Faking\MockClient::global([
+        Ntanduy\CFD1\D1\Requests\Rest\D1ExportRequest::class => Saloon\Http\Faking\MockResponse::make([
+            'success' => true,
+            'errors' => [],
+            'result' => [
+                'status' => 'complete',
+                'at_bookmark' => 'bkmk_123',
+                'result' => [
+                    'signed_url' => 'https://fake-r2.cloudflare.com/dump.sql',
+                ],
+            ],
+        ], 200),
+    ]);
+
+    Illuminate\Support\Facades\Http::fake([
+        'fake-r2.cloudflare.com/*' => Illuminate\Support\Facades\Http::response($sqlDump, 200),
+    ]);
+
+    $this->artisan('d1:schema-dump')
+        ->expectsOutputToContain('Schema dump saved to')
+        ->assertSuccessful();
+
+    // Check the default path
+    $defaultPath = database_path('schema/d1-schema.sql');
+    expect(file_exists($defaultPath))->toBeTrue();
+    expect(file_get_contents($defaultPath))->toBe($sqlDump);
+
+    // Cleanup
+    @unlink($defaultPath);
+    @rmdir(database_path('schema'));
+
+    Saloon\Http\Faking\MockClient::destroyGlobal();
+});
+
+test('d1:schema-dump with --prune deletes migration files', function () {
+    config()->set('database.connections.d1.auth.token', 'test-token');
+    config()->set('database.connections.d1.auth.account_id', 'test-account');
+
+    $sqlDump = "CREATE TABLE users (id INTEGER PRIMARY KEY);\n";
+    $outputPath = sys_get_temp_dir() . '/d1-schema-test.sql';
+
+    // Create a fake migration file
+    $migrationPath = database_path('migrations');
+    if (!is_dir($migrationPath)) {
+        mkdir($migrationPath, 0755, true);
+    }
+    $fakeMigration = $migrationPath . '/2024_01_01_000000_create_test_table.php';
+    file_put_contents($fakeMigration, '<?php // test migration');
+
+    Saloon\Http\Faking\MockClient::global([
+        Ntanduy\CFD1\D1\Requests\Rest\D1ExportRequest::class => Saloon\Http\Faking\MockResponse::make([
+            'success' => true,
+            'errors' => [],
+            'result' => [
+                'status' => 'complete',
+                'at_bookmark' => 'bkmk_123',
+                'result' => [
+                    'signed_url' => 'https://fake-r2.cloudflare.com/dump.sql',
+                ],
+            ],
+        ], 200),
+    ]);
+
+    Illuminate\Support\Facades\Http::fake([
+        'fake-r2.cloudflare.com/*' => Illuminate\Support\Facades\Http::response($sqlDump, 200),
+    ]);
+
+    Illuminate\Support\Facades\Artisan::call('d1:schema-dump', [
+        '--path' => $outputPath,
+        '--prune' => true,
+    ]);
+    $output = Illuminate\Support\Facades\Artisan::output();
+
+    expect($output)->toContain('Pruned');
+    expect(file_exists($fakeMigration))->toBeFalse();
+
+    // Cleanup
+    @unlink($outputPath);
+
+    Saloon\Http\Faking\MockClient::destroyGlobal();
+});
+
+test('d1:schema-dump with --prune and no migrations shows message', function () {
+    config()->set('database.connections.d1.auth.token', 'test-token');
+    config()->set('database.connections.d1.auth.account_id', 'test-account');
+
+    $sqlDump = "CREATE TABLE users (id INTEGER PRIMARY KEY);\n";
+    $outputPath = sys_get_temp_dir() . '/d1-schema-test2.sql';
+
+    // Ensure migrations directory exists but is empty
+    $migrationPath = database_path('migrations');
+    if (!is_dir($migrationPath)) {
+        mkdir($migrationPath, 0755, true);
+    }
+    // Remove any .php files
+    foreach (glob($migrationPath . '/*.php') as $f) {
+        unlink($f);
+    }
+
+    Saloon\Http\Faking\MockClient::global([
+        Ntanduy\CFD1\D1\Requests\Rest\D1ExportRequest::class => Saloon\Http\Faking\MockResponse::make([
+            'success' => true,
+            'errors' => [],
+            'result' => [
+                'status' => 'complete',
+                'at_bookmark' => 'bkmk_123',
+                'result' => [
+                    'signed_url' => 'https://fake-r2.cloudflare.com/dump.sql',
+                ],
+            ],
+        ], 200),
+    ]);
+
+    Illuminate\Support\Facades\Http::fake([
+        'fake-r2.cloudflare.com/*' => Illuminate\Support\Facades\Http::response($sqlDump, 200),
+    ]);
+
+    Illuminate\Support\Facades\Artisan::call('d1:schema-dump', [
+        '--path' => $outputPath,
+        '--prune' => true,
+    ]);
+    $output = Illuminate\Support\Facades\Artisan::output();
+
+    expect($output)->toContain('No migration files to prune');
+
+    // Cleanup
+    @unlink($outputPath);
+
+    Saloon\Http\Faking\MockClient::destroyGlobal();
+});
+
+test('d1:schema-dump polling shows progress messages', function () {
+    config()->set('database.connections.d1.auth.token', 'test-token');
+    config()->set('database.connections.d1.auth.account_id', 'test-account');
+
+    $sqlDump = "CREATE TABLE users (id INTEGER PRIMARY KEY);\n";
+    $outputPath = sys_get_temp_dir() . '/d1-schema-poll-test.sql';
+
+    $callCount = 0;
+    Saloon\Http\Faking\MockClient::global([
+        Ntanduy\CFD1\D1\Requests\Rest\D1ExportRequest::class => function () use (&$callCount) {
+            $callCount++;
+            if ($callCount === 1) {
+                return Saloon\Http\Faking\MockResponse::make([
+                    'success' => true,
+                    'errors' => [],
+                    'result' => [
+                        'status' => 'active',
+                        'at_bookmark' => 'bkmk_1',
+                        'messages' => ['Exporting tables...'],
+                    ],
+                ], 200);
+            }
+
+            return Saloon\Http\Faking\MockResponse::make([
+                'success' => true,
+                'errors' => [],
+                'result' => [
+                    'status' => 'complete',
+                    'at_bookmark' => 'bkmk_2',
+                    'result' => [
+                        'signed_url' => 'https://fake-r2.cloudflare.com/dump.sql',
+                    ],
+                ],
+            ], 200);
+        },
+    ]);
+
+    Illuminate\Support\Facades\Http::fake([
+        'fake-r2.cloudflare.com/*' => Illuminate\Support\Facades\Http::response($sqlDump, 200),
+    ]);
+
+    Illuminate\Support\Facades\Artisan::call('d1:schema-dump', ['--path' => $outputPath]);
+    $output = Illuminate\Support\Facades\Artisan::output();
+
+    expect($output)->toContain('Polling');
+    expect($output)->toContain('Schema dump saved to');
+
+    @unlink($outputPath);
+    Saloon\Http\Faking\MockClient::destroyGlobal();
+});
