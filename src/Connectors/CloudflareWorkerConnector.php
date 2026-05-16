@@ -9,6 +9,7 @@ use Ntanduy\CFD1\D1\Requests\Worker\WorkerExecRequest;
 use Ntanduy\CFD1\D1\Requests\Worker\WorkerQueryRequest;
 use Ntanduy\CFD1\D1\Requests\Worker\WorkerRawRequest;
 use Saloon\Http\Auth\TokenAuthenticator;
+use Saloon\Http\PendingRequest;
 use Saloon\Http\Response;
 
 class CloudflareWorkerConnector extends CloudflareConnector
@@ -22,10 +23,33 @@ class CloudflareWorkerConnector extends CloudflareConnector
         #[\SensitiveParameter]
         protected readonly string $workerSecret = '',
         array $options = [],
+        protected readonly bool $hmac = false,
     ) {
         // Worker connector doesn't need Cloudflare API token/accountId.
         // Pass null for token and accountId, workerUrl as apiUrl.
         parent::__construct(null, null, $workerUrl, $options);
+    }
+
+    /**
+     * Register HMAC signing middleware when enabled.
+     *
+     * Adds X-D1-Timestamp and X-D1-Signature headers to every request.
+     * The signature is HMAC-SHA256(timestamp.body, workerSecret).
+     */
+    public function boot(PendingRequest $pendingRequest): void
+    {
+        if (! $this->hmac) {
+            return;
+        }
+
+        $pendingRequest->middleware()->onRequest(function (PendingRequest $request): void {
+            $timestamp = (string) time();
+            $body = (string) $request->body();
+            $signature = hash_hmac('sha256', "{$timestamp}.{$body}", $this->workerSecret);
+
+            $request->headers()->add('X-D1-Timestamp', $timestamp);
+            $request->headers()->add('X-D1-Signature', $signature);
+        });
     }
 
     public function resolveBaseUrl(): string
