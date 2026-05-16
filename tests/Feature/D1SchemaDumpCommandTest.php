@@ -8,6 +8,7 @@ use Ntanduy\CFD1\D1\Requests\Rest\D1ExportRequest;
 use Ntanduy\CFD1\Test\TestCase;
 use Saloon\Http\Faking\MockClient;
 use Saloon\Http\Faking\MockResponse;
+use Symfony\Component\Console\Output\BufferedOutput;
 
 uses(TestCase::class);
 
@@ -241,8 +242,9 @@ test('d1:schema-dump download failure returns error', function () {
         'fake-r2.cloudflare.com/*' => Http::response('', 500),
     ]);
 
-    Artisan::call('d1:schema-dump');
-    $output = Artisan::output();
+    $buffer = new BufferedOutput;
+    Artisan::call('d1:schema-dump', [], $buffer);
+    $output = $buffer->fetch();
 
     expect($output)->toContain('Failed to download dump');
 
@@ -322,11 +324,12 @@ test('d1:schema-dump with --prune deletes migration files', function () {
         'fake-r2.cloudflare.com/*' => Http::response($sqlDump, 200),
     ]);
 
+    $buffer = new BufferedOutput;
     Artisan::call('d1:schema-dump', [
         '--path' => $outputPath,
         '--prune' => true,
-    ]);
-    $output = Artisan::output();
+    ], $buffer);
+    $output = $buffer->fetch();
 
     expect($output)->toContain('Pruned');
     expect(file_exists($fakeMigration))->toBeFalse();
@@ -372,11 +375,12 @@ test('d1:schema-dump with --prune and no migrations shows message', function () 
         'fake-r2.cloudflare.com/*' => Http::response($sqlDump, 200),
     ]);
 
+    $buffer = new BufferedOutput;
     Artisan::call('d1:schema-dump', [
         '--path' => $outputPath,
         '--prune' => true,
-    ]);
-    $output = Artisan::output();
+    ], $buffer);
+    $output = $buffer->fetch();
 
     expect($output)->toContain('No migration files to prune');
 
@@ -427,8 +431,9 @@ test('d1:schema-dump polling shows progress messages', function () {
         'fake-r2.cloudflare.com/*' => Http::response($sqlDump, 200),
     ]);
 
-    Artisan::call('d1:schema-dump', ['--path' => $outputPath]);
-    $output = Artisan::output();
+    $buffer = new BufferedOutput;
+    Artisan::call('d1:schema-dump', ['--path' => $outputPath], $buffer);
+    $output = $buffer->fetch();
 
     expect($output)->toContain('Polling');
     expect($output)->toContain('Schema dump saved to');
