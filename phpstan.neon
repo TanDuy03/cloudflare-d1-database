@@ -8,7 +8,6 @@ parameters:
         - tests
     excludePaths:
         - tests/Pest.php
-        - tests/database/factories/UserFactory.php
 
     ignoreErrors:
         # Mockery expectations - false positives from mocking
