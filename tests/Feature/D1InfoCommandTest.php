@@ -2,7 +2,12 @@
 
 declare(strict_types=1);
 
+use Illuminate\Support\Facades\Artisan;
+use Ntanduy\CFD1\D1\Requests\Rest\D1DatabaseInfoRequest;
+use Ntanduy\CFD1\D1\Requests\Rest\D1QueryRequest;
 use Ntanduy\CFD1\Test\TestCase;
+use Saloon\Http\Faking\MockClient;
+use Saloon\Http\Faking\MockResponse;
 
 uses(TestCase::class);
 
@@ -121,9 +126,10 @@ test('d1:info shows all REST metadata fields when available', function () {
     config()->set('database.connections.d1.auth.token', 'test-token');
     config()->set('database.connections.d1.auth.account_id', 'test-account');
 
-    // Use MockClient::global to mock the databaseInfo response
-    $mockClient = new Saloon\Http\Faking\MockClient([
-        Ntanduy\CFD1\D1\Requests\Rest\D1DatabaseInfoRequest::class => Saloon\Http\Faking\MockResponse::make([
+    // Set mock directly on the connector (global mock doesn't override connector-level mock)
+    $connector = app('db')->connection('d1')->d1();
+    $connector->withMockClient(new MockClient([
+        D1DatabaseInfoRequest::class => MockResponse::make([
             'success' => true,
             'errors' => [],
             'result' => [
@@ -136,30 +142,98 @@ test('d1:info shows all REST metadata fields when available', function () {
                 'version' => 'production',
             ],
         ], 200),
-    ]);
-    Saloon\Http\Faking\MockClient::global([
-        Ntanduy\CFD1\D1\Requests\Rest\D1DatabaseInfoRequest::class => Saloon\Http\Faking\MockResponse::make([
+        D1QueryRequest::class => MockResponse::make([
             'success' => true,
             'errors' => [],
-            'result' => [
-                'name' => 'production-db',
-                'uuid' => 'uuid-abc-123',
-                'file_size' => 5242880,
-                'num_tables' => 12,
-                'read_replication' => ['mode' => 'auto'],
-                'created_at' => '2024-03-15T10:00:00Z',
-                'version' => 'production',
-            ],
+            'result' => [[
+                'results' => [['ok' => 1]],
+                'meta' => ['duration' => 0.001, 'changes' => 0, 'last_row_id' => null, 'rows_read' => 1, 'rows_written' => 0],
+                'success' => true,
+            ]],
         ], 200),
-    ]);
+    ]));
 
-    Illuminate\Support\Facades\Artisan::call('d1:info');
-    $output = Illuminate\Support\Facades\Artisan::output();
+    Artisan::call('d1:info');
+    $output = Artisan::output();
+
+    // Purge so tearDown rollback gets a fresh SQLite-backed mock
+    app('db')->purge('d1');
 
     expect($output)->toContain('production-db');
     expect($output)->toContain('uuid-abc-123');
+    expect($output)->toContain('5.24 MB');
+    expect($output)->toContain('12');
+    expect($output)->toContain('auto');
+    expect($output)->toContain('2024-03-15T10:00:00Z');
+    expect($output)->toContain('production');
+});
 
-    Saloon\Http\Faking\MockClient::destroyGlobal();
+test('d1:info shows REST metadata API error message', function () {
+    config()->set('database.connections.d1.auth.token', 'test-token');
+    config()->set('database.connections.d1.auth.account_id', 'test-account');
+
+    $connector = app('db')->connection('d1')->d1();
+    $connector->withMockClient(new MockClient([
+        D1DatabaseInfoRequest::class => MockResponse::make([
+            'success' => false,
+            'errors' => [['code' => 7500, 'message' => 'Database not found']],
+        ], 200),
+        D1QueryRequest::class => MockResponse::make([
+            'success' => true,
+            'errors' => [],
+            'result' => [[
+                'results' => [['ok' => 1]],
+                'meta' => ['duration' => 0.001, 'changes' => 0, 'last_row_id' => null, 'rows_read' => 1, 'rows_written' => 0],
+                'success' => true,
+            ]],
+        ], 200),
+    ]));
+
+    Artisan::call('d1:info');
+    $output = Artisan::output();
+
+    // Purge so tearDown rollback gets a fresh SQLite-backed mock
+    app('db')->purge('d1');
+
+    expect($output)->toContain('Database not found');
+});
+
+test('d1:info shows partial REST metadata when some fields are null', function () {
+    config()->set('database.connections.d1.auth.token', 'test-token');
+    config()->set('database.connections.d1.auth.account_id', 'test-account');
+
+    $connector = app('db')->connection('d1')->d1();
+    $connector->withMockClient(new MockClient([
+        D1DatabaseInfoRequest::class => MockResponse::make([
+            'success' => true,
+            'errors' => [],
+            'result' => [
+                'name' => 'test-db',
+                'uuid' => 'uuid-test',
+            ],
+        ], 200),
+        D1QueryRequest::class => MockResponse::make([
+            'success' => true,
+            'errors' => [],
+            'result' => [[
+                'results' => [['ok' => 1]],
+                'meta' => ['duration' => 0.001, 'changes' => 0, 'last_row_id' => null, 'rows_read' => 1, 'rows_written' => 0],
+                'success' => true,
+            ]],
+        ], 200),
+    ]));
+
+    Artisan::call('d1:info');
+    $output = Artisan::output();
+
+    // Purge so tearDown rollback gets a fresh SQLite-backed mock
+    app('db')->purge('d1');
+
+    expect($output)->toContain('test-db');
+    expect($output)->toContain('uuid-test');
+    // file_size, num_tables, etc. are missing — should not crash
+    expect($output)->not->toContain('Size');
+    expect($output)->not->toContain('Read Replication');
 });
 
 test('d1:info shows query test failure for unexpected response', function () {
@@ -176,8 +250,8 @@ test('d1:info shows query test failure for unexpected response', function () {
     ]);
 
     // This connection has no mock set up, so query will fail
-    Illuminate\Support\Facades\Artisan::call('d1:info', ['--connection' => 'd1_bad']);
-    $output = Illuminate\Support\Facades\Artisan::output();
+    Artisan::call('d1:info', ['--connection' => 'd1_bad']);
+    $output = Artisan::output();
 
     // Should still succeed (query failure is non-fatal for d1:info)
     expect($output)->toContain('Query Test');
