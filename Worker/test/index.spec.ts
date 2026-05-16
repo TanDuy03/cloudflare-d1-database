@@ -253,4 +253,94 @@ describe("D1 Worker", () => {
 			expect(response.status).toBe(405);
 		});
 	});
+
+	// ─── HMAC Authentication ──────────────────────────────────────────
+
+	describe("HMAC Authentication", () => {
+		async function computeHmac(message: string, secret: string): Promise<string> {
+			const enc = new TextEncoder();
+			const key = await crypto.subtle.importKey(
+				"raw",
+				enc.encode(secret),
+				{ name: "HMAC", hash: "SHA-256" },
+				false,
+				["sign"],
+			);
+			const sig = await crypto.subtle.sign("HMAC", key, enc.encode(message));
+			return Array.from(new Uint8Array(sig))
+				.map((b) => b.toString(16).padStart(2, "0"))
+				.join("");
+		}
+
+		async function fetchWithHmac(
+			path: string,
+			body: Record<string, unknown>,
+			options?: { timestamp?: string; signature?: string; skipTimestamp?: boolean; skipSignature?: boolean },
+		): Promise<{ status: number; data: Record<string, unknown> }> {
+			const bodyStr = JSON.stringify(body);
+			const timestamp = options?.timestamp ?? String(Math.floor(Date.now() / 1000));
+			const signature = options?.signature ?? await computeHmac(`${timestamp}.${bodyStr}`, SECRET);
+
+			const headers: Record<string, string> = {
+				"Content-Type": "application/json",
+				"Authorization": `Bearer ${SECRET}`,
+			};
+			if (!options?.skipTimestamp) headers["X-D1-Timestamp"] = timestamp;
+			if (!options?.skipSignature) headers["X-D1-Signature"] = signature;
+
+			const response = await SELF.fetch(`https://worker${path}`, {
+				method: "POST",
+				headers,
+				body: bodyStr,
+			});
+			const data = (await response.json()) as Record<string, unknown>;
+			return { status: response.status, data };
+		}
+
+		it("accepts request with valid HMAC signature", async () => {
+			const { status, data } = await fetchWithHmac("/query", {
+				sql: "SELECT 1 as val",
+				bindings: [],
+			});
+			expect(status).toBe(200);
+			expect(data.success).toBe(true);
+		});
+
+		it("rejects request with invalid HMAC signature", async () => {
+			const { status, data } = await fetchWithHmac("/query", {
+				sql: "SELECT 1",
+				bindings: [],
+			}, { signature: "deadbeef" });
+			expect(status).toBe(401);
+			expect(data.success).toBe(false);
+		});
+
+		it("rejects request with expired timestamp", async () => {
+			const expired = String(Math.floor(Date.now() / 1000) - 600);
+			const { status, data } = await fetchWithHmac("/query", {
+				sql: "SELECT 1",
+				bindings: [],
+			}, { timestamp: expired });
+			expect(status).toBe(401);
+			expect(data.success).toBe(false);
+		});
+
+		it("rejects request with only X-D1-Signature (missing timestamp)", async () => {
+			const { status, data } = await fetchWithHmac("/query", {
+				sql: "SELECT 1",
+				bindings: [],
+			}, { skipTimestamp: true });
+			expect(status).toBe(401);
+			expect(data.success).toBe(false);
+		});
+
+		it("rejects request with only X-D1-Timestamp (missing signature)", async () => {
+			const { status, data } = await fetchWithHmac("/query", {
+				sql: "SELECT 1",
+				bindings: [],
+			}, { skipSignature: true });
+			expect(status).toBe(401);
+			expect(data.success).toBe(false);
+		});
+	});
 });
