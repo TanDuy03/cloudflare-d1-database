@@ -33,3 +33,6 @@ parameters:
         # Http facade in tests — illuminate/http facade not resolved without larastan
         - '#on an unknown class Http#'
 
+        # d1() returns D1ConnectorInterface; tests call Saloon-specific withMockClient()
+        - '#Call to an undefined method Ntanduy\\CFD1\\Contracts\\D1ConnectorInterface::withMockClient#'
+
