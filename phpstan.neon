@@ -30,3 +30,6 @@ parameters:
         # Pest uses() binds TestCase dynamically — PHPStan can't resolve $this->artisan()
         - '#Call to an undefined method .+::artisan\(\)#'
 
+        # Http facade in tests — illuminate/http facade not resolved without larastan
+        - '#on an unknown class Http#'
+
