@@ -38,7 +38,7 @@ class CloudflareWorkerConnector extends CloudflareConnector
      */
     public function boot(PendingRequest $pendingRequest): void
     {
-        if (! $this->hmac) {
+        if (!$this->hmac) {
             return;
         }
 
