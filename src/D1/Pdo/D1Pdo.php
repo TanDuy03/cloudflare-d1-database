@@ -124,35 +124,45 @@ class D1Pdo extends PDO
         $shouldRetry = $this->shouldRetryFor($statement);
         $response = $this->connector->databaseQuery($statement, [], $shouldRetry);
 
-        if ($response->failed() || !$response->json('success')) {
-            $errorCode = $response->json('errors.0.code');
-            $errorMessage = $response->json('errors.0.message', 'Unknown error');
+        // Normalize malformed JSON into a D1QueryException so callers don't
+        // need to catch JsonException separately from driver errors.
+        try {
+            if ($response->failed() || !$response->json('success')) {
+                $errorCode = $response->json('errors.0.code');
+                $errorMessage = $response->json('errors.0.message', 'Unknown error');
 
-            $sqlState = $this->mapErrorToSqlState($errorMessage);
+                $sqlState = $this->mapErrorToSqlState($errorMessage);
 
-            $this->errorInfo = [
-                $sqlState,
-                $errorCode,
-                $errorMessage,
-            ];
+                $this->errorInfo = [
+                    $sqlState,
+                    $errorCode,
+                    $errorMessage,
+                ];
 
-            // Throw exception if error mode is set to EXCEPTION
-            if ($this->getAttribute(PDO::ATTR_ERRMODE) === PDO::ERRMODE_EXCEPTION) {
-                throw D1QueryException::fromApiError($errorMessage, (int) $errorCode, $sqlState);
+                // Throw exception if error mode is set to EXCEPTION
+                if ($this->getAttribute(PDO::ATTR_ERRMODE) === PDO::ERRMODE_EXCEPTION) {
+                    throw D1QueryException::fromApiError($errorMessage, (int) $errorCode, $sqlState);
+                }
+
+                return false;
             }
 
-            return false;
+            $this->errorInfo = ['00000', null, null];
+
+            $resultData = $response->json('result.0') ?? [];
+
+            if (isset($resultData['meta']['last_row_id'])) {
+                $this->setLastInsertId(null, $resultData['meta']['last_row_id']);
+            }
+
+            return $resultData['meta']['changes'] ?? 0;
+        } catch (\JsonException $e) {
+            throw D1QueryException::fromApiError(
+                'Malformed JSON response from D1: '.$e->getMessage(),
+                0,
+                'HY000'
+            );
         }
-
-        $this->errorInfo = ['00000', null, null];
-
-        $resultData = $response->json('result.0') ?? [];
-
-        if (isset($resultData['meta']['last_row_id'])) {
-            $this->setLastInsertId(null, $resultData['meta']['last_row_id']);
-        }
-
-        return $resultData['meta']['changes'] ?? 0;
     }
 
     #[\ReturnTypeWillChange]
