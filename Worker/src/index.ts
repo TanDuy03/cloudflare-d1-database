@@ -198,7 +198,12 @@ async function authenticate(request: Request, env: Env): Promise<Response | null
 // ─── Route Handlers ───────────────────────────────────────────────────
 
 async function handleQuery(request: Request, env: Env): Promise<Response> {
-	const body = (await request.json()) as QueryBody;
+	let body: QueryBody;
+	try {
+		body = (await request.json()) as QueryBody;
+	} catch {
+		return errorResponse(400, "Invalid JSON in request body", 400);
+	}
 
 	if (typeof body.sql !== "string" || body.sql.length === 0) {
 		return errorResponse(400, 'Missing or invalid "sql" field', 400);
@@ -239,8 +244,16 @@ async function handleQuery(request: Request, env: Env): Promise<Response> {
 /** D1 batch limit — max statements per batch call */
 const D1_BATCH_LIMIT = 100;
 
+/** Maximum request body size (10 MB). Prevents oversized payloads from consuming Worker resources. */
+const MAX_BODY_BYTES = 10 * 1024 * 1024;
+
 async function handleBatch(request: Request, env: Env): Promise<Response> {
-	const body = (await request.json()) as BatchBody;
+	let body: BatchBody;
+	try {
+		body = (await request.json()) as BatchBody;
+	} catch {
+		return errorResponse(400, "Invalid JSON in request body", 400);
+	}
 
 	if (!Array.isArray(body.statements) || body.statements.length === 0) {
 		return errorResponse(400, 'Missing or invalid "statements" field', 400);
@@ -303,7 +316,12 @@ async function handleBatch(request: Request, env: Env): Promise<Response> {
 }
 
 async function handleExec(request: Request, env: Env): Promise<Response> {
-	const body = (await request.json()) as ExecBody;
+	let body: ExecBody;
+	try {
+		body = (await request.json()) as ExecBody;
+	} catch {
+		return errorResponse(400, "Invalid JSON in request body", 400);
+	}
 
 	if (typeof body.sql !== "string" || body.sql.length === 0) {
 		return errorResponse(400, 'Missing or invalid "sql" field', 400);
@@ -325,7 +343,12 @@ async function handleExec(request: Request, env: Env): Promise<Response> {
 }
 
 async function handleRaw(request: Request, env: Env): Promise<Response> {
-	const body = (await request.json()) as QueryBody;
+	let body: QueryBody;
+	try {
+		body = (await request.json()) as QueryBody;
+	} catch {
+		return errorResponse(400, "Invalid JSON in request body", 400);
+	}
 
 	if (typeof body.sql !== "string" || body.sql.length === 0) {
 		return errorResponse(400, 'Missing or invalid "sql" field', 400);
@@ -372,6 +395,12 @@ export default {
 
 		const authError = await authenticate(request, env);
 		if (authError) return authError;
+
+		// Guard against oversized request bodies
+		const contentLength = parseInt(request.headers.get("Content-Length") ?? "0", 10);
+		if (contentLength > MAX_BODY_BYTES) {
+			return errorResponse(413, `Request body too large (max ${MAX_BODY_BYTES} bytes)`, 413);
+		}
 
 		switch (pathname) {
 			case "/query":
