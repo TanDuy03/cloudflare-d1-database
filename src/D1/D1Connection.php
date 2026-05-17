@@ -70,9 +70,7 @@ class D1Connection extends SQLiteConnection
      * For atomic multi-statement execution, use batch() instead:
      *   DB::connection('d1')->batch([...]);
      *
-     * @param  \Closure  $callback
      * @param  int  $attempts
-     * @return mixed
      *
      * @throws D1TransactionException When transaction_mode is 'exception'
      */
@@ -171,7 +169,7 @@ class D1Connection extends SQLiteConnection
         $count = count($statements);
         if ($count > self::D1_BATCH_LIMIT) {
             throw new \InvalidArgumentException(
-                "D1 batch limit is ".self::D1_BATCH_LIMIT." statements, but {$count} were given. "
+                'D1 batch limit is '.self::D1_BATCH_LIMIT." statements, but {$count} were given. "
                 .'Use bulkInsert() for large datasets (it chunks automatically) '
                 .'or split your batch into smaller groups.'
             );
@@ -366,7 +364,7 @@ class D1Connection extends SQLiteConnection
             return $this->getPdo();
         }
 
-        if ($this->readPdo instanceof \Closure) {
+        if ($this->readPdo instanceof Closure) {
             $this->readPdo = ($this->readPdo)();
         }
 
@@ -390,7 +388,7 @@ class D1Connection extends SQLiteConnection
      */
     public function getPdo(): D1Pdo
     {
-        if ($this->pdo instanceof \Closure) {
+        if ($this->pdo instanceof Closure) {
             $this->pdo = ($this->pdo)();
         }
 
