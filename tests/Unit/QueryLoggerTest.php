@@ -143,6 +143,34 @@ it('invokes the logger with success=false and error on HTTP 500 response', funct
         ->and($logged['error']['status'])->toBe(500);
 });
 
+// ── Failed query logging (malformed JSON) ──────────────────────────────
+
+it('invokes the logger with success=false when the response body is not JSON', function () {
+    $connector = makeLoggerConnector();
+
+    $mockClient = new MockClient([
+        D1QueryRequest::class => MockResponse::make('<html>not json</html>', 200),
+    ]);
+    $connector->withMockClient($mockClient);
+
+    $logged = null;
+    $connector->setQueryLogger(function (string $query, array $params, float $time, bool $success, ?array $error) use (&$logged) {
+        $logged = compact('query', 'params', 'time', 'success', 'error');
+    });
+
+    $response = $connector->databaseQuery('SELECT 1', []);
+
+    expect($response->status())->toBe(200)
+        ->and($logged)->not->toBeNull()
+        ->and($logged['query'])->toBe('SELECT 1')
+        ->and($logged['params'])->toBe([])
+        ->and($logged['success'])->toBeFalse()
+        ->and($logged['error'])->toBeArray()
+        ->and($logged['error']['code'])->toBeNull()
+        ->and($logged['error']['message'])->toContain('Malformed JSON response')
+        ->and($logged['error']['status'])->toBe(200);
+});
+
 // ── No logger set — no crash ───────────────────────────────────────────
 
 it('does not crash when no query logger is set', function () {
