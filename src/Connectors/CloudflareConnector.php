@@ -114,6 +114,10 @@ abstract class CloudflareConnector extends Connector implements D1ConnectorInter
      * Note: Retries are HTTP-level only — triggered by 5xx server errors,
      * 429 rate-limiting, or network failures. D1 query errors (e.g. bad SQL)
      * returned as 200 with success=false are NOT retried.
+     *
+     * Circuit breaker behavior: a single logical request counts as **one**
+     * failure regardless of how many internal retries occur. This prevents
+     * a single failing query from tripping the breaker by itself.
      */
     public function sendWithRetry(mixed $request, ?int $retries = null): Response
     {
@@ -134,15 +138,15 @@ abstract class CloudflareConnector extends Connector implements D1ConnectorInter
 
                 // Retry on 5xx server errors or rate limiting (429)
                 if ($response->status() >= 500 || $response->status() === 429) {
-                    // Record failure for circuit breaker
-                    $this->circuitBreaker?->recordFailure();
-
                     if ($attempt < $retries) {
                         $attempt++;
                         $this->sleepWithBackoff($attempt);
 
                         continue;
                     }
+
+                    // Record a single failure per logical request, not per retry
+                    $this->circuitBreaker?->recordFailure();
 
                     // All retries exhausted with server error — throw instead of returning bad response
                     throw D1Exception::fromApiError(
@@ -162,13 +166,13 @@ abstract class CloudflareConnector extends Connector implements D1ConnectorInter
                 return $response;
             } catch (CircuitBreakerOpenException|D1Exception $e) {
                 // CircuitBreakerOpenException: don't retry, propagate immediately
-                // D1Exception: already handled by the 5xx block above (failure already recorded)
+                // D1Exception: failure already recorded above
                 throw $e;
             } catch (Throwable $e) {
-                // Record failure for circuit breaker (connection errors, timeouts)
-                $this->circuitBreaker?->recordFailure();
-
                 if ($attempt >= $retries) {
+                    // Record a single failure per logical request, not per retry
+                    $this->circuitBreaker?->recordFailure();
+
                     throw D1Exception::fromApiError(
                         "Request failed after {$attempt} retries: {$e->getMessage()}",
                         0,
@@ -200,7 +204,8 @@ abstract class CloudflareConnector extends Connector implements D1ConnectorInter
      * Set a query logger callback for this connector instance.
      * Useful for debugging and monitoring D1 queries.
      *
-     * @param  \Closure|null  $callback  function(string $query, array $params, float $time, bool $success, ?array $error): void
+     * @param  \Closure|null  $callback  function(string $query, array $params, float $timeMs, bool $success, ?array $error): void
+     *                                   $timeMs is the execution time in **milliseconds**.
      * @return $this
      */
     public function setQueryLogger(?\Closure $callback): static
@@ -213,6 +218,9 @@ abstract class CloudflareConnector extends Connector implements D1ConnectorInter
     /**
      * Log a query execution if a logger is set.
      * Shared by REST and Worker connectors.
+     *
+     * The callback receives execution time in **milliseconds** (matching the
+     * documented `$timeMs` parameter name and Laravel's DB query logger).
      */
     protected function logQuery(string $query, array $params, float $startTime, Response $response): void
     {
@@ -220,7 +228,8 @@ abstract class CloudflareConnector extends Connector implements D1ConnectorInter
             return;
         }
 
-        $time = microtime(true) - $startTime;
+        // Convert seconds → milliseconds to match the documented $timeMs name.
+        $timeMs = (microtime(true) - $startTime) * 1000;
         $success = !$response->failed() && $response->json('success');
 
         $error = null;
@@ -232,6 +241,6 @@ abstract class CloudflareConnector extends Connector implements D1ConnectorInter
             ];
         }
 
-        ($this->queryLogger)($query, $params, $time, $success, $error);
+        ($this->queryLogger)($query, $params, $timeMs, $success, $error);
     }
 }
