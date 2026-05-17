@@ -227,3 +227,55 @@ test('only one concurrent probe is allowed in half_open state', function () {
 
     Carbon::setTestNow();
 });
+
+// ─── 11. Counts one failure per logical call, not per retry ─────────
+
+test('circuit breaker records exactly one failure per call regardless of retry count', function () {
+    // 3 retries × 1 logical call = 4 HTTP attempts, but only 1 CB failure.
+    $connector = createCBConnector(['retries' => 3, 'retry_delay' => 1]);
+    $cb = new CircuitBreaker('test', threshold: 5, cooldown: 60, cache: makeArrayCache());
+    $connector->setCircuitBreaker($cb);
+
+    $request = createCBRequest($connector);
+
+    // Always return 500 to force exhausting all retries.
+    $mockClient = new MockClient([
+        D1QueryRequest::class => MockResponse::make(['success' => false], 500),
+    ]);
+    $connector->withMockClient($mockClient);
+
+    try {
+        $connector->sendWithRetry($request);
+    } catch (D1Exception) {
+        // Expected after retries exhaust.
+    }
+
+    // Without the fix this would be 4 (one per attempt). With the fix it's 1.
+    expect($cb->getFailureCount())->toBe(1);
+    expect($cb->getState())->toBe('closed'); // Below threshold of 5
+});
+
+test('circuit breaker still trips when multiple separate calls fail', function () {
+    // Each separate sendWithRetry() call counts as one failure.
+    $connector = createCBConnector(['retries' => 1, 'retry_delay' => 1]);
+    $cb = new CircuitBreaker('test', threshold: 2, cooldown: 60, cache: makeArrayCache());
+    $connector->setCircuitBreaker($cb);
+
+    $request = createCBRequest($connector);
+
+    $mockClient = new MockClient([
+        D1QueryRequest::class => MockResponse::make(['success' => false], 500),
+    ]);
+    $connector->withMockClient($mockClient);
+
+    foreach (range(1, 2) as $_) {
+        try {
+            $connector->sendWithRetry($request);
+        } catch (D1Exception) {
+            // Each call exhausts retries and throws.
+        }
+    }
+
+    expect($cb->getFailureCount())->toBe(2);
+    expect($cb->getState())->toBe('open');
+});
