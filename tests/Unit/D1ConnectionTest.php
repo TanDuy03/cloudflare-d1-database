@@ -175,7 +175,9 @@ test('transaction_mode log warns once for DB transaction lifecycle', function ()
     $logger = Mockery::mock();
     $logger->shouldReceive('warning')
         ->once()
-        ->withArgs(fn (string $message, array $context) => str_contains($message, 'DB::transaction()')
+        ->withArgs(fn (string $message, array $context) => str_starts_with($message, 'D1: ')
+            && str_contains($message, 'is a no-op')
+            && str_contains($message, 'cannot be rolled back')
             && $context === ['connection' => 'd1']);
 
     Log::swap($logger);
@@ -202,7 +204,9 @@ test('transaction_mode log warns once for manual transaction lifecycle', functio
     $logger = Mockery::mock();
     $logger->shouldReceive('warning')
         ->once()
-        ->withArgs(fn (string $message, array $context) => str_contains($message, 'DB::beginTransaction()')
+        ->withArgs(fn (string $message, array $context) => str_starts_with($message, 'D1: ')
+            && str_contains($message, 'is a no-op')
+            && str_contains($message, 'cannot be rolled back')
             && $context === ['connection' => 'd1']);
 
     Log::swap($logger);
