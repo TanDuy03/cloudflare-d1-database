@@ -30,6 +30,10 @@ class D1Connection extends SQLiteConnection
 {
     protected ?CloudflareConnector $readConnector = null;
 
+    private bool $transactionModeWarningLogged = false;
+
+    private ?string $transactionModeCaller = null;
+
     public function __construct(
         protected CloudflareConnector $connector,
         array $config = [],
@@ -61,7 +65,7 @@ class D1Connection extends SQLiteConnection
      * This override adds configurable behavior so developers are aware:
      *
      *   - 'silent'    (default) — no-op, backward compatible
-     *   - 'log'       — logs a warning once per request
+     *   - 'log'       — logs a warning once per connection/request
      *   - 'exception' — throws D1TransactionException immediately
      *
      * Set via config: `transaction_mode` in your D1 connection config,
@@ -86,15 +90,13 @@ class D1Connection extends SQLiteConnection
             );
         }
 
-        if ($mode === 'log') {
-            Log::warning(
-                'D1: DB::transaction() provides no atomicity — each query executes immediately '
-                .'and cannot be rolled back on failure. Use batch() for atomic operations.',
-                ['connection' => $this->getName()]
-            );
-        }
+        $this->transactionModeCaller = 'DB::transaction()';
 
-        return parent::transaction($callback, $attempts);
+        try {
+            return parent::transaction($callback, $attempts);
+        } finally {
+            $this->transactionModeCaller = null;
+        }
     }
 
     /**
@@ -105,7 +107,7 @@ class D1Connection extends SQLiteConnection
      */
     protected function executeBeginTransactionStatement(): void
     {
-        $this->applyTransactionMode('DB::beginTransaction()');
+        $this->applyTransactionMode($this->transactionModeCaller ?? 'DB::beginTransaction()');
     }
 
     /**
@@ -120,7 +122,7 @@ class D1Connection extends SQLiteConnection
      */
     public function commit(): void
     {
-        $this->applyTransactionMode('DB::commit()');
+        $this->applyTransactionMode($this->transactionModeCaller ?? 'DB::commit()');
 
         parent::commit();
     }
@@ -147,7 +149,7 @@ class D1Connection extends SQLiteConnection
      */
     protected function performRollBack($toLevel): void
     {
-        $this->applyTransactionMode('DB::rollBack()');
+        $this->applyTransactionMode($this->transactionModeCaller ?? 'DB::rollBack()');
     }
 
     /**
@@ -172,11 +174,15 @@ class D1Connection extends SQLiteConnection
         }
 
         if ($mode === 'log') {
-            Log::warning(
-                "D1: {$caller} is a no-op — D1 is stateless over HTTP. "
-                .'Queries execute immediately and cannot be rolled back. Use batch() for atomic operations.',
-                ['connection' => $this->getName()]
-            );
+            if (!$this->transactionModeWarningLogged) {
+                Log::warning(
+                    "D1: {$caller} is a no-op — D1 is stateless over HTTP. "
+                    .'Queries execute immediately and cannot be rolled back. Use batch() for atomic operations.',
+                    ['connection' => $this->getName()]
+                );
+
+                $this->transactionModeWarningLogged = true;
+            }
         }
     }
 
