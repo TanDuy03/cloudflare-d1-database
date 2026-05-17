@@ -145,3 +145,21 @@ test('batch normalizes statements without params key', function () {
     expect($results)->toHaveCount(1);
     $mockClient->assertSentCount(1);
 });
+
+// ─── malformed JSON normalization (Issue #13) ─────────────────────────
+
+test('batch wraps malformed JSON response into D1BatchException', function () {
+    $connection = createBatchConnection();
+    $connector = $connection->d1();
+
+    // Saloon's MockResponse accepts a string body; Response::json() will
+    // throw JsonException when the body isn't valid JSON.
+    $mockClient = new MockClient([
+        D1BatchQueryRequest::class => MockResponse::make('<html>not json</html>', 200),
+    ]);
+    $connector->withMockClient($mockClient);
+
+    expect(fn () => $connection->batch([
+        ['sql' => 'SELECT 1', 'params' => []],
+    ]))->toThrow(D1BatchException::class, 'Malformed JSON response');
+});
