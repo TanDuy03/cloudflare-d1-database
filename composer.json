@@ -26,6 +26,8 @@
   ],
   "require": {
     "php": "^8.2",
+    "ext-pdo": "*",
+    "ext-pdo_sqlite": "*",
     "illuminate/cache": "^10.0|^11.0|^12.0|^13.0",
     "illuminate/contracts": "^10.0|^11.0|^12.0|^13.0",
     "illuminate/database": "^10.0|^11.0|^12.0|^13.0",
@@ -59,9 +61,6 @@
       "pestphp/pest-plugin": true
     },
     "sort-packages": true
-  },
-  "suggest": {
-    "ext-pdo": "Required to extend the PDO driver for Cloudflare D1."
   },
   "extra": {
     "laravel": {
