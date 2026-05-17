@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Ntanduy\CFD1\D1\Exceptions;
 
 /**
- * Thrown when DB::transaction() is called on a D1 connection
+ * Thrown when transaction APIs are called on a D1 connection
  * with transaction_mode set to 'exception'.
  *
  * D1 is stateless over HTTP — real transactions are impossible.
