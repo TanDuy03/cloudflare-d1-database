@@ -58,6 +58,7 @@ async function authenticate(request: Request, env: Env): Promise<Response | null
 
 	const signature = request.headers.get("X-D1-Signature");
 	const timestamp = request.headers.get("X-D1-Timestamp");
+	const nonce = request.headers.get("X-D1-Nonce");
 
 	if (!signature && !timestamp) {
 		if (env.HMAC_REQUIRED === "true") {
@@ -66,8 +67,9 @@ async function authenticate(request: Request, env: Env): Promise<Response | null
 		return null;
 	}
 
-	if (!signature || !timestamp) {
-		return errorResponse(401, "Incomplete HMAC headers", 401);
+	// All three headers required together
+	if (!signature || !timestamp || !nonce) {
+		return errorResponse(401, "Incomplete HMAC headers (require X-D1-Signature, X-D1-Timestamp, X-D1-Nonce)", 401);
 	}
 
 	const now = Math.floor(Date.now() / 1000);
@@ -78,7 +80,7 @@ async function authenticate(request: Request, env: Env): Promise<Response | null
 	}
 
 	const body = await request.clone().text();
-	const expected = await computeHmac(`${timestamp}.${body}`, env.WORKER_SECRET);
+	const expected = await computeHmac(`${timestamp}.${nonce}.${body}`, env.WORKER_SECRET);
 	if (!timingSafeEqual(signature, expected)) {
 		return errorResponse(401, "Invalid HMAC signature", 401);
 	}
@@ -232,13 +234,14 @@ export default {
 			return json({ error: "Not found" }, 404);
 		}
 
-		const authError = await authenticate(request, env);
-		if (authError) return authError;
-
+		// Guard against oversized request bodies BEFORE auth reads the body
 		const contentLength = parseInt(request.headers.get("Content-Length") ?? "0", 10);
 		if (contentLength > MAX_BODY_BYTES) {
 			return errorResponse(413, `Request body too large (max ${MAX_BODY_BYTES} bytes)`, 413);
 		}
+
+		const authError = await authenticate(request, env);
+		if (authError) return authError;
 
 		switch (pathname) {
 			case "/query":
