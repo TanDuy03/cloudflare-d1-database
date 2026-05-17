@@ -177,9 +177,28 @@ class D1PdoStatement extends PDOStatement
         return $this->affectedRows;
     }
 
+    /**
+     * Determine if this query is a read-only SELECT for rowCount() purposes.
+     *
+     * Per PDO spec, rowCount() for SELECT returns 0 (implementation-defined).
+     * For mutations it returns affected rows. WITH (CTE) can end with either
+     * SELECT or INSERT/UPDATE/DELETE — we must classify correctly.
+     */
     protected function isSelectQuery(): bool
     {
-        return preg_match('/^\s*(SELECT|WITH)\b/i', $this->query) === 1;
+        // Pure SELECT is always a read query
+        if (preg_match('/^\s*SELECT\b/i', $this->query)) {
+            return true;
+        }
+
+        // WITH (CTE): only a select if it does NOT contain mutating keywords.
+        // Conservative: scans entire statement, may false-positive on string
+        // literals containing INSERT/UPDATE/DELETE — acceptable trade-off.
+        if (preg_match('/^\s*WITH\b/i', $this->query)) {
+            return !preg_match('/\b(INSERT|UPDATE|DELETE|REPLACE)\b/i', $this->query);
+        }
+
+        return false;
     }
 
     protected function rowsFromResponses(): array
