@@ -88,9 +88,8 @@ class D1Pdo extends PDO
      * WARNING: D1 is stateless — there is nothing to commit.
      * All queries execute immediately when issued.
      *
-     * Respects the connection's `transaction_mode` config when the connector
-     * provides access to it (via D1Pdo → connector → connection config).
-     * Falls back to silent no-op if config is not accessible.
+     * Transaction mode enforcement (exception/log/silent) is handled at
+     * the D1Connection level, which calls this no-op via parent::commit().
      */
     #[\ReturnTypeWillChange]
     public function commit(): bool
