@@ -131,7 +131,7 @@ async function computeHmac(message: string, secret: string): Promise<string> {
  * Authenticate the request.
  *
  * 1. Verify Bearer token (always required).
- * 2. If X-D1-Signature header is present, verify HMAC-SHA256(timestamp.body, secret).
+ * 2. If X-D1-Signature header is present, verify HMAC-SHA256(timestamp.nonce.body, secret).
  *    If absent, fall back to Bearer-only (backward compatible).
  * 3. Set HMAC_REQUIRED=true in Worker env to reject requests without HMAC.
  */
