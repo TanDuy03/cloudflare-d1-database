@@ -261,3 +261,30 @@ test('d1:info shows query test failure for unexpected response', function () {
         ->expectsOutputToContain('Query Test')
         ->assertSuccessful();
 });
+
+// ─── Issue #15: --strict flag exits non-zero when checks fail ─────────
+
+test('d1:info with --strict exits non-zero when any check fails', function () {
+    // The default test environment has no real CF credentials, so REST
+    // metadata fetch fails when credentials are present (token is set in
+    // the test config but the mock connector only handles D1QueryRequest).
+    // We force a fail by setting credentials so fetchRestMetadata() tries
+    // the API path and the mock has no matching handler → addFail() runs.
+    config()->set('database.connections.d1.auth.token', 'forced-token');
+    config()->set('database.connections.d1.auth.account_id', 'forced-account');
+
+    $this->artisan('d1:info', ['--strict' => true])
+        ->expectsOutputToContain('D1 Database Info')
+        ->assertFailed();
+});
+
+test('d1:info without --strict always exits successfully', function () {
+    // Without --strict, even when checks fail, the command exits 0
+    // (informational behavior, similar to `php artisan about`).
+    config()->set('database.connections.d1.auth.token', 'forced-token');
+    config()->set('database.connections.d1.auth.account_id', 'forced-account');
+
+    $this->artisan('d1:info')
+        ->expectsOutputToContain('D1 Database Info')
+        ->assertSuccessful();
+});
