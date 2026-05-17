@@ -401,11 +401,12 @@ describe("D1 Worker", () => {
 		async function fetchWithHmac(
 			path: string,
 			body: Record<string, unknown>,
-			options?: { timestamp?: string; signature?: string; skipTimestamp?: boolean; skipSignature?: boolean },
+			options?: { timestamp?: string; nonce?: string; signature?: string; skipTimestamp?: boolean; skipSignature?: boolean; skipNonce?: boolean },
 		): Promise<{ status: number; data: Record<string, unknown> }> {
 			const bodyStr = JSON.stringify(body);
 			const timestamp = options?.timestamp ?? String(Math.floor(Date.now() / 1000));
-			const signature = options?.signature ?? await computeHmac(`${timestamp}.${bodyStr}`, SECRET);
+			const nonce = options?.nonce ?? crypto.randomUUID().replace(/-/g, "");
+			const signature = options?.signature ?? await computeHmac(`${timestamp}.${nonce}.${bodyStr}`, SECRET);
 
 			const headers: Record<string, string> = {
 				"Content-Type": "application/json",
@@ -413,6 +414,7 @@ describe("D1 Worker", () => {
 			};
 			if (!options?.skipTimestamp) headers["X-D1-Timestamp"] = timestamp;
 			if (!options?.skipSignature) headers["X-D1-Signature"] = signature;
+			if (!options?.skipNonce) headers["X-D1-Nonce"] = nonce;
 
 			const response = await SELF.fetch(`https://worker${path}`, {
 				method: "POST",
@@ -466,6 +468,32 @@ describe("D1 Worker", () => {
 				bindings: [],
 			}, { skipSignature: true });
 			expect(status).toBe(401);
+			expect(data.success).toBe(false);
+		});
+
+		it("rejects request with missing X-D1-Nonce", async () => {
+			const { status, data } = await fetchWithHmac("/query", {
+				sql: "SELECT 1",
+				bindings: [],
+			}, { skipNonce: true });
+			expect(status).toBe(401);
+			expect(data.success).toBe(false);
+		});
+
+		it("rejects replayed nonce", async () => {
+			const nonce = "fixed-nonce-for-replay-test";
+			const { status: s1 } = await fetchWithHmac("/query", {
+				sql: "SELECT 1",
+				bindings: [],
+			}, { nonce });
+			expect(s1).toBe(200);
+
+			// Same nonce again → replay detected
+			const { status: s2, data } = await fetchWithHmac("/query", {
+				sql: "SELECT 1",
+				bindings: [],
+			}, { nonce });
+			expect(s2).toBe(401);
 			expect(data.success).toBe(false);
 		});
 	});
