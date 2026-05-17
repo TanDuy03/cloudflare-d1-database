@@ -3,7 +3,8 @@
  *
  * This Worker exposes D1 database operations to the Laravel package's Worker driver.
  * All mutating endpoints require Bearer token authentication via WORKER_SECRET.
- * Optional HMAC request signing adds replay protection (see CF_D1_HMAC config).
+ * Optional HMAC request signing adds body-tamper protection and per-isolate
+ * replay detection (see CF_D1_HMAC config).
  *
  * Endpoints:
  *   GET  /health  — Health check (no auth)
@@ -44,6 +45,26 @@ interface BatchBody {
 interface ExecBody {
 	sql: string;
 }
+
+// ─── Replay Protection ───────────────────────────────────────────────
+
+/**
+ * Per-isolate nonce tracker for HMAC replay detection.
+ *
+ * Stores seen HMAC signatures with their timestamps. When a signed request
+ * arrives, we check if the same signature was already used — if so, the
+ * request is rejected as a replay.
+ *
+ * Limitations:
+ *   - Resets on Worker isolate cold start (signatures are not persisted)
+ *   - Each Cloudflare colo has separate isolates, so a replay to a
+ *     different colo may succeed
+ *   - For stricter guarantees, use D1 or Durable Objects for nonce storage
+ *
+ * Old entries are pruned on each authenticated request to prevent unbounded
+ * memory growth.
+ */
+const usedSignatures = new Map<string, number>();
 
 // ─── Helpers ──────────────────────────────────────────────────────────
 
@@ -152,6 +173,25 @@ async function authenticate(request: Request, env: Env): Promise<Response | null
 		return errorResponse(401, "Invalid HMAC signature", 401);
 	}
 
+	// ─── Replay detection ────────────────────────────────────────────
+	// Reject if this exact signature was already seen (within window).
+	// This prevents captured requests from being replayed.
+	if (usedSignatures.has(signature)) {
+		return errorResponse(401, "HMAC signature already used (replay detected)", 401);
+	}
+
+	// Store signature for replay detection
+	usedSignatures.set(signature, ts);
+
+	// Prune expired signatures to prevent unbounded memory growth.
+	// Only signatures older than the HMAC window are removed — they
+	// would be rejected by timestamp validation anyway.
+	for (const [sig, sigTs] of usedSignatures) {
+		if (Math.abs(now - sigTs) > window) {
+			usedSignatures.delete(sig);
+		}
+	}
+
 	return null;
 }
 
@@ -196,11 +236,41 @@ async function handleQuery(request: Request, env: Env): Promise<Response> {
 	}
 }
 
+/** D1 batch limit — max statements per batch call */
+const D1_BATCH_LIMIT = 100;
+
 async function handleBatch(request: Request, env: Env): Promise<Response> {
 	const body = (await request.json()) as BatchBody;
 
 	if (!Array.isArray(body.statements) || body.statements.length === 0) {
 		return errorResponse(400, 'Missing or invalid "statements" field', 400);
+	}
+
+	if (body.statements.length > D1_BATCH_LIMIT) {
+		return errorResponse(
+			400,
+			`Batch exceeds D1 limit of ${D1_BATCH_LIMIT} statements (received ${body.statements.length})`,
+			400,
+		);
+	}
+
+	// Validate each statement has proper shape before preparing
+	for (let i = 0; i < body.statements.length; i++) {
+		const s = body.statements[i];
+		if (typeof s.sql !== "string" || s.sql.length === 0) {
+			return errorResponse(
+				400,
+				`Statement [${i}]: missing or invalid "sql" field`,
+				400,
+			);
+		}
+		if (s.bindings !== undefined && !Array.isArray(s.bindings)) {
+			return errorResponse(
+				400,
+				`Statement [${i}]: "bindings" must be an array`,
+				400,
+			);
+		}
 	}
 
 	try {
