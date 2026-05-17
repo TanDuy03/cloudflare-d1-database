@@ -48,6 +48,12 @@ async function computeHmac(message: string, secret: string): Promise<string> {
 		.join("");
 }
 
+/**
+ * Per-isolate nonce tracking for replay detection.
+ * Mirrors production Worker/src/index.ts behavior.
+ */
+const usedNonces = new Map<string, number>();
+
 async function authenticate(request: Request, env: Env): Promise<Response | null> {
 	const header = request.headers.get("Authorization") ?? "";
 	const token = header.startsWith("Bearer ") ? header.slice(7) : "";
@@ -83,6 +89,22 @@ async function authenticate(request: Request, env: Env): Promise<Response | null
 	const expected = await computeHmac(`${timestamp}.${nonce}.${body}`, env.WORKER_SECRET);
 	if (!timingSafeEqual(signature, expected)) {
 		return errorResponse(401, "Invalid HMAC signature", 401);
+	}
+
+	// ─── Replay detection ────────────────────────────────────────────
+	// Reject if this nonce was already seen (within window).
+	if (usedNonces.has(nonce)) {
+		return errorResponse(401, "HMAC nonce already used (replay detected)", 401);
+	}
+
+	// Store nonce for replay detection
+	usedNonces.set(nonce, ts);
+
+	// Prune expired nonces to prevent unbounded memory growth.
+	for (const [n, nTs] of usedNonces) {
+		if (Math.abs(now - nTs) > window) {
+			usedNonces.delete(n);
+		}
 	}
 
 	return null;
