@@ -33,8 +33,10 @@ class CloudflareWorkerConnector extends CloudflareConnector
     /**
      * Register HMAC signing middleware when enabled.
      *
-     * Adds X-D1-Timestamp and X-D1-Signature headers to every request.
-     * The signature is HMAC-SHA256(timestamp.body, workerSecret).
+     * Adds X-D1-Timestamp, X-D1-Nonce, and X-D1-Signature headers to every request.
+     * The signature is HMAC-SHA256(timestamp.nonce.body, workerSecret).
+     * The nonce ensures two identical requests within the same second produce
+     * different signatures, preventing false replay-detection rejections.
      */
     public function boot(PendingRequest $pendingRequest): void
     {
@@ -44,10 +46,12 @@ class CloudflareWorkerConnector extends CloudflareConnector
 
         $pendingRequest->middleware()->onRequest(function (PendingRequest $request): void {
             $timestamp = (string) time();
+            $nonce = bin2hex(random_bytes(16));
             $body = (string) $request->body();
-            $signature = hash_hmac('sha256', "{$timestamp}.{$body}", $this->workerSecret);
+            $signature = hash_hmac('sha256', "{$timestamp}.{$nonce}.{$body}", $this->workerSecret);
 
             $request->headers()->add('X-D1-Timestamp', $timestamp);
+            $request->headers()->add('X-D1-Nonce', $nonce);
             $request->headers()->add('X-D1-Signature', $signature);
         });
     }
@@ -92,6 +96,19 @@ class CloudflareWorkerConnector extends CloudflareConnector
     public function endSession(): void
     {
         $this->sessionMode = null;
+        $this->sessionBookmark = null;
+    }
+
+    /**
+     * Reset session state between requests in long-lived runtimes.
+     *
+     * Call this in Octane/Swoole/RoadRunner request lifecycle hooks
+     * to prevent bookmark leaking from one request to the next.
+     * Unlike endSession(), this preserves the configured session mode
+     * while clearing only the per-request bookmark.
+     */
+    public function resetSessionState(): void
+    {
         $this->sessionBookmark = null;
     }
 
