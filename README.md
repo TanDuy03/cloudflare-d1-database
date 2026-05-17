@@ -122,7 +122,7 @@ database_id = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
 
 #### HMAC Request Signing (Optional)
 
-For additional security, enable HMAC request signing. Each request gets a unique signature that prevents body tampering and provides per-isolate replay detection (replayed signatures within the timestamp window are rejected).
+For additional security, enable HMAC request signing. Each request gets a unique signature that prevents body tampering and provides per-isolate replay detection.
 
 **Laravel `.env`:**
 
@@ -137,7 +137,13 @@ npx wrangler secret put HMAC_REQUIRED        # Set to "true" to reject unsigned 
 npx wrangler secret put HMAC_WINDOW_SECONDS  # Replay window (default: 300 = 5 minutes)
 ```
 
-When enabled, the PHP driver adds `X-D1-Timestamp` and `X-D1-Signature` headers (HMAC-SHA256 of timestamp + body). The Worker verifies these when present, rejects expired timestamps, and tracks seen signatures to prevent replay within the same isolate. Without `HMAC_REQUIRED=true`, unsigned requests still work (backward compatible).
+When enabled, the PHP driver adds three headers to every request:
+
+- `X-D1-Timestamp` — current Unix timestamp
+- `X-D1-Nonce` — random 32-character hex string (unique per request)
+- `X-D1-Signature` — HMAC-SHA256 of `timestamp.nonce.body` using the shared secret
+
+The Worker verifies these when present, rejects expired timestamps, and tracks seen nonces to prevent replay within the same isolate. The per-request nonce ensures that two identical requests within the same second produce different signatures and are not falsely rejected as replays. Without `HMAC_REQUIRED=true`, unsigned requests still work (backward compatible).
 
 > **Note:** Replay detection is per-isolate — it resets on Worker cold starts and is separate per Cloudflare colo. For stricter guarantees, consider using Durable Objects for global nonce storage.
 
