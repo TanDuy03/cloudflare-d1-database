@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Database\Events\TransactionBeginning;
+use Illuminate\Support\Facades\Log;
 use Mockery\MockInterface;
 use Ntanduy\CFD1\Connectors\CloudflareD1Connector;
 use Ntanduy\CFD1\D1\D1Connection;
@@ -159,5 +160,59 @@ test('DB::transaction closure executes without throwing', function () {
     });
 
     expect($result)->toBe('success');
+    expect($connection->transactionLevel())->toBe(0);
+});
+
+test('transaction_mode log warns once for DB transaction lifecycle', function () {
+    $connection = createD1Connection(['transaction_mode' => 'log']);
+
+    /** @var Dispatcher&MockInterface $dispatcher */
+    $dispatcher = Mockery::mock(Dispatcher::class);
+    $dispatcher->shouldReceive('dispatch');
+
+    $connection->setEventDispatcher($dispatcher);
+
+    $logger = Mockery::mock();
+    $logger->shouldReceive('warning')
+        ->once()
+        ->withArgs(fn (string $message, array $context) => str_contains($message, 'DB::transaction()')
+            && $context === ['connection' => 'd1']);
+
+    Log::swap($logger);
+
+    try {
+        $result = $connection->transaction(fn () => 'success');
+    } finally {
+        Log::clearResolvedInstance('log');
+    }
+
+    expect($result)->toBe('success');
+    expect($connection->transactionLevel())->toBe(0);
+});
+
+test('transaction_mode log warns once for manual transaction lifecycle', function () {
+    $connection = createD1Connection(['transaction_mode' => 'log']);
+
+    /** @var Dispatcher&MockInterface $dispatcher */
+    $dispatcher = Mockery::mock(Dispatcher::class);
+    $dispatcher->shouldReceive('dispatch');
+
+    $connection->setEventDispatcher($dispatcher);
+
+    $logger = Mockery::mock();
+    $logger->shouldReceive('warning')
+        ->once()
+        ->withArgs(fn (string $message, array $context) => str_contains($message, 'DB::beginTransaction()')
+            && $context === ['connection' => 'd1']);
+
+    Log::swap($logger);
+
+    try {
+        $connection->beginTransaction();
+        $connection->commit();
+    } finally {
+        Log::clearResolvedInstance('log');
+    }
+
     expect($connection->transactionLevel())->toBe(0);
 });
