@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ntanduy\CFD1\Console\Commands;
 
+use GuzzleHttp\Psr7\Utils;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Http;
 use Ntanduy\CFD1\Connectors\CloudflareD1Connector;
@@ -36,15 +37,22 @@ class D1ImportCommand extends Command
             return self::FAILURE;
         }
 
-        $fileContents = file_get_contents($filePath);
-        if ($fileContents === false || $fileContents === '') {
+        $fileSize = filesize($filePath);
+        if ($fileSize === false || $fileSize === 0) {
             $this->error('File is empty or unreadable.');
 
             return self::FAILURE;
         }
 
-        $fileSizeKb = round(strlen($fileContents) / 1024, 1);
-        $etag = md5($fileContents);
+        // Compute MD5 by streaming the file (avoids loading whole file in memory).
+        $etag = md5_file($filePath);
+        if ($etag === false) {
+            $this->error('Failed to compute MD5 of file.');
+
+            return self::FAILURE;
+        }
+
+        $fileSizeKb = round($fileSize / 1024, 1);
 
         // ── Validate connection config ────────────────────────────
         $config = config("database.connections.{$connectionName}", []);
@@ -88,8 +96,8 @@ class D1ImportCommand extends Command
                 return self::FAILURE;
             }
 
-            // Phase 2: Upload SQL file to presigned URL
-            if (!$this->uploadFile($uploadUrl, $fileContents)) {
+            // Phase 2: Upload SQL file to presigned URL (streamed)
+            if (!$this->uploadFile($uploadUrl, $filePath)) {
                 return self::FAILURE;
             }
 
@@ -152,14 +160,35 @@ class D1ImportCommand extends Command
 
     /**
      * Phase 2: Upload the SQL file to the presigned R2 URL.
+     *
+     * Streams the file from disk to avoid loading large dumps into memory.
      */
-    private function uploadFile(string $uploadUrl, string $fileContents): bool
+    private function uploadFile(string $uploadUrl, string $filePath): bool
     {
         $this->line('  <fg=cyan>Uploading SQL file...</>');
 
-        $response = Http::timeout(300)
-            ->withBody($fileContents, 'application/octet-stream')
-            ->put($uploadUrl);
+        $stream = fopen($filePath, 'rb');
+        if ($stream === false) {
+            $this->error("Failed to open file for upload: {$filePath}");
+
+            return false;
+        }
+
+        try {
+            // Wrap the resource in a PSR-7 stream so Laravel's Http client streams
+            // the body instead of loading the full file into memory.
+            $body = Utils::streamFor($stream);
+
+            $response = Http::timeout(300)
+                ->withBody($body, 'application/octet-stream')
+                ->put($uploadUrl);
+        } finally {
+            // The PSR-7 stream wrapper takes ownership of the resource; close
+            // only if it hasn't already been detached/closed.
+            if (is_resource($stream)) {
+                fclose($stream);
+            }
+        }
 
         if (!$response->successful()) {
             $this->error("Upload failed: HTTP {$response->status()}");
