@@ -221,6 +221,10 @@ abstract class CloudflareConnector extends Connector implements D1ConnectorInter
      *
      * The callback receives execution time in **milliseconds** (matching the
      * documented `$timeMs` parameter name and Laravel's DB query logger).
+     *
+     * If the response body is malformed JSON, the logger is still invoked
+     * with success=false and the JsonException message — it never leaks
+     * an untyped exception to the caller.
      */
     protected function logQuery(string $query, array $params, float $startTime, Response $response): void
     {
@@ -230,13 +234,24 @@ abstract class CloudflareConnector extends Connector implements D1ConnectorInter
 
         // Convert seconds → milliseconds to match the documented $timeMs name.
         $timeMs = (microtime(true) - $startTime) * 1000;
-        $success = !$response->failed() && $response->json('success');
 
-        $error = null;
-        if (!$success) {
+        try {
+            $success = !$response->failed() && $response->json('success');
+
+            $error = null;
+            if (!$success) {
+                $error = [
+                    'code' => $response->json('errors.0.code'),
+                    'message' => $response->json('errors.0.message', 'Unknown error'),
+                    'status' => $response->status(),
+                ];
+            }
+        } catch (\JsonException $e) {
+            // Malformed JSON — log as failure without leaking the exception.
+            $success = false;
             $error = [
-                'code' => $response->json('errors.0.code'),
-                'message' => $response->json('errors.0.message', 'Unknown error'),
+                'code' => null,
+                'message' => 'Malformed JSON response: '.$e->getMessage(),
                 'status' => $response->status(),
             ];
         }
