@@ -22,6 +22,29 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Transaction Behavior
+    |--------------------------------------------------------------------------
+    |
+    | D1 is stateless over HTTP — real BEGIN/COMMIT/ROLLBACK are impossible.
+    | DB::transaction() runs the closure but provides no atomicity or rollback.
+    |
+    | This setting controls how the driver handles DB::transaction() calls:
+    |
+    |   'silent'    — (default) no-op, backward compatible. The closure runs
+    |                 but no warning is emitted.
+    |   'log'       — logs a warning via Log::warning() when DB::transaction()
+    |                 is called. Useful for detecting unintentional usage.
+    |   'exception' — throws D1TransactionException immediately. Use this in
+    |                 development/staging to catch transaction usage early.
+    |
+    | For atomic multi-statement execution, use batch() instead:
+    |   DB::connection('d1')->batch([...]);
+    |
+    */
+    'transaction_mode' => env('CF_D1_TRANSACTION_MODE', 'silent'),
+
+    /*
+    |--------------------------------------------------------------------------
     | D1 Sessions / Read Replication (Worker driver only)
     |--------------------------------------------------------------------------
     |
