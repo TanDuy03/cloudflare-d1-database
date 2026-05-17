@@ -28,6 +28,7 @@
     "php": "^8.2",
     "ext-pdo": "*",
     "ext-pdo_sqlite": "*",
+    "guzzlehttp/psr7": "^2.4",
     "illuminate/cache": "^10.0|^11.0|^12.0|^13.0",
     "illuminate/contracts": "^10.0|^11.0|^12.0|^13.0",
     "illuminate/database": "^10.0|^11.0|^12.0|^13.0",
