@@ -51,12 +51,14 @@ interface ExecBody {
 /**
  * Per-isolate nonce tracker for HMAC replay detection.
  *
- * Stores seen HMAC signatures with their timestamps. When a signed request
- * arrives, we check if the same signature was already used — if so, the
- * request is rejected as a replay.
+ * Stores seen nonces with their timestamps. When a signed request arrives,
+ * we check if the same nonce was already used — if so, the request is
+ * rejected as a replay. Using a nonce (instead of the full signature) means
+ * two identical requests within the same second are allowed as long as they
+ * have different nonces.
  *
  * Limitations:
- *   - Resets on Worker isolate cold start (signatures are not persisted)
+ *   - Resets on Worker isolate cold start (nonces are not persisted)
  *   - Each Cloudflare colo has separate isolates, so a replay to a
  *     different colo may succeed
  *   - For stricter guarantees, use D1 or Durable Objects for nonce storage
@@ -64,7 +66,7 @@ interface ExecBody {
  * Old entries are pruned on each authenticated request to prevent unbounded
  * memory growth.
  */
-const usedSignatures = new Map<string, number>();
+const usedNonces = new Map<string, number>();
 
 // ─── Helpers ──────────────────────────────────────────────────────────
 
@@ -144,6 +146,7 @@ async function authenticate(request: Request, env: Env): Promise<Response | null
 	// HMAC verification
 	const signature = request.headers.get("X-D1-Signature");
 	const timestamp = request.headers.get("X-D1-Timestamp");
+	const nonce = request.headers.get("X-D1-Nonce");
 
 	if (!signature && !timestamp) {
 		// No HMAC headers — reject if required, otherwise accept
@@ -153,9 +156,9 @@ async function authenticate(request: Request, env: Env): Promise<Response | null
 		return null;
 	}
 
-	// Partial HMAC headers = invalid
-	if (!signature || !timestamp) {
-		return errorResponse(401, "Incomplete HMAC headers", 401);
+	// Partial HMAC headers = invalid (all three are required together)
+	if (!signature || !timestamp || !nonce) {
+		return errorResponse(401, "Incomplete HMAC headers (require X-D1-Signature, X-D1-Timestamp, X-D1-Nonce)", 401);
 	}
 
 	// Validate timestamp window (default 300s = 5 minutes)
@@ -166,29 +169,28 @@ async function authenticate(request: Request, env: Env): Promise<Response | null
 		return errorResponse(401, "HMAC timestamp expired", 401);
 	}
 
-	// Verify signature against body
+	// Verify signature against timestamp.nonce.body
 	const body = await request.clone().text();
-	const expected = await computeHmac(`${timestamp}.${body}`, env.WORKER_SECRET);
+	const expected = await computeHmac(`${timestamp}.${nonce}.${body}`, env.WORKER_SECRET);
 	if (!timingSafeEqual(signature, expected)) {
 		return errorResponse(401, "Invalid HMAC signature", 401);
 	}
 
 	// ─── Replay detection ────────────────────────────────────────────
-	// Reject if this exact signature was already seen (within window).
-	// This prevents captured requests from being replayed.
-	if (usedSignatures.has(signature)) {
-		return errorResponse(401, "HMAC signature already used (replay detected)", 401);
+	// Reject if this nonce was already seen (within window).
+	// Using nonce instead of signature means two identical requests with
+	// different nonces are allowed (legitimate duplicate requests).
+	if (usedNonces.has(nonce)) {
+		return errorResponse(401, "HMAC nonce already used (replay detected)", 401);
 	}
 
-	// Store signature for replay detection
-	usedSignatures.set(signature, ts);
+	// Store nonce for replay detection
+	usedNonces.set(nonce, ts);
 
-	// Prune expired signatures to prevent unbounded memory growth.
-	// Only signatures older than the HMAC window are removed — they
-	// would be rejected by timestamp validation anyway.
-	for (const [sig, sigTs] of usedSignatures) {
-		if (Math.abs(now - sigTs) > window) {
-			usedSignatures.delete(sig);
+	// Prune expired nonces to prevent unbounded memory growth.
+	for (const [n, nTs] of usedNonces) {
+		if (Math.abs(now - nTs) > window) {
+			usedNonces.delete(n);
 		}
 	}
 
@@ -270,6 +272,13 @@ async function handleBatch(request: Request, env: Env): Promise<Response> {
 	// Validate each statement has proper shape before preparing
 	for (let i = 0; i < body.statements.length; i++) {
 		const s = body.statements[i];
+		if (s === null || typeof s !== "object") {
+			return errorResponse(
+				400,
+				`Statement [${i}]: must be an object with "sql" field`,
+				400,
+			);
+		}
 		if (typeof s.sql !== "string" || s.sql.length === 0) {
 			return errorResponse(
 				400,
@@ -393,14 +402,15 @@ export default {
 			return json({ error: "Method not allowed" }, 405);
 		}
 
-		const authError = await authenticate(request, env);
-		if (authError) return authError;
-
-		// Guard against oversized request bodies
+		// Guard against oversized request bodies BEFORE auth reads the body.
+		// This prevents large payloads from consuming HMAC hash work.
 		const contentLength = parseInt(request.headers.get("Content-Length") ?? "0", 10);
 		if (contentLength > MAX_BODY_BYTES) {
 			return errorResponse(413, `Request body too large (max ${MAX_BODY_BYTES} bytes)`, 413);
 		}
+
+		const authError = await authenticate(request, env);
+		if (authError) return authError;
 
 		switch (pathname) {
 			case "/query":
