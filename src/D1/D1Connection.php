@@ -4,11 +4,14 @@ declare(strict_types=1);
 
 namespace Ntanduy\CFD1\D1;
 
+use Closure;
 use Illuminate\Database\SQLiteConnection;
+use Illuminate\Support\Facades\Log;
 use Ntanduy\CFD1\Connectors\CloudflareConnector;
 use Ntanduy\CFD1\Connectors\CloudflareWorkerConnector;
 use Ntanduy\CFD1\Contracts\D1ConnectorInterface;
 use Ntanduy\CFD1\D1\Exceptions\D1BatchException;
+use Ntanduy\CFD1\D1\Exceptions\D1TransactionException;
 use Ntanduy\CFD1\D1\Exceptions\D1UnsupportedFeatureException;
 use Ntanduy\CFD1\D1\Pdo\D1Pdo;
 
@@ -49,6 +52,51 @@ class D1Connection extends SQLiteConnection
     protected function getDefaultSchemaGrammar()
     {
         return new D1SchemaGrammar($this);
+    }
+
+    /**
+     * Execute a Closure within a "transaction".
+     *
+     * D1 is stateless over HTTP — real BEGIN/COMMIT/ROLLBACK are impossible.
+     * This override adds configurable behavior so developers are aware:
+     *
+     *   - 'silent'    (default) — no-op, backward compatible
+     *   - 'log'       — logs a warning once per request
+     *   - 'exception' — throws D1TransactionException immediately
+     *
+     * Set via config: `transaction_mode` in your D1 connection config,
+     * or env: CF_D1_TRANSACTION_MODE=log
+     *
+     * For atomic multi-statement execution, use batch() instead:
+     *   DB::connection('d1')->batch([...]);
+     *
+     * @param  \Closure  $callback
+     * @param  int  $attempts
+     * @return mixed
+     *
+     * @throws D1TransactionException When transaction_mode is 'exception'
+     */
+    public function transaction(Closure $callback, $attempts = 1): mixed
+    {
+        $mode = $this->getConfig('transaction_mode') ?? 'silent';
+
+        if ($mode === 'exception') {
+            throw new D1TransactionException(
+                'DB::transaction() is not supported on D1 — it provides no atomicity or rollback. '
+                .'Use DB::connection(\'d1\')->batch() for atomic multi-statement execution. '
+                .'Set transaction_mode to "silent" or "log" to suppress this exception.'
+            );
+        }
+
+        if ($mode === 'log') {
+            Log::warning(
+                'D1: DB::transaction() provides no atomicity — each query executes immediately '
+                .'and cannot be rolled back on failure. Use batch() for atomic operations.',
+                ['connection' => $this->getName()]
+            );
+        }
+
+        return parent::transaction($callback, $attempts);
     }
 
     /**
@@ -97,6 +145,13 @@ class D1Connection extends SQLiteConnection
     }
 
     /**
+     * Maximum number of statements allowed in a single D1 batch.
+     *
+     * @see https://developers.cloudflare.com/d1/platform/limits/
+     */
+    public const D1_BATCH_LIMIT = 100;
+
+    /**
      * Execute a batch of SQL statements in a single API call.
      *
      * All statements execute atomically on D1 — if any fails, none are applied.
@@ -104,6 +159,7 @@ class D1Connection extends SQLiteConnection
      * @param  array<int, array{sql: string, params?: array}>  $statements
      * @return array<int, array> Array of result sets, one per statement
      *
+     * @throws \InvalidArgumentException If batch exceeds D1's 100-statement limit
      * @throws D1BatchException If any statement in the batch fails
      */
     public function batch(array $statements): array
@@ -112,13 +168,25 @@ class D1Connection extends SQLiteConnection
             return [];
         }
 
+        $count = count($statements);
+        if ($count > self::D1_BATCH_LIMIT) {
+            throw new \InvalidArgumentException(
+                "D1 batch limit is ".self::D1_BATCH_LIMIT." statements, but {$count} were given. "
+                .'Use bulkInsert() for large datasets (it chunks automatically) '
+                .'or split your batch into smaller groups.'
+            );
+        }
+
         // Normalize: ensure every statement has a 'params' key
         $normalized = array_map(fn (array $stmt) => [
             'sql' => $stmt['sql'],
             'params' => $stmt['params'] ?? [],
         ], $statements);
 
-        $response = $this->connector->databaseBatch($normalized);
+        // Never retry batches — they can contain mutating statements (INSERT,
+        // UPDATE, DELETE). Retrying after timeout/5xx risks duplicate writes
+        // because D1 may have already committed the batch server-side.
+        $response = $this->connector->databaseBatch($normalized, retry: false);
 
         $body = $response->json();
 
