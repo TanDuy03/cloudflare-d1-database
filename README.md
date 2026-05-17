@@ -122,7 +122,7 @@ database_id = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
 
 #### HMAC Request Signing (Optional)
 
-For additional security, enable HMAC request signing. Each request gets a unique signature that prevents replay attacks and body tampering.
+For additional security, enable HMAC request signing. Each request gets a unique signature that prevents body tampering and provides per-isolate replay detection (replayed signatures within the timestamp window are rejected).
 
 **Laravel `.env`:**
 
@@ -137,7 +137,9 @@ npx wrangler secret put HMAC_REQUIRED        # Set to "true" to reject unsigned 
 npx wrangler secret put HMAC_WINDOW_SECONDS  # Replay window (default: 300 = 5 minutes)
 ```
 
-When enabled, the PHP driver adds `X-D1-Timestamp` and `X-D1-Signature` headers (HMAC-SHA256 of timestamp + body). The Worker verifies these when present. Without `HMAC_REQUIRED=true`, unsigned requests still work (backward compatible).
+When enabled, the PHP driver adds `X-D1-Timestamp` and `X-D1-Signature` headers (HMAC-SHA256 of timestamp + body). The Worker verifies these when present, rejects expired timestamps, and tracks seen signatures to prevent replay within the same isolate. Without `HMAC_REQUIRED=true`, unsigned requests still work (backward compatible).
+
+> **Note:** Replay detection is per-isolate — it resets on Worker cold starts and is separate per Cloudflare colo. For stricter guarantees, consider using Durable Objects for global nonce storage.
 
 #### Worker Endpoints
 
@@ -670,7 +672,7 @@ Instead of publishing the config, you can add the connection directly to `config
 | `auth.account_id`    | —                                      | Cloudflare Account ID (REST driver only)                                    |
 | `worker_url`         | —                                      | Your Worker URL (Worker driver only)                                        |
 | `worker_secret`      | —                                      | Shared secret for Worker auth (Worker driver only)                          |
-| `hmac`               | `false`                                | Enable HMAC request signing for replay protection (Worker driver only)      |
+| `hmac`               | `false`                                | Enable HMAC request signing for body-tamper protection and replay detection (Worker driver only) |
 | `timeout`            | `10`                                   | HTTP request timeout in seconds                                             |
 | `connect_timeout`    | `5`                                    | HTTP connection timeout in seconds                                          |
 | `retries`            | `2`                                    | Max retry attempts on 5xx/429 errors                                        |
