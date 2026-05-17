@@ -683,7 +683,7 @@ Instead of publishing the config, you can add the connection directly to `config
 | `connect_timeout`    | `5`                                    | HTTP connection timeout in seconds                                          |
 | `retries`            | `2`                                    | Max retry attempts on 5xx/429 errors                                        |
 | `retry_delay`        | `100`                                  | Base delay between retries in milliseconds                                  |
-| `transaction_mode`       | `silent`                           | How `DB::transaction()` is handled: `silent` (no-op), `log` (warn), `exception` (throw) |
+| `transaction_mode`       | `silent`                           | How transaction APIs are handled: `silent` (no-op), `log` (warn once), `exception` (throw) |
 | `session.enabled`        | `false`                            | Enable D1 sessions for read replication (Worker driver only)                |
 | `session.mode`           | `first-unconstrained`              | Session mode: `first-primary` or `first-unconstrained`                      |
 | `read_write_splitting.enabled`    | `false`                   | Route SELECT to read replicas, writes to primary (Worker driver only)       |
@@ -738,6 +738,7 @@ CF_D1_CB_CACHE_DRIVER=file
 
   - `DB::transaction(Closure)` **will execute the closure**, but provides **no atomicity** — each query runs immediately and cannot be rolled back on failure.
   - `DB::transaction(Closure, attempts: N)` retries the closure on any exception, but without real deadlock detection or isolation.
+  - Manual `beginTransaction()`, `commit()`, and `rollBack()` calls are also no-ops. `transaction_mode=log` warns once per connection/request; `transaction_mode=exception` throws immediately.
   - For atomic multi-statement execution, use **`batch()`** which leverages D1's native batch API:
 
     ```php
