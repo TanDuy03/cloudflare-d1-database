@@ -135,6 +135,42 @@ async function handleBatch(request: Request, env: Env): Promise<Response> {
 		return errorResponse(400, 'Missing or invalid "statements" field', 400);
 	}
 
+	// D1 batch limit — match production Worker behavior
+	const D1_BATCH_LIMIT = 100;
+	if (body.statements.length > D1_BATCH_LIMIT) {
+		return errorResponse(
+			400,
+			`Batch exceeds D1 limit of ${D1_BATCH_LIMIT} statements (received ${body.statements.length})`,
+			400,
+		);
+	}
+
+	// Validate each statement has proper shape before preparing
+	for (let i = 0; i < body.statements.length; i++) {
+		const s = body.statements[i];
+		if (s === null || typeof s !== "object") {
+			return errorResponse(
+				400,
+				`Statement [${i}]: must be an object with "sql" field`,
+				400,
+			);
+		}
+		if (typeof s.sql !== "string" || s.sql.length === 0) {
+			return errorResponse(
+				400,
+				`Statement [${i}]: missing or invalid "sql" field`,
+				400,
+			);
+		}
+		if (s.bindings !== undefined && !Array.isArray(s.bindings)) {
+			return errorResponse(
+				400,
+				`Statement [${i}]: "bindings" must be an array`,
+				400,
+			);
+		}
+	}
+
 	try {
 		const stmts = body.statements.map((s) =>
 			env.DB1.prepare(s.sql).bind(...(s.bindings ?? [])),
