@@ -70,14 +70,11 @@ class D1SchemaDumpCommand extends Command
                 return self::FAILURE;
             }
 
-            $sql = $this->downloadDump($signedUrl);
+            $outputPath = $this->resolveOutputPath($connectionName);
 
-            if ($sql === null) {
+            if (!$this->downloadDumpToFile($signedUrl, $outputPath)) {
                 return self::FAILURE;
             }
-
-            $outputPath = $this->resolveOutputPath($connectionName);
-            $this->saveDump($outputPath, $sql);
 
             $this->newLine();
             $this->info("Schema dump saved to: {$outputPath}");
@@ -163,31 +160,58 @@ class D1SchemaDumpCommand extends Command
     }
 
     /**
-     * Download the SQL dump from the signed URL.
+     * Stream the SQL dump from the signed URL to disk.
+     *
+     * Avoids loading the full response body into memory by writing chunks
+     * directly to the output file as they arrive.
      */
-    private function downloadDump(string $signedUrl): ?string
+    private function downloadDumpToFile(string $signedUrl, string $outputPath): bool
     {
         $this->line('  <fg=cyan>Downloading SQL dump...</>');
 
+        // Ensure output directory exists before opening the file handle
+        $dir = dirname($outputPath);
+        if (!File::isDirectory($dir)) {
+            File::makeDirectory($dir, 0755, true);
+        }
+
+        $sink = fopen($outputPath, 'wb');
+        if ($sink === false) {
+            $this->error("Failed to open output file for writing: {$outputPath}");
+
+            return false;
+        }
+
         try {
-            $response = Http::timeout(120)->retry(3, 2000)->get($signedUrl);
+            $response = Http::timeout(120)
+                ->retry(3, 2000)
+                ->withOptions(['sink' => $sink])
+                ->get($signedUrl);
         } catch (Throwable $e) {
+            if (is_resource($sink)) {
+                fclose($sink);
+            }
+            @unlink($outputPath);
             $this->error("Failed to download dump: {$e->getMessage()}");
 
-            return null;
+            return false;
+        } finally {
+            if (is_resource($sink)) {
+                fclose($sink);
+            }
         }
 
         if (!$response->successful()) {
+            @unlink($outputPath);
             $this->error("Failed to download dump: HTTP {$response->status()}");
 
-            return null;
+            return false;
         }
 
-        $sql = $response->body();
-        $sizeKb = round(strlen($sql) / 1024, 1);
+        $sizeKb = round(filesize($outputPath) / 1024, 1);
         $this->line("  <fg=green>Downloaded {$sizeKb} KB</>");
 
-        return $sql;
+        return true;
     }
 
     /**
@@ -208,20 +232,6 @@ class D1SchemaDumpCommand extends Command
         }
 
         return $schemaDir."/{$connectionName}-schema.sql";
-    }
-
-    /**
-     * Save the SQL dump to disk.
-     */
-    private function saveDump(string $path, string $sql): void
-    {
-        $dir = dirname($path);
-
-        if (!File::isDirectory($dir)) {
-            File::makeDirectory($dir, 0755, true);
-        }
-
-        File::put($path, $sql);
     }
 
     /**
