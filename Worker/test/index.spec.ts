@@ -254,6 +254,85 @@ describe("D1 Worker", () => {
 		});
 	});
 
+	// ─── Malformed JSON ──────────────────────────────────────────────
+
+	describe("Malformed JSON handling", () => {
+		it("returns 400 for malformed JSON on /query", async () => {
+			const response = await SELF.fetch("https://worker/query", {
+				method: "POST",
+				headers: {
+					"Content-Type": "application/json",
+					"Authorization": `Bearer ${SECRET}`,
+				},
+				body: "not valid json{",
+			});
+			expect(response.status).toBe(400);
+			const data = (await response.json()) as Record<string, unknown>;
+			expect(data.success).toBe(false);
+		});
+
+		it("returns 400 for malformed JSON on /batch", async () => {
+			const response = await SELF.fetch("https://worker/batch", {
+				method: "POST",
+				headers: {
+					"Content-Type": "application/json",
+					"Authorization": `Bearer ${SECRET}`,
+				},
+				body: "{broken",
+			});
+			expect(response.status).toBe(400);
+			const data = (await response.json()) as Record<string, unknown>;
+			expect(data.success).toBe(false);
+		});
+
+		it("returns 400 for malformed JSON on /exec", async () => {
+			const response = await SELF.fetch("https://worker/exec", {
+				method: "POST",
+				headers: {
+					"Content-Type": "application/json",
+					"Authorization": `Bearer ${SECRET}`,
+				},
+				body: "<<<",
+			});
+			expect(response.status).toBe(400);
+			const data = (await response.json()) as Record<string, unknown>;
+			expect(data.success).toBe(false);
+		});
+
+		it("returns 400 for malformed JSON on /raw", async () => {
+			const response = await SELF.fetch("https://worker/raw", {
+				method: "POST",
+				headers: {
+					"Content-Type": "application/json",
+					"Authorization": `Bearer ${SECRET}`,
+				},
+				body: "}{",
+			});
+			expect(response.status).toBe(400);
+			const data = (await response.json()) as Record<string, unknown>;
+			expect(data.success).toBe(false);
+		});
+	});
+
+	// ─── Payload size ────────────────────────────────────────────────
+
+	describe("Payload size limits", () => {
+		it("returns 413 for oversized Content-Length", async () => {
+			const response = await SELF.fetch("https://worker/query", {
+				method: "POST",
+				headers: {
+					"Content-Type": "application/json",
+					"Authorization": `Bearer ${SECRET}`,
+					"Content-Length": "999999999",
+				},
+				body: JSON.stringify({ sql: "SELECT 1" }),
+			});
+			expect(response.status).toBe(413);
+			const data = (await response.json()) as Record<string, unknown>;
+			expect(data.success).toBe(false);
+		});
+	});
+
 	// ─── HMAC Authentication ──────────────────────────────────────────
 
 	describe("HMAC Authentication", () => {
