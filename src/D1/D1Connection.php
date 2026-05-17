@@ -109,6 +109,28 @@ class D1Connection extends SQLiteConnection
     }
 
     /**
+     * Commit the active database transaction.
+     *
+     * D1 is stateless — there is nothing to commit. All queries execute
+     * immediately when issued. Respects `transaction_mode` config.
+     *
+     * Overrides the parent to prevent sending COMMIT SQL to D1 and to
+     * apply the configured transaction_mode behavior.
+     */
+    public function commit(): void
+    {
+        $this->applyTransactionMode('DB::commit()');
+
+        // Still decrement the transaction counter and fire events so
+        // Laravel's internal tracking stays consistent.
+        if ($this->transactions > 0) {
+            $this->transactions--;
+        }
+
+        $this->fireConnectionEvent('committed');
+    }
+
+    /**
      * Create a save point within the database.
      *
      * D1 does not support savepoints — this is a no-op so that nested
