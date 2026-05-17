@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace Ntanduy\CFD1;
 
 use Illuminate\Cache\Repository;
+use Illuminate\Queue\Events\Looping;
 use Illuminate\Support\ServiceProvider;
 use InvalidArgumentException;
+use Laravel\Octane\Events\RequestReceived;
 use Ntanduy\CFD1\Connectors\CloudflareD1Connector;
 use Ntanduy\CFD1\Connectors\CloudflareWorkerConnector;
 use Ntanduy\CFD1\Console\Commands\D1HealthCommand;
@@ -35,6 +37,54 @@ class D1ServiceProvider extends ServiceProvider
                 D1SchemaDumpCommand::class,
                 D1TimeTravelCommand::class,
             ]);
+        }
+
+        $this->registerSessionResetHooks();
+    }
+
+    /**
+     * Reset Worker session bookmarks between requests in long-lived runtimes.
+     *
+     * Without this, a bookmark stored on a connector instance during request A
+     * would leak into request B when Octane/Swoole/RoadRunner reuse the same
+     * connector instance, breaking session-consistency guarantees.
+     *
+     * Hooks:
+     *   - Octane: RequestReceived event
+     *   - Queue:  Looping event (between jobs)
+     *
+     * Both are no-ops when the corresponding stack isn't installed.
+     */
+    protected function registerSessionResetHooks(): void
+    {
+        $reset = function (): void {
+            try {
+                $manager = $this->app['db'];
+            } catch (\Throwable) {
+                return;
+            }
+
+            // Iterate already-resolved connections only — don't force resolution
+            foreach ($manager->getConnections() as $connection) {
+                if (!$connection instanceof D1Connection || !$connection->isWorkerDriver()) {
+                    continue;
+                }
+
+                $connector = $connection->d1();
+                if ($connector instanceof CloudflareWorkerConnector) {
+                    $connector->resetSessionState();
+                }
+            }
+        };
+
+        // Laravel Octane request lifecycle
+        if (class_exists(RequestReceived::class)) {
+            $this->app['events']->listen(RequestReceived::class, $reset);
+        }
+
+        // Queue worker lifecycle (between jobs)
+        if (class_exists(Looping::class)) {
+            $this->app['events']->listen(Looping::class, $reset);
         }
     }
 
