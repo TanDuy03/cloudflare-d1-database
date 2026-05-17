@@ -234,8 +234,15 @@ class D1Pdo extends PDO
 
     /**
      * Determine if retry should be used for a specific statement.
-     * Only idempotent read queries (SELECT/WITH) are safe to retry.
+     * Only idempotent read queries are safe to retry.
      * Retrying mutations (INSERT, UPDATE, DELETE) risks duplicate data.
+     *
+     * Classification:
+     *   - SELECT ...           → safe to retry (always read-only)
+     *   - WITH ... SELECT ...  → safe to retry (CTE ending with SELECT)
+     *   - WITH ... INSERT ...  → NOT safe (CTE ending with mutation)
+     *   - INSERT/UPDATE/DELETE → NOT safe
+     *   - PRAGMA / EXPLAIN     → NOT retried (not in whitelist)
      *
      * @internal Used by D1PdoStatement. Not intended for end-user consumption.
      */
@@ -246,7 +253,24 @@ class D1Pdo extends PDO
             return false;
         }
 
-        // Whitelist: only retry idempotent read queries
-        return (bool) preg_match('/^\s*(SELECT|WITH)\b/i', $statement);
+        // Pure SELECT is always safe to retry
+        if (preg_match('/^\s*SELECT\b/i', $statement)) {
+            return true;
+        }
+
+        // WITH (CTE): safe only if the statement does NOT contain any
+        // mutating keyword. SQLite/D1 allow WITH ... INSERT/UPDATE/DELETE,
+        // which are NOT safe to retry.
+        //
+        // This check is conservative — it scans the entire statement text,
+        // so a CTE with a string literal like WHERE action = 'DELETE' would
+        // be falsely classified as mutating. This is acceptable because a
+        // false positive (not retrying a read) only costs one retry attempt,
+        // while a false negative (retrying a mutation) risks data corruption.
+        if (preg_match('/^\s*WITH\b/i', $statement)) {
+            return !preg_match('/\b(INSERT|UPDATE|DELETE|REPLACE)\b/i', $statement);
+        }
+
+        return false;
     }
 }
