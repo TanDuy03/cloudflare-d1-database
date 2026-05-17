@@ -101,12 +101,11 @@ class D1Connection extends SQLiteConnection
      * Execute the BEGIN transaction statement.
      *
      * D1 is stateless — this no-op prevents BEGIN SQL from being sent to D1.
-     * In some Laravel/PHP versions, the parent calls exec('BEGIN') instead of
-     * PDO::beginTransaction(), so we intercept at this level as well.
+     * Respects `transaction_mode` config: 'exception' throws, 'log' warns.
      */
     protected function executeBeginTransactionStatement(): void
     {
-        // No-op: D1 is stateless, no real transaction to begin.
+        $this->applyTransactionMode('DB::beginTransaction()');
     }
 
     /**
@@ -125,13 +124,43 @@ class D1Connection extends SQLiteConnection
      * Perform a rollback within the database.
      *
      * D1 is stateless — queries execute immediately and cannot be rolled back.
-     * This no-op prevents ROLLBACK TO SAVEPOINT SQL from being sent to D1.
+     * Respects `transaction_mode` config: 'exception' throws, 'log' warns.
      *
      * @param  int  $toLevel
      */
     protected function performRollBack($toLevel): void
     {
-        // No-op: D1 is stateless, nothing to roll back.
+        $this->applyTransactionMode('DB::rollBack()');
+    }
+
+    /**
+     * Apply the configured transaction_mode behavior.
+     *
+     * Shared by beginTransaction, commit, and rollBack paths so that
+     * manual transaction calls (not just DB::transaction(Closure)) also
+     * respect the configured mode.
+     *
+     * @throws D1TransactionException When transaction_mode is 'exception'
+     */
+    private function applyTransactionMode(string $caller): void
+    {
+        $mode = $this->getConfig('transaction_mode') ?? 'silent';
+
+        if ($mode === 'exception') {
+            throw new D1TransactionException(
+                "{$caller} is not supported on D1 — it provides no atomicity or rollback. "
+                .'Use DB::connection(\'d1\')->batch() for atomic multi-statement execution. '
+                .'Set transaction_mode to "silent" or "log" to suppress this exception.'
+            );
+        }
+
+        if ($mode === 'log') {
+            Log::warning(
+                "D1: {$caller} is a no-op — D1 is stateless over HTTP. "
+                .'Queries execute immediately and cannot be rolled back. Use batch() for atomic operations.',
+                ['connection' => $this->getName()]
+            );
+        }
     }
 
     /**
@@ -158,7 +187,7 @@ class D1Connection extends SQLiteConnection
      * @return array<int, array> Array of result sets, one per statement
      *
      * @throws \InvalidArgumentException If batch exceeds D1's 100-statement limit
-     * @throws D1BatchException If any statement in the batch fails
+     * @throws D1BatchException If any statement in the batch fails or response is malformed
      */
     public function batch(array $statements): array
     {
@@ -186,7 +215,17 @@ class D1Connection extends SQLiteConnection
         // because D1 may have already committed the batch server-side.
         $response = $this->connector->databaseBatch($normalized, retry: false);
 
-        $body = $response->json();
+        // Normalize malformed JSON into D1BatchException so callers don't
+        // need to catch JsonException separately.
+        try {
+            $body = $response->json();
+        } catch (\JsonException $e) {
+            throw D1BatchException::fromStatementError(
+                0,
+                'Malformed JSON response from D1 API: '.$e->getMessage(),
+                0
+            );
+        }
 
         // API-level failure (e.g. auth error, malformed request)
         if (!($body['success'] ?? false)) {
