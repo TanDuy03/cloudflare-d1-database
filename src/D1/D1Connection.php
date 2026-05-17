@@ -90,6 +90,7 @@ class D1Connection extends SQLiteConnection
             );
         }
 
+        $this->applyTransactionMode('DB::transaction()');
         $this->transactionModeCaller = 'DB::transaction()';
 
         try {
