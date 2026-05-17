@@ -21,7 +21,7 @@ Use [Cloudflare D1](https://developers.cloudflare.com/d1) as a native Laravel da
 - **Full Laravel Integration** — Eloquent ORM, Query Builder, Migrations, Seeding
 - **Two Connection Drivers** — REST API (zero infrastructure) or Worker (low latency)
 - **Batch Queries** — Execute multiple statements in a single HTTP round-trip
-- **Bulk Insert** — Insert hundreds of rows in a single atomic batch call
+- **Bulk Insert** — Insert hundreds of rows efficiently via D1 batch execution
 - **Sessions / Read Replication** — Leverage D1 global read replicas for lower-latency reads (Worker driver)
 - **Auto Read/Write Splitting** — Automatic routing of SELECTs to replicas and writes to primary (Worker driver)
 - **Import** — Import SQL files into D1 via `php artisan d1:import`
@@ -327,7 +327,7 @@ try {
 
 ### Bulk Insert
 
-Insert multiple rows efficiently using D1 batch execution — one HTTP round-trip, atomic:
+Insert multiple rows efficiently using D1 batch execution:
 
 ```php
 use Ntanduy\CFD1\D1\D1Connection;
@@ -343,8 +343,8 @@ $connection->bulkInsert('users', [
 ```
 
 - Each row becomes a parameterized INSERT (SQL injection safe)
-- All rows are sent as a D1 batch (atomic — if any fails, none are applied)
-- Rows exceeding D1's 100-statement batch limit are automatically chunked
+- Each chunk of up to 100 rows is sent as a D1 batch (atomic per chunk — if any statement in a chunk fails, that chunk is rolled back)
+- Datasets exceeding D1's 100-statement batch limit are automatically chunked into multiple HTTP calls — **earlier chunks are committed even if a later chunk fails**
 - Works with both REST and Worker drivers
 
 ### Sessions / Read Replication (Worker Driver Only)
