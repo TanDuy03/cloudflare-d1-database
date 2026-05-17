@@ -230,6 +230,53 @@ describe("D1 Worker", () => {
 			expect(data.success).toBe(false);
 		});
 
+		it("returns 400 when batch statement is not an object", async () => {
+			const { status, data } = await fetchWorker("/batch", {
+				statements: ["not an object"],
+			});
+			expect(status).toBe(400);
+			expect(data.success).toBe(false);
+			expect(data.errors[0].message).toContain("Statement [0]");
+		});
+
+		it("returns 400 when batch statement.sql is not a string", async () => {
+			const { status, data } = await fetchWorker("/batch", {
+				statements: [{ sql: 123, bindings: [] }],
+			});
+			expect(status).toBe(400);
+			expect(data.success).toBe(false);
+			expect(data.errors[0].message).toContain("sql");
+		});
+
+		it("returns 400 when batch statement.sql is empty string", async () => {
+			const { status, data } = await fetchWorker("/batch", {
+				statements: [{ sql: "", bindings: [] }],
+			});
+			expect(status).toBe(400);
+			expect(data.success).toBe(false);
+			expect(data.errors[0].message).toContain("sql");
+		});
+
+		it("returns 400 when batch statement.bindings is not an array", async () => {
+			const { status, data } = await fetchWorker("/batch", {
+				statements: [{ sql: "SELECT 1", bindings: "not-array" }],
+			});
+			expect(status).toBe(400);
+			expect(data.success).toBe(false);
+			expect(data.errors[0].message).toContain("bindings");
+		});
+
+		it("returns 400 when batch exceeds 100 statements", async () => {
+			const statements = Array.from({ length: 101 }, () => ({
+				sql: "SELECT 1",
+				bindings: [],
+			}));
+			const { status, data } = await fetchWorker("/batch", { statements });
+			expect(status).toBe(400);
+			expect(data.success).toBe(false);
+			expect(data.errors[0].message).toContain("100");
+		});
+
 		it("returns 400 when sql is missing from /exec", async () => {
 			const { status, data } = await fetchWorker("/exec", {});
 			expect(status).toBe(400);
