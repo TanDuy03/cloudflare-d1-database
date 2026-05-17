@@ -90,37 +90,47 @@ class D1PdoStatement extends PDOStatement
             $shouldRetry,
         );
 
-        if ($response->failed() || !$response->json('success')) {
-            $errorCode = $response->json('errors.0.code');
-            $errorMessage = $response->json('errors.0.message', 'Unknown error');
+        // Wrap all json() calls so that malformed JSON from the API is
+        // normalized into D1QueryException rather than leaking JsonException.
+        try {
+            if ($response->failed() || !$response->json('success')) {
+                $errorCode = $response->json('errors.0.code');
+                $errorMessage = $response->json('errors.0.message', 'Unknown error');
 
-            $sqlState = $this->mapErrorToSqlState($errorMessage);
+                $sqlState = $this->mapErrorToSqlState($errorMessage);
 
-            // Throw exception if error mode is set to EXCEPTION
-            if ($this->pdo->getAttribute(PDO::ATTR_ERRMODE) === PDO::ERRMODE_EXCEPTION) {
-                throw D1QueryException::fromApiError($errorMessage, (int) $errorCode, $sqlState);
+                // Throw exception if error mode is set to EXCEPTION
+                if ($this->pdo->getAttribute(PDO::ATTR_ERRMODE) === PDO::ERRMODE_EXCEPTION) {
+                    throw D1QueryException::fromApiError($errorMessage, (int) $errorCode, $sqlState);
+                }
+
+                return false;
             }
 
-            return false;
-        }
+            $this->responses = $response->json('result');
+            $this->results = $this->rowsFromResponses();
+            $this->currentResultIndex = 0;
+            $this->affectedRows = array_reduce(
+                $this->responses,
+                fn ($sum, $response) => $sum + ($response['meta']['changes'] ?? 0),
+                0
+            );
 
-        $this->responses = $response->json('result');
-        $this->results = $this->rowsFromResponses();
-        $this->currentResultIndex = 0;
-        $this->affectedRows = array_reduce(
-            $this->responses,
-            fn ($sum, $response) => $sum + ($response['meta']['changes'] ?? 0),
-            0
-        );
-
-        if (!empty($this->responses)) {
-            $lastId = end($this->responses)['meta']['last_row_id'] ?? null;
-            if ($lastId) {
-                $this->pdo->setLastInsertId(null, $lastId);
+            if (!empty($this->responses)) {
+                $lastId = end($this->responses)['meta']['last_row_id'] ?? null;
+                if ($lastId) {
+                    $this->pdo->setLastInsertId(null, $lastId);
+                }
             }
-        }
 
-        return true;
+            return true;
+        } catch (\JsonException $e) {
+            throw D1QueryException::fromApiError(
+                'Malformed JSON response from D1: '.$e->getMessage(),
+                0,
+                'HY000'
+            );
+        }
     }
 
     #[\ReturnTypeWillChange]
