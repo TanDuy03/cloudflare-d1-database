@@ -14,7 +14,9 @@ class D1InfoCommand extends Command
 {
     use FormatsBytes;
 
-    protected $signature = 'd1:info {--connection=d1 : The D1 connection name}';
+    protected $signature = 'd1:info
+        {--connection=d1 : The D1 connection name}
+        {--strict : Exit with non-zero status if any check fails}';
 
     protected $description = 'Display Cloudflare D1 database information and connection status';
 
@@ -22,6 +24,8 @@ class D1InfoCommand extends Command
      * @var list<array{string, string, string}>
      */
     private array $rows = [];
+
+    private bool $hasFailures = false;
 
     public function handle(): int
     {
@@ -65,6 +69,13 @@ class D1InfoCommand extends Command
         $this->queryTest($connectionName);
 
         $this->renderTable();
+
+        // By default, d1:info is informational and always exits successfully
+        // (similar to `php artisan about`). Pass --strict to make CI-friendly
+        // and exit non-zero when any check failed.
+        if ($this->option('strict') && $this->hasFailures) {
+            return self::FAILURE;
+        }
 
         return self::SUCCESS;
     }
@@ -205,6 +216,7 @@ class D1InfoCommand extends Command
     private function addFail(string $property, string $detail): void
     {
         $this->rows[] = [$property, '<fg=red>✗ FAIL</>', $detail];
+        $this->hasFailures = true;
     }
 
     private function addInfo(string $property, string $detail): void
