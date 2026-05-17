@@ -677,8 +677,13 @@ Instead of publishing the config, you can add the connection directly to `config
 | `connect_timeout`    | `5`                                    | HTTP connection timeout in seconds                                          |
 | `retries`            | `2`                                    | Max retry attempts on 5xx/429 errors                                        |
 | `retry_delay`        | `100`                                  | Base delay between retries in milliseconds                                  |
+| `transaction_mode`       | `silent`                           | How `DB::transaction()` is handled: `silent` (no-op), `log` (warn), `exception` (throw) |
 | `session.enabled`        | `false`                            | Enable D1 sessions for read replication (Worker driver only)                |
 | `session.mode`           | `first-unconstrained`              | Session mode: `first-primary` or `first-unconstrained`                      |
+| `read_write_splitting.enabled`    | `false`                   | Route SELECT to read replicas, writes to primary (Worker driver only)       |
+| `read_write_splitting.sticky`     | `true`                    | After a write, route subsequent reads to write connector for consistency    |
+| `read_write_splitting.read_mode`  | `first-unconstrained`     | Session mode for the read connector                                         |
+| `read_write_splitting.write_mode` | `first-primary`           | Session mode for the write connector                                        |
 | `circuit_breaker.enabled` | `false`                           | Enable circuit breaker for fail-fast behavior                               |
 | `circuit_breaker.threshold` | `5`                             | Consecutive failures before opening the circuit                             |
 | `circuit_breaker.cooldown` | `30`                              | Seconds before allowing a probe request                                     |
@@ -706,6 +711,9 @@ CF_D1_TIMEOUT=10
 CF_D1_CONNECT_TIMEOUT=5
 CF_D1_RETRIES=2
 CF_D1_RETRY_DELAY=100
+
+# Transaction behavior (optional)
+CF_D1_TRANSACTION_MODE=silent          # 'silent', 'log', or 'exception'
 
 # Sessions / Read Replication (Worker driver only)
 CF_D1_SESSION_ENABLED=false
